@@ -1,0 +1,152 @@
+name: Upload artifacts to telegram
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: upload-artifacts
+  cancel-in-progress: false
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: KernelSU
+            owner: tiann
+            repo: KernelSU
+            workflow: build.yml
+            branch: main
+            artifact_name: manager-gradle
+            file_pattern: "*.apk"
+            caption_prefix: "KernelSU Manager"
+            bot_token_secret: KSU_BOT_TOKEN
+            topic_id_secret: KSU_TOPIC_ID
+
+          - name: KernelSU-Next
+            owner: KernelSU-Next
+            repo: KernelSU-Next
+            workflow: build.yml
+            branch: dev
+            file_pattern: "*.apk"
+            caption_prefix: "KernelSU-Next"
+            bot_token_secret: KSUN_BOT_TOKEN
+            topic_id_secret: KSUN_TOPIC_ID
+
+          - name: ReSukiSU
+            owner: ReSukiSU
+            repo: ReSukiSU
+            workflow: build.yml
+            branch: main
+            file_pattern: "*.apk"
+            caption_prefix: "ReSukiSU"
+            bot_token_secret: RESUKISU_BOT_TOKEN
+            topic_id_secret: RESUKISU_TOPIC_ID
+
+          - name: NoMount
+            owner: maxsteeel
+            repo: nomount
+            workflow: build.yml
+            branch: master
+            file_pattern: "NoMount-*.zip"
+            zip_if_dir: true
+            caption_prefix: "NoMount"
+            bot_token_secret: NOMOUNT_BOT_TOKEN
+            topic_id_secret: NOMOUNT_TOPIC_ID
+
+    steps:
+      - name: Get latest ${{ matrix.name }} build run
+        id: run_info
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data } = await github.rest.actions.listWorkflowRuns({
+              owner: '${{ matrix.owner }}',
+              repo: '${{ matrix.repo }}',
+              workflow_id: '${{ matrix.workflow }}',
+              branch: '${{ matrix.branch }}',
+              status: 'success',
+              per_page: 1
+            });
+
+            if (data.workflow_runs.length === 0) {
+              core.setFailed('No successful workflow runs found for ${{ matrix.owner }}/${{ matrix.repo }}');
+              return;
+            }
+
+            core.setOutput('run_id', data.workflow_runs[0].id);
+
+      - name: Download specific artifact
+        if: matrix.artifact_name != ''
+        uses: actions/download-artifact@v4
+        with:
+          repository: ${{ matrix.owner }}/${{ matrix.repo }}
+          run-id: ${{ steps.run_info.outputs.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          name: ${{ matrix.artifact_name }}
+          path: artifacts
+
+      - name: Download all artifacts
+        if: matrix.artifact_name == ''
+        uses: actions/download-artifact@v4
+        with:
+          repository: ${{ matrix.owner }}/${{ matrix.repo }}
+          run-id: ${{ steps.run_info.outputs.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: artifacts
+
+      - name: Package directory into zip if needed
+        if: matrix.zip_if_dir
+        run: |
+          set -euo pipefail
+          if ! find artifacts -type f -name "${{ matrix.file_pattern }}" | grep -q .; then
+            DIR=$(find artifacts -type d -name "NoMount-*" | head -1)
+            if [[ -n "$DIR" ]]; then
+              (cd "$DIR" && zip -r "../$(basename "$DIR").zip" .)
+            else
+              echo "::warning::No directory matching NoMount-* found to zip"
+            fi
+          fi
+
+      - name: Send ${{ matrix.name }} to Telegram
+        env:
+          BOT_TOKEN: ${{ secrets[matrix.bot_token_secret] }}
+          CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TOPIC_ID: ${{ secrets[matrix.topic_id_secret] }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${BOT_TOKEN:-}" || -z "${CHAT_ID:-}" || -z "${TOPIC_ID:-}" ]]; then
+            echo "Telegram secrets not configured for ${{ matrix.name }}, skipping."
+            exit 0
+          fi
+
+          mapfile -t FILES < <(find artifacts -type f -name "${{ matrix.file_pattern }}")
+
+          if [[ ${#FILES[@]} -eq 0 ]]; then
+            echo "::warning::No files found matching '${{ matrix.file_pattern }}' for ${{ matrix.name }}"
+            exit 0
+          fi
+
+          for f in "${FILES[@]}"; do
+            BASENAME=$(basename "$f")
+            echo "Uploading $BASENAME to ${{ matrix.name }} topic"
+
+            HTTP_CODE=$(curl -sS -o /tmp/telegram_response.json -w "%{http_code}" \
+              -F "chat_id=$CHAT_ID" \
+              -F "message_thread_id=$TOPIC_ID" \
+              -F "document=@$f" \
+              -F "caption=${{ matrix.caption_prefix }}: $BASENAME" \
+              "https://api.telegram.org/bot$BOT_TOKEN/sendDocument")
+
+            if [[ "$HTTP_CODE" != "200" ]]; then
+              echo "::error::Telegram upload failed for $BASENAME (HTTP $HTTP_CODE)"
+              cat /tmp/telegram_response.json
+              exit 1
+            fi
+          done
