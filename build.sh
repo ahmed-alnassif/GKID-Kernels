@@ -325,11 +325,15 @@ if [[ $TODO == "defconfig" ]]; then
   exit 0
 fi
 
-echo "::group::[*] Resource Optimization"
-info "Initial storage: $(df -h / | awk 'NR==2 {print $4}') available"
+echo "::group::[*] Aggressive Resource Optimization for FullLTO"
 
-sudo apt-get clean -q
-sudo apt-get autoremove -y -q
+info "Initial storage: $(df -h / | awk 'NR==2 {print $4}') available"
+info "Initial memory: $(free -h | awk '/^Mem:/ {print $7}') available"
+
+sudo apt-get clean -qq
+sudo apt-get autoremove -y -qq
+sudo apt-get autoclean -qq
+sudo rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/* /var/cache/apt/*
 
 for dir in \
     /usr/share/dotnet \
@@ -338,15 +342,24 @@ for dir in \
     /usr/local/share/chromium \
     /usr/local/lib/node_modules \
     /opt/ghc \
+    /usr/local/.ghcup \
     /opt/hostedtoolcache \
     /usr/local/share/boost \
     /usr/local/share/gradle-* \
     /usr/local/share/kotlin \
     /usr/local/share/sbt \
-    /usr/local/share/swift \
+    /usr/share/swift \
     /usr/local/share/php \
     /usr/local/share/rust \
     /usr/local/share/go \
+    /usr/local/julia* \
+    /usr/share/az_* \
+    /usr/share/miniconda \
+    /opt/microsoft \
+    /opt/google \
+    /opt/az \
+    /usr/lib/jvm \
+    /usr/local/lib/heroku \
     /var/lib/containers \
     /var/lib/docker \
     /var/lib/gems \
@@ -354,30 +367,59 @@ for dir in \
     /var/lib/postgresql \
     /var/lib/snapd \
     /var/cache/* \
-    /tmp/*; do
-    if [ -d "$dir" ] || [ -f "$dir" ]; then
-        SIZE=$(du -sh "$dir" 2>/dev/null | cut -f1)
+    /tmp/* \
+    /home/runner/.cargo \
+    /home/runner/.rustup \
+    /home/runner/.npm \
+    /home/runner/.cache \
+    /home/runner/go \
+    /home/runner/.local/share \
+    /home/runner/.dotnet \
+    /home/runner/.gradle \
+    /home/runner/.m2 \
+    /etc/skel \
+    /home/packer \
+    /opt/pipx; do
+    if [ -e "$dir" ]; then
+        SIZE=$(du -sh "$dir" 2>/dev/null | cut -f1 || echo "?")
         sudo rm -rf "$dir" 2>/dev/null || true
         success "Removed $dir ($SIZE)"
     fi
 done
 
-sudo docker system prune -af 2>/dev/null || true
+sudo docker system prune -af --volumes 2>/dev/null || true
+sudo docker builder prune -af 2>/dev/null || true
+sudo docker image prune -af 2>/dev/null || true
 
-if [ ! -f /swapfile ]; then
-    warning "Creating 16GB swap"
-    sudo fallocate -l 16G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=16384
-    sudo chmod 600 /swapfile
-    sudo mkswap /swapfile
-    sudo swapon /swapfile
-    success "Swap created"
+sudo journalctl --vacuum-size=1M 2>/dev/null || true
+sudo find /var/log -type f \( -name "*.log" -o -name "*.gz" -o -name "*.1" -o -name "*.old" \) -delete 2>/dev/null || true
+sudo rm -rf /var/log/journal/* 2>/dev/null || true
+
+if [ -f /swapfile ]; then
+    sudo swapoff /swapfile 2>/dev/null || true
+    sudo rm -f /swapfile
+fi
+if [ -f /mnt/swapfile ]; then
+    sudo swapoff /mnt/swapfile 2>/dev/null || true
+    sudo rm -f /mnt/swapfile
 fi
 
-sudo sysctl vm.swappiness=60 -q
-sudo sysctl vm.vfs_cache_pressure=50 -q
-sudo sysctl vm.drop_caches=3 -q
+warning "Creating 32GB swap"
+sudo fallocate -l 32G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=32768 status=none
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+success "32GB swap created and activated"
 
-success "Storage: $(df -h / | awk 'NR==2 {print $4}') available | Swap: $(free -h | awk '/^Swap:/ {print $3}')"
+sudo sysctl -w vm.swappiness=90
+sudo sysctl -w vm.vfs_cache_pressure=200
+sudo sysctl -w vm.dirty_ratio=5
+sudo sysctl -w vm.dirty_background_ratio=2
+sudo sysctl -w vm.drop_caches=3
+sudo sysctl -w vm.overcommit_memory=1
+
+success "Final storage: $(df -h / | awk 'NR==2 {print $4}') available"
+success "Final memory:  $(free -h | awk '/^Mem:/ {print $7}') available | Swap: $(free -h | awk '/^Swap:/ {print $2}')"
 echo "::endgroup::"
 
 echo "::group::[*] Building kernel"
