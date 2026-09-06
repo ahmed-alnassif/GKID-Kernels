@@ -23,7 +23,7 @@ jobs:
             workflow: build-manager.yml
             branch: main
             strict_branch: true
-            artifact_name: manager-gradle
+            artifact_name: manager
             file_pattern: "*.apk"
             zip_if_dir: false
             caption_prefix: "KernelSU Manager"
