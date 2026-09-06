@@ -325,6 +325,61 @@ if [[ $TODO == "defconfig" ]]; then
   exit 0
 fi
 
+echo "::group::[*] Resource Optimization"
+info "Initial storage: $(df -h / | awk 'NR==2 {print $4}') available"
+
+sudo apt-get clean -q
+sudo apt-get autoremove -y -q
+
+for dir in \
+    /usr/share/dotnet \
+    /usr/local/lib/android \
+    /usr/local/share/powershell \
+    /usr/local/share/chromium \
+    /usr/local/lib/node_modules \
+    /opt/ghc \
+    /opt/hostedtoolcache \
+    /usr/local/share/boost \
+    /usr/local/share/gradle-* \
+    /usr/local/share/kotlin \
+    /usr/local/share/sbt \
+    /usr/local/share/swift \
+    /usr/local/share/php \
+    /usr/local/share/rust \
+    /usr/local/share/go \
+    /var/lib/containers \
+    /var/lib/docker \
+    /var/lib/gems \
+    /var/lib/mysql \
+    /var/lib/postgresql \
+    /var/lib/snapd \
+    /var/cache/* \
+    /tmp/*; do
+    if [ -d "$dir" ] || [ -f "$dir" ]; then
+        SIZE=$(du -sh "$dir" 2>/dev/null | cut -f1)
+        sudo rm -rf "$dir" 2>/dev/null || true
+        success "Removed $dir ($SIZE)"
+    fi
+done
+
+sudo docker system prune -af 2>/dev/null || true
+
+if [ ! -f /swapfile ]; then
+    warning "Creating 16GB swap"
+    sudo fallocate -l 16G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=16384
+    sudo chmod 600 /swapfile
+    sudo mkswap /swapfile
+    sudo swapon /swapfile
+    success "Swap created"
+fi
+
+sudo sysctl vm.swappiness=60 -q
+sudo sysctl vm.vfs_cache_pressure=50 -q
+sudo sysctl vm.drop_caches=3 -q
+
+success "Storage: $(df -h / | awk 'NR==2 {print $4}') available | Swap: $(free -h | awk '/^Swap:/ {print $3}')"
+echo "::endgroup::"
+
 echo "::group::[*] Building kernel"
 make ${MAKE_ARGS[@]} CC="ccache clang" CXX="ccache clang++"
 echo "::endgroup::"
