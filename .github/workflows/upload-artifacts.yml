@@ -22,10 +22,13 @@ jobs:
             repo: KernelSU
             workflow: build-manager.yml
             branch: main
+            strict_branch: true
             artifact_name: manager-gradle
             file_pattern: "*.apk"
+            zip_if_dir: false
             caption_prefix: "KernelSU Manager"
             bot_token_secret: KSU_BOT_TOKEN
+            chat_id_secret: KSU_CHAT_ID
             topic_id_secret: KSU_TOPIC_ID
 
           - name: KernelSU-Next
@@ -33,9 +36,12 @@ jobs:
             repo: KernelSU-Next
             workflow: build-manager-ci.yml
             branch: dev
+            artifact_name: ""
             file_pattern: "*.apk"
+            zip_if_dir: false
             caption_prefix: "KernelSU-Next"
             bot_token_secret: KSUN_BOT_TOKEN
+            chat_id_secret: KSUN_CHAT_ID
             topic_id_secret: KSUN_TOPIC_ID
 
           - name: ReSukiSU
@@ -43,9 +49,13 @@ jobs:
             repo: ReSukiSU
             workflow: build-manager.yml
             branch: main
+            strict_branch: true
+            artifact_name: ""
             file_pattern: "*.apk"
+            zip_if_dir: false
             caption_prefix: "ReSukiSU"
             bot_token_secret: RESUKISU_BOT_TOKEN
+            chat_id_secret: RESUKISU_CHAT_ID
             topic_id_secret: RESUKISU_TOPIC_ID
 
           - name: NoMount
@@ -53,10 +63,13 @@ jobs:
             repo: nomount
             workflow: build.yml
             branch: master
+            strict_branch: true
+            artifact_name: ""
             file_pattern: "NoMount-*.zip"
             zip_if_dir: true
             caption_prefix: "NoMount"
             bot_token_secret: NOMOUNT_BOT_TOKEN
+            chat_id_secret: NOMOUNT_CHAT_ID
             topic_id_secret: NOMOUNT_TOPIC_ID
 
     steps:
@@ -65,21 +78,33 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const { data } = await github.rest.actions.listWorkflowRuns({
+            const strict = ${{ matrix.strict_branch || false }};
+
+            const params = {
               owner: '${{ matrix.owner }}',
               repo: '${{ matrix.repo }}',
               workflow_id: '${{ matrix.workflow }}',
               branch: '${{ matrix.branch }}',
               status: 'success',
               per_page: 1
-            });
+            };
 
-            if (data.workflow_runs.length === 0) {
-              core.setFailed('No successful workflow runs found for ${{ matrix.owner }}/${{ matrix.repo }}');
+            if (strict) {
+              params.event = 'push';
+            }
+
+            const { data } = await github.rest.actions.listWorkflowRuns(params);
+
+            const run = strict
+              ? data.workflow_runs.find(r => r.head_branch === '${{ matrix.branch }}')
+              : data.workflow_runs[0];
+
+            if (!run) {
+              core.setFailed('No successful workflow runs found on branch ${{ matrix.branch }} for ${{ matrix.owner }}/${{ matrix.repo }}');
               return;
             }
 
-            core.setOutput('run_id', data.workflow_runs[0].id);
+            core.setOutput('run_id', run.id);
 
       - name: Download specific artifact
         if: matrix.artifact_name != ''
