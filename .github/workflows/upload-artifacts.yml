@@ -20,7 +20,7 @@ jobs:
           - name: KernelSU
             owner: tiann
             repo: KernelSU
-            workflow: build.yml
+            workflow: build-manager.yml
             branch: main
             artifact_name: manager-gradle
             file_pattern: "*.apk"
@@ -31,7 +31,7 @@ jobs:
           - name: KernelSU-Next
             owner: KernelSU-Next
             repo: KernelSU-Next
-            workflow: build.yml
+            workflow: build-manager-ci.yml
             branch: dev
             file_pattern: "*.apk"
             caption_prefix: "KernelSU-Next"
@@ -41,7 +41,7 @@ jobs:
           - name: ReSukiSU
             owner: ReSukiSU
             repo: ReSukiSU
-            workflow: build.yml
+            workflow: build-manager.yml
             branch: main
             file_pattern: "*.apk"
             caption_prefix: "ReSukiSU"
