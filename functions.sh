@@ -1,5 +1,71 @@
 #!/usr/bin/env bash
 
+declare -A GKI_AOSP_BRANCH=(
+  ["5.10"]="android13-5.10"
+  ["5.15"]="android14-5.15"
+  ["6.6"]="android15-6.6"
+  ["6.12"]="android16-6.12"
+)
+
+declare -A GKI_SUSFS_BRANCH=(
+  ["5.10"]="gki-android13-5.10"
+  ["5.15"]="gki-android14-5.15"
+  ["6.1"]="gki-android14-6.1"
+  ["6.6"]="gki-android15-6.6"
+  ["6.12"]="gki-android16-6.12"
+)
+
+resolve_kernel_source() {
+  local ver="$1"
+  local branch="${GKI_AOSP_BRANCH[$ver]:-}"
+
+  if [ -z "$branch" ]; then
+    error "No AOSP GKI branch mapped for KERNEL_VERSION='$ver' (see GKI_AOSP_BRANCH in functions.sh)"
+    exit 1
+  fi
+
+  echo "https://android.googlesource.com/kernel/common|$branch"
+}
+
+resolve_susfs_branch() {
+  local ver="$1"
+  local branch="${GKI_SUSFS_BRANCH[$ver]:-}"
+
+  if [ -z "$branch" ]; then
+    error "No susfs4ksu branch mapped for KERNEL_VERSION='$ver'"
+    exit 1
+  fi
+
+  echo "$branch"
+}
+
+kernel_version_lt() {
+  [ "$1" = "$2" ] && return 1
+  local IFS=.
+  local -a a=($1) b=($2)
+  local i max=${#a[@]}
+  [ ${#b[@]} -gt "$max" ] && max=${#b[@]}
+  for ((i=0; i<max; i++)); do
+    local ai="${a[i]:-0}"
+    local bi="${b[i]:-0}"
+    if ((10#$ai < 10#$bi)); then return 0; fi
+    if ((10#$ai > 10#$bi)); then return 1; fi
+  done
+  return 1
+}
+
+apply_ntsync_compat_patch() {
+  local branch="$1"
+  local url="https://github.com/WildKernels/kernel_patches/raw/main/common/ntsync/ntsync_compat_${branch}.patch"
+
+  if command curl -LSsf -o /dev/null "$url" 2>/dev/null; then
+    curl -LSs "$url" | patch -p1 --fuzz=3
+    success "NTSync compat patch applied for $branch"
+  else
+    warning "No NTSync compat patch found for $branch"
+  fi
+}
+
 install_ksu() {
   local REPO="$1"
   local REF="$2"
