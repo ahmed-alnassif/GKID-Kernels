@@ -193,6 +193,10 @@ if [ "$NH" = "true" ]; then
   git clone --depth=1 "https://github.com/ahmed-alnassif/rtw88"
   rm -rf "drivers/net/wireless/realtek/rtw88"
   mv rtw88 "drivers/net/wireless/realtek/"
+
+  if kernel_version_lt "$KERNEL_VERSION" "6.1"; then
+    patch -p1 --fuzz=3 < "$KERNEL_PATCHES/nethunter/0001-wifi-rtw88-rtw8723x-avoid-shared-loop-variable-name-.patch"
+  fi
 fi
 
 if susfs_included && [ "$KSU" = "RSKSU" ]; then
