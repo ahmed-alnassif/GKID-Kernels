@@ -225,7 +225,7 @@ apply_kernel_patches() {
     local patches=()
     while IFS= read -r -d '' patch; do
         patches+=("$patch")
-    done < <(find "$patch_dir" -type f \( -name "*.patch" -o -name "*.diff" \) -print0 | sort -V)
+    done < <(find "$patch_dir" -type f \( -name "*.patch" -o -name "*.diff" \) -print0 | sort -z -V)
 
     [[ ${#patches[@]} -eq 0 ]] && { warning "No patches found in $patch_dir"; return 0; }
 
