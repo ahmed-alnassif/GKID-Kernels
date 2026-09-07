@@ -190,6 +190,7 @@ elif [ "$DROIDSPACES" = "true" ] || [ "$NH" = "true" ]; then
 fi
 
 if [ "$NH" = "true" ]; then
+  log "Applying NetHunter patches"
   patch -p1 --fuzz=3 < "$KERNEL_PATCHES/nethunter/0001-mac80211-cfg80211-Add-monitor-mode-and-packet-inject.patch"
   git clone --depth=1 "https://github.com/ahmed-alnassif/rtw88"
   rm -rf "drivers/net/wireless/realtek/rtw88"
