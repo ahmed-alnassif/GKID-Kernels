@@ -318,11 +318,18 @@ fix_task_mmu_corruption() {
         return 0
     fi
 
-    if grep -q "if (vma->vm_file) {" "$file"; then
-        sed -i '/if (vma->vm_file) {/d' "$file"
-        success "task_mmu.c corruption fixed via sed"
+    if grep -q "SUSFS_IS_INODE_SUS_MAP" "$file" && grep -q "static int show_smap" "$file"; then
+        success "task_mmu.c SUSFS map already correctly applied"
+        return 0
+    fi
+
+    git checkout -- "$file"
+
+    if grep -q "static int show_smap" "$file"; then
+        sed -i '/struct mem_size_stats mss = {};/a \\n#ifdef CONFIG_KSU_SUSFS_SUS_MAP\n\tif (vma->vm_file) {\n\t\tif (SUSFS_IS_INODE_SUS_MAP(file_inode(vma->vm_file)))\n\t\t\treturn 0;\n\t}\n#endif' "$file"
+        success "task_mmu.c restored and SUSFS map added via sed"
     else
-        success "task_mmu.c already fixed"
+        success "task_mmu.c show_smap function not found"
     fi
 }
 
