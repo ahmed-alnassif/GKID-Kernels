@@ -150,6 +150,7 @@ echo "::group::[+] Applied patches"
 
 if [ "$KERNEL_VERSION" != "6.1" ]; then
   apply_kernel_patches
+  apply_force_load_module_patch
 fi
 
 if [ "$KERNEL_VERSION" = "6.1" ]; then

@@ -251,3 +251,26 @@ apply_kernel_patches() {
     [[ $failed -eq 0 ]] && success "All patches applied successfully" || warning "Applied $((${#patches[@]} - failed))/${#patches[@]} patches, $failed failed"
     return $failed
 }
+
+apply_force_load_module_patch() {
+    local file=""
+
+    if [[ -f "kernel/module/version.c" ]]; then
+        file="kernel/module/version.c"
+    elif [[ -f "kernel/module.c" ]]; then
+        file="kernel/module.c"
+    else
+        warning "Module file not found - skipping force load patch"
+        return 0
+    fi
+
+    if grep -q "disagrees about version of symbol.*but ignore" "$file"; then
+        success "Force load module patch already applied"
+        return 0
+    fi
+
+    sed -i 's/pr_warn("%s: disagrees about version of symbol %s\\n", info->name, symname);/pr_warn("%s: disagrees about version of symbol %s, but ignore...\\n", info->name, symname);/' "$file"
+    sed -i 's/return 0;/return 1;/' "$file"
+
+    success "Force load module patch applied via sed"
+}
