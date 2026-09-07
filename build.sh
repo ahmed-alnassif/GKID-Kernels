@@ -201,6 +201,7 @@ if [ "$NH" = "true" ]; then
   fi
 fi
 
+set -eo pipefail
 if susfs_included && [ "$KSU" = "RSKSU" ]; then
   log "ReSukiSU included"
   install_ksu "ReSukiSU/ReSukiSU" "main"
@@ -276,6 +277,7 @@ if [ "$NM" = "true" ]; then
   curl "https://raw.githubusercontent.com/maxsteeel/nomount/refs/heads/dev/kernel/setup.sh" | bash -s master
 fi
 echo "::endgroup::"
+set +eo pipefail
 
 fix_task_mmu_corruption
 
