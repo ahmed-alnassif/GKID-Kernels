@@ -235,13 +235,13 @@ apply_kernel_patches() {
     for patch in "${patches[@]}"; do
         info "Applying: $(basename "$patch")"
 
-        if ! git apply --check --fuzz=3 "$patch" 2>/dev/null; then
+        if ! git apply --check "$patch" 2>/dev/null; then
             warning "Skipping: $(basename "$patch") - does not apply"
             ((failed++))
             continue
         fi
 
-        if git apply --fuzz=3 "$patch" 2>/dev/null; then
+        if git apply "$patch" 2>/dev/null; then
             success "Applied: $(basename "$patch")"
         else
             error "Failed: $(basename "$patch")"
