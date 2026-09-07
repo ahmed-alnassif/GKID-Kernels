@@ -260,7 +260,7 @@ jobs:
 
   release:
     needs: build
-    if: github.event.inputs.TODO != 'defconfig'
+    if: always() && github.event.inputs.TODO != 'defconfig'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source
