@@ -334,3 +334,19 @@ apply_extract_cert_key_pass_patch() {
 
     success "extract-cert key_pass patch applied via sed"
 }
+
+fix_task_mmu_corruption() {
+    local file="fs/proc/task_mmu.c"
+
+    if [[ ! -f "$file" ]]; then
+        warning "task_mmu.c not found - skipping fix"
+        return 0
+    fi
+
+    if grep -q "if (vma->vm_file) {" "$file"; then
+        sed -i '/if (vma->vm_file) {/d' "$file"
+        success "task_mmu.c corruption fixed via sed"
+    else
+        success "task_mmu.c already fixed"
+    fi
+}

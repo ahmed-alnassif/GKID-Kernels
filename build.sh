@@ -277,6 +277,8 @@ if [ "$NM" = "true" ]; then
 fi
 echo "::endgroup::"
 
+fix_task_mmu_corruption
+
 AK3_ZIP_NAME=${AK3_ZIP_NAME//KVER/$LINUX_VERSION}
 AK3_ZIP_NAME=${AK3_ZIP_NAME//VARIANT/$VARIANT}
 
