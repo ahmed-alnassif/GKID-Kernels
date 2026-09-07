@@ -123,6 +123,7 @@ config() {
 log() {
   echo -e "[*] $*"
 }
+info() { log "$@"; }
 
 success() {
   echo -e "[+] $*"
@@ -224,6 +225,37 @@ generate_gh_changelog() {
         > "$output"
 }
 
+apply_patch_file() {
+    local patch="$1"
+    local patch_data=""
+
+    if [[ -n "$patch" && -f "$patch" ]]; then
+        patch_data=$(cat "$patch")
+        info "Applying: $(basename "$patch")"
+    elif [[ -n "$patch" ]]; then
+        patch_data="$patch"
+        info "Applying patch from data"
+    else
+        patch_data=$(cat)
+        info "Applying patch from stdin"
+    fi
+
+    [[ -z "$patch_data" ]] && { error "No patch data"; return 1; }
+
+    if ! echo "$patch_data" | git apply --check - 2>/dev/null; then
+        warning "Skipping: patch does not apply"
+        return 1
+    fi
+
+    if echo "$patch_data" | git apply - 2>/dev/null; then
+        success "Applied patch successfully"
+        return 0
+    else
+        error "Failed to apply patch"
+        return 1
+    fi
+}
+
 apply_kernel_patches() {
     local patch_dir="${1:-$KERNEL_PATCHES/common}"
     local failed=0
@@ -240,18 +272,7 @@ apply_kernel_patches() {
     info "Found ${#patches[@]} patches in $patch_dir"
 
     for patch in "${patches[@]}"; do
-        info "Applying: $(basename "$patch")"
-
-        if ! git apply --check "$patch" 2>/dev/null; then
-            warning "Skipping: $(basename "$patch") - does not apply"
-            ((failed++))
-            continue
-        fi
-
-        if git apply "$patch" 2>/dev/null; then
-            success "Applied: $(basename "$patch")"
-        else
-            error "Failed: $(basename "$patch")"
+        if ! apply_patch_file "$patch"; then
             ((failed++))
         fi
     done
