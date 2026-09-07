@@ -1,139 +1,306 @@
 # GKID Kernel
 
-<p align="center">
-  <img src="docs/banner.png" alt="GKI-Duchamp Banner">
-</p>
-
-[![Build Status](https://github.com/ahmed-alnassif/GKI-Duchamp/actions/workflows/build.yml/badge.svg)](https://github.com/ahmed-alnassif/GKI-Duchamp/actions/workflows/build.yml)
-[![Latest Release](https://img.shields.io/github/v/release/ahmed-alnassif/GKI-Duchamp?label=Latest%20Release&color=00aa00)](https://github.com/ahmed-alnassif/GKI-Duchamp/releases)
-[![Downloads](https://img.shields.io/github/downloads/ahmed-alnassif/GKI-Duchamp/total?label=Downloads&color=00aa00)](https://github.com/ahmed-alnassif/GKI-Duchamp/releases)
+[![Build Status](https://github.com/ahmed-alnassif/GKID-Kernels/actions/workflows/build.yml/badge.svg)](https://github.com/ahmed-alnassif/GKID-Kernels/actions/workflows/build.yml)
+[![Latest Release](https://img.shields.io/github/v/release/ahmed-alnassif/GKID-Kernels?label=Latest%20Release&color=00aa00)](https://github.com/ahmed-alnassif/GKID-Kernels/releases)
+[![Downloads](https://img.shields.io/github/downloads/ahmed-alnassif/GKID-Kernels/total?label=Downloads&color=00aa00)](https://github.com/ahmed-alnassif/GKID-Kernels/releases)
 [![Group](https://img.shields.io/badge/Telegram-Group-blue.svg?logo=telegram)](https://t.me/ahmed_alnassif_tg)
-[![GitHub License](https://img.shields.io/github/license/ahmed-alnassif/GKI-Duchamp?logo=gnu)](/LICENSE)
-[![KernelSU](https://img.shields.io/badge/KernelSU-built--in-success)](https://github.com/tiann/KernelSU)
-![ReSukiSU](https://img.shields.io/badge/ReSukiSU-built--in-success)
-[![KernelSU Next](https://img.shields.io/badge/KernelSU--Next-built--in-success)](https://github.com/KernelSU-Next/KernelSU-Next)
-[![Managers](https://img.shields.io/badge/Managers-multiple-success)](https://github.com/ahmed-alnassif/GKI-Duchamp/releases)
-[![SUSFS](https://img.shields.io/badge/SUSFS-Integrated-orange)](https://gitlab.com/simonpunk/susfs4ksu)
+[![GitHub License](https://img.shields.io/github/license/ahmed-alnassif/GKID-Kernels?logo=gnu)](/LICENSE)
+[![SuSFS](https://img.shields.io/badge/SuSFS-4CAF50?&logo=gitlab&logoColor=white)](https://gitlab.com/simonpunk/susfs4ksu)
+[![KernelSU](https://img.shields.io/badge/KernelSU-000000?&logo=github&logoColor=white)](https://github.com/tiann/KernelSU)
+[![KernelSU Next](https://img.shields.io/badge/KernelSU--Next-1976D2?&logo=github&logoColor=white)](https://github.com/KernelSU-Next/KernelSU-Next)
+[![ReSukiSU](https://img.shields.io/badge/ReSukiSU-E91E63?&logo=github&logoColor=white)](https://github.com/ReSukiSU/ReSukiSU)
+[![Managers](https://img.shields.io/badge/Managers-multiple-success)](https://github.com/ahmed-alnassif/GKID-Kernels/releases)
 
-A feature-rich Generic Kernel Image (GKI) kernel built for the **Poco X6 Pro (Duchamp)** and compatible with any device running a **6.1.x-android14** GKI kernel. Designed to offer maximum flexibility, it provides multiple variants to suit your specific needs, whether you prioritize root management, system integrity, or performance.
+**⚡ Blazing fast GKI kernel for Android** with KernelSU, SuSFS, NetHunter, NTSync, performance optimizations, battery improvements, and advanced security features.
+
+---
 
 > [!Important]
-> - This is a **GKI** kernel and not a **custom** kernel!
-> - It supports **ALL** devices that shipped with **Linux 6.1.x** and **Android 14** (stock or AOSP)
-> - The build pipeline can also target other GKI LTS lines (**5.10, 5.15, 6.6, 6.12, 6.18**) via a `KERNEL_VERSION` build input — see [Supported GKI Kernel Versions](#-supported-gki-kernel-versions) below. **6.1 remains the primary, actually-tested target for the Poco X6 Pro; the other lines are generic AOSP-sourced builds and are less battle-tested.**
-> - **If GKID Kernel is useful to you, please consider a donation.** It helps support continued updates, new features, and fixes for reported issues. See [💰 Donations](#-support-this-project) below.
+> - This is a **GKI** kernel, not a custom kernel. It works on **ANY** device that ships with a matching GKI Linux version.
+> - Supported GKI versions: **5.10, 5.15, 6.1, 6.6, 6.12** (see [Supported GKI Kernel Versions](#-supported-gki-kernel-versions) below).
 
-✨ **ReSuSFS** – Your SuSFS Companion
+---
 
-- **[ReSuSFS](https://github.com/ahmed-alnassif/ReSuSFS)** – The simplest way to manage SuSFS on KernelSU. Clean config files, toggle switches, and a built-in script editor for power users.
-- **Community:** Join the discussion and get support on [Telegram](https://t.me/ahmed_alnassif_tg).
+## ❤️ Support This Project
 
-## ✨ Key Features
+**USDT (TRC20):** `TCyghELuquAtoUFdY65iuJSMqJXbYhWidA`
 
-*   **⚡ Performance & Efficiency Tweaks:** Extensively optimized for the Poco X6 Pro (and similar 6.1.xx-android14 devices):
+Your donations keep this project alive! I spend countless hours maintaining kernel builds for 5 different versions, fixing bugs, adding features, and supporting users. **Every donation matters!** 🙏
 
-    - Timer frequency set to **300Hz** for noticeably lower input lag and snappier feel
-    - **Multi-Gen LRU (MGLRU)** enabled for better multitasking and battery efficiency
-    - **Optimized memory operations** (memcpy, memcmp, memset) from ARM-optimized-routines for up to 50% faster string/memory handling
-    - **3x faster integer square root** reducing CPU time in cpufreq calculations
-    - Optimized **zRAM** with LZ4 compression + writeback + tracking for more and faster usable RAM under heavy loads
-    - CPU governors: **schedutil + ondemand** for efficient yet responsive scaling
-    - **mq-deadline I/O scheduler** tuned for low latency on UFS 4.0 storage
-    - Network stack with **TCP BBRv3** + **TCP Westwood+** + **FQ** + **ECN** + **IPv6 HL support** for reduced latency and faster WiFi/mobile data speeds
-    - **F2FS** filesystem tuning (reduced GC sleep to 50ms, enlarged fsync blocks, reduced congestion timeout)
-    - **ext4** commit age extended to 30s for fewer disk writes
-    - **IP Set** full support + **IPv6 NAT** for better tethering and VPN performance
-    - **Filesystem Unicode fix** preventing crashes from invalid UTF-8 filenames on vfat/exfat
-    - **NTSync driver** for significantly faster Windows games/apps on Winlator & GameHub
+---
 
-*   **🔋 Battery & Power Optimizations:**
-    - Freeze timeout reduced from 20s to **1s** for faster deadlock detection
-    - Global wakelock timeout capped at **500ms** to prevent infinite battery drain
-    - Alarmtimer wakeup minimized using actual timer values instead of hardcoded 2s
-    - Excessive s2idle wake attempts eliminated (single wake instead of multiple)
-    - PCI PME check interval extended to reduce unnecessary wakeups
-    - VFS cache pressure reduced to **50** for better RAM utilization
-    - Cache hot buddy disabled for DynamIQ Shared Unit efficiency
+## ✨ ReSuSFS 
 
-*   **🧠 Scheduler & CPU Optimizations:**
-    - CPU scan order adjusted for efficient idle core selection
-    - Branch prediction hints optimized in cpufreq paths
-    - File struct aligned to 8 bytes for better cache performance
-    - Clear page aligned to 16 bytes reducing CPU time on page allocation
-    - Memory prefetch optimizations for copy operations
+**[ReSuSFS](https://github.com/ahmed-alnassif/ReSuSFS)** – Root hiding made simple, powerful when you need it. A [KernelSU](https://kernelsu.org) module and WebUI that turns SuSFS into clean config files and toggle switches for everyday use, with **strong hiding applied out of the box** via built-in spoofing and hiding scripts for one-tap protection, plus a script manager for power users who want more, all without leaving the WebUI.
 
-*   **🐉 Kali NetHunter:** Full support enabled (monitor mode, packet injection, rtw88 driver). Matching **WirelessKSU** modules are provided for every variant.
+---
 
-*   **🐳 DroidSpaces:** Full kernel support enabled for [DroidSpaces](https://github.com/ravindu644/Droidspaces-OSS) a lightweight container runtime that lets you run real Linux distributions (Ubuntu, Debian, etc.) with proper isolation and init systems (systemd/OpenRC) directly on your Android device.
+## ⚡ Quick Start
 
-*   **🔧 Multiple Variants:** Choose the configuration that fits your needs:
-    - **Root solutions:** KernelSU, KernelSU Next, ReSukiSU, or Vanilla (no root)
-    - **Manager flexibility:** Multiple-Manager variants let you use your preferred manager app
-    - **LTO options:** thinLTO builds + dedicated `+NoLTO` / `Compat+NoLTO` variants
+1. **Check** your kernel version in Settings → About Phone
+2. **Download** matching variant from [Releases](https://github.com/ahmed-alnassif/GKID-Kernels/releases)
+3. **Flash** using KernelSU app or custom recovery
+4. **Manage** SuSFS with [ReSuSFS](https://github.com/ahmed-alnassif/ReSuSFS)
 
-*   **🛡️ SUSFS Integration:** Advanced kernel-level hiding and spoofing capabilities (available in dedicated variants)
-*   **🔒 Baseband Guard (BBG):** Lightweight LSM that blocks unauthorized writes to critical partitions and device nodes, protecting the baseband and boot chain from tampering
+---
 
-## 🤝 Support This Project
+## 📱 Supported GKI Kernel Versions
 
-I actively maintain this kernel, ship updates, and respond to feature requests and bug reports. If it's improved your device, here's how you can support that ongoing work:
+| Linux | Android |
+|-------|---------|
+| 5.10  | 12      |
+| 5.15  | 13      |
+| 6.1   | 14      |
+| 6.6   | 15      |
+| 6.12  | 16      |
 
-### 💰 Donations
+---
 
-| Method | Address |
-|--------|---------|
-| USDT (TRC20) | `TCyghELuquAtoUFdY65iuJSMqJXbYhWidA` |
+## 🔧 Build Variants
 
-> [!Warning]
-> Only send **USDT on the TRON (TRC20) network** to this address. Other coins or networks will result in permanent loss of funds.
+| Variant | Root | SuSFS | LTO | Compat |
+|---------|------|-------|-----|--------|
+| Vanilla | ❌ | ❌ | Full | ❌ |
+| Vanilla+NoLTO | ❌ | ❌ | None | ❌ |
+| KernelSU | ✅ | ❌ | Full | ❌ |
+| KernelSU+SuSFS | ✅ | ✅ | Full | ❌ |
+| KSU+SuSFS+MM | ✅ | ✅ | Full | ❌ |
+| KernelSU-Next | ✅ | ❌ | Full | ❌ |
+| KSU-Next+SuSFS | ✅ | ✅ | Full | ❌ |
+| ReSukiSU+SuSFS | ✅ | ✅ | Full | ❌ |
+| Compat+KSU+SuSFS | ✅ | ✅ | Full | ✅ |
+| Compat+KSU-Next+SuSFS | ✅ | ✅ | Full | ✅ |
+| Compat+LTO+KSU-Next+SuSFS | ✅ | ✅ | Full | ✅ |
 
-### Other ways to help
+**Optional features** (enable on any variant):
+- 🐳 DroidSpaces - Linux userspace support
+- 🐉 NetHunter - Wireless penetration testing
+- 🥷 NoMount - NoMount integration
 
-*   **Star the Repository:** Give this project a ⭐ on GitHub to help others discover it
-*   **Share:** Spread the word in your community, forums, or with fellow Poco X6 Pro users
-*   **Report Issues:** Found a bug? Open an issue with detailed logs to help improve stability
-*   **Contribute:** Pull requests, suggestions, and constructive feedback are always welcome
+---
 
-## Community
+## Performance
 
-Join the discussion, get support, and stay up to date on GKID and other projects:
+| Feature | Description |
+|---------|-------------|
+| **300Hz Timer** | Reduced input latency for snappier UI response |
+| **MGLRU** | Multi-generational LRU for smoother multitasking |
+| **zRAM** | LZ4 compression with writeback for memory efficiency |
+| **CPU Governors** | schedutil + ondemand for smart power scaling |
+| **I/O Scheduler** | mq-deadline optimized for UFS 4.0 storage |
+| **F2FS Tuning** | 50ms GC sleep for buttery smooth I/O |
+| **Memory Optimizations** | 50% faster memcpy/memset/memcmp operations |
+| **ext4 Tuning** | Extended commit age reducing unnecessary writes |
+| **NTSync Driver** | Faster Windows games/apps on Winlator/GameHub |
 
-- **Telegram Group:** [ahmed_alnassif_tg](https://t.me/ahmed_alnassif_tg)
+**What this means for you:**
+- Apps launch faster
+- UI feels more responsive
+- Gaming has less stutter
+- Multitasking is smoother
+- Better framerates in games
 
-## 🧩 Recommended Modules for Poco X6 Pro
+---
 
-Enhance your device with these companion modules:
+## 🔋 Battery Life
 
-| Module | Description |
-|--------|-------------|
-| [**GPU Unlocker** (HyperOS Only)](https://github.com/ahmed-alnassif/GPU-Unlocker) | Unlock the Mali-G615 MC6 GPU from 701 MHz to full 1.4 GHz on POCO X6 Pro HyperOS. |
-| [**Thermal Manager**  (AOSP Only)](https://github.com/ahmed-alnassif/Thermal-Manager) | Fixes the thermal mode/profile reset issue on Poco X6 Pro. Monitor and force-persist your chosen mode: **Balanced** ⚖️, **Battery Saver** 🔋, **Performance** ⚡, or **Gaming** 🎮. Includes **WebUI** for instant switching, auto battery saver when screen off, and mode persistence after reboot. |
-| [**DSP AudioFix**  (AOSP Only)](https://github.com/ahmed-alnassif/DSP-AudioFix) | Simple fix for distorted audio on Poco X6 Pro and similar Xiaomi/MediaTek devices with Awinic smart amps. |
+| Feature | Description |
+|---------|-------------|
+| **Wakelock Cap** | 500ms cap prevents excessive battery drain |
+| **Freeze Timeout** | 20s → 1s for faster deadlock detection |
+| **F2FS Optimization** | Reduced GC overhead saves CPU cycles |
+| **Alarm Wakeups** | Minimized to reduce standby battery drain |
+| **ext4 Commit Age** | 30s commit age reduces write operations |
+| **Power Management** | Improved suspend/resume for better idle drain |
 
->[!TIP]
->Both modules are designed specifically for Poco X6 Pro hardware quirks and work seamlessly with any GKID kernel variant.
+**What this means for you:**
+- Better standby time
+- Less battery drain during use
+- Overnight battery lasts longer
+- Gaming doesn't kill battery as fast
+- All-day battery life
 
-## 🧬 Supported GKI Kernel Versions
+---
 
-Prebuilt kernel images are available for download from the [Releases](https://github.com/ahmed-alnassif/GKID-Kernels/releases) page. Each release targets a specific GKI LTS line:
+## 🌐 Networking
 
-| `KERNEL_VERSION` | AOSP branch | Android release | Prebuilt availability | Status |
-|---|---|---|---|---|
-| `6.1` (default) | — | Android 14 | ✅ [Download from Releases](https://github.com/ahmed-alnassif/GKID-Kernels/releases) | ✅ Primary, tested on Poco X6 Pro |
-| `5.10` | `android13-5.10` | Android 13 | ✅ [Download from Releases](https://github.com/ahmed-alnassif/GKID-Kernels/releases) | ⚠️ Untested |
-| `5.15` | `android14-5.15` | Android 14 | ✅ [Download from Releases](https://github.com/ahmed-alnassif/GKID-Kernels/releases) | ⚠️ Untested |
-| `6.6` | `android15-6.6` | Android 15 | ✅ [Download from Releases](https://github.com/ahmed-alnassif/GKID-Kernels/releases) | ⚠️ Untested |
-| `6.12` | `android16-6.12` | Android 16 | ✅ [Download from Releases](https://github.com/ahmed-alnassif/GKID-Kernels/releases) | ⚠️ Untested |
+| Feature | Description |
+|---------|-------------|
+| **TCP BBRv3** | Default congestion control for maximum speed |
+| **Westwood+** | Alternative congestion control for WiFi |
+| **FQ CoDel** | Fair queuing with controlled delay |
+| **IP Set** | Efficient IP/network address management |
+| **IPv4/IPv6 NAT** | Full NAT support for tethering |
+| **IPsec/ESP** | VPN and secure tunneling support |
+| **Netfilter** | Advanced firewall and packet filtering |
 
-## 📱 Compatibility
+**What this means for you:**
+- Faster WiFi and mobile data
+- Better VPN performance
+- Improved tethering speeds
+- Lower gaming latency
+- Smoother streaming
 
-*   **Primary Device:** Poco X6 Pro (codenamed `duchamp`)
-*   **GKI Requirement:** Compatible with any device running a **6.1.xx-android14** kernel
-    *(Note: Only tested on the Poco X6 Pro. Please exercise caution on other devices.)*
-*   **Other LTS lines:** Download the corresponding release for **5.10/5.15/6.6/6.12 based** devices. These are untested outside CI. Exercise even more caution.
+---
 
-## ⬇️ Downloads
-Find the latest builds for all variants in the [Releases](https://github.com/ahmed-alnassif/GKI-Duchamp/releases) section.
+## 🛡️ Security
 
-## 🐧 Kernel Source
-**GitHub:** [ahmed-alnassif/GKI-Duchamp-6.1](https://github.com/ahmed-alnassif/GKI-Duchamp-6.1)
+| Feature | Description |
+|---------|-------------|
+| **SuSFS** | Advanced filesystem and process hiding |
+| **Baseband Guard** | Blocks unauthorized partition writes |
+| **Kernel LSM** | SELinux + Baseband Guard integration |
+| **Symbol Hiding** | Kernel symbol protection from detection |
+| **uname Spoofing** | System information hiding |
+| **Open Redirect** | Protected file operations |
+| **SUS MAP/PATH/MOUNT** | Complete filesystem hiding |
+
+**What this means for you:**
+- Stronger root hiding
+- Better banking app compatibility
+- Improved security against detection
+- Safe from unauthorized system modifications
+
+---
+
+## 🔑 Root Management
+
+| Feature | Description |
+|---------|-------------|
+| **KernelSU** | Stable kernel-based root with excellent hiding |
+| **KernelSU-Next** | Community fork with bleeding-edge features |
+| **ReSukiSU** | ReSukiSU kernel integration |
+| **Multiple Managers** | Run multiple KernelSU managers simultaneously |
+| **Vanilla** | No root for banking and corporate apps |
+
+**What this means for you:**
+- Reliable root access
+- Apps don't detect root
+- Pass SafetyNet/Play Integrity
+- Choose your root implementation
+
+---
+
+## 🎮 NTSync
+
+Linux NTSYNC interface for Windows gaming:
+- Winlator
+- GameHub
+- ExaGear
+- Other Windows emulation
+
+**What this means for you:**
+- Better Windows game performance
+- Lower latency in emulators
+- GKI compatibility patches included
+
+---
+
+## 🐳 DroidSpaces
+
+Complete Linux userspace support:
+- System V IPC and POSIX message queues
+- IPC and PID namespaces
+- devtmpfs with xattrs
+- POSIX ACLs
+- Netfilter and IP Set
+- UFW and Fail2ban requirements
+
+**What this means for you:**
+- Run Linux apps on Android
+- Better container support
+- Chroot and proot work better
+
+---
+
+## 🐉 NetHunter
+
+Wireless penetration testing features:
+- cfg80211, mac80211, RFKILL
+- Realtek rtw88, R8188EU drivers
+- Atheros, MediaTek, Ralink, Zydas
+- Bluetooth HCI and USB networking
+- Monitor mode and packet injection
+
+**What this means for you:**
+- Kali NetHunter works perfectly
+- External WiFi adapters supported
+- Wireless auditing capabilities
+- Monitor mode for packet capture
+
+---
+
+## 📦 WirelessKSU
+
+Separate KernelSU module containing wireless drivers and firmware when built as modules. Flash alongside the main kernel for full NetHunter support.
+
+---
+
+## 🔥 LTO Options
+
+| Option | Description | Best For |
+|--------|-------------|----------|
+| **FullLTO** | Maximum performance, slower build | Gaming, performance |
+| **ThinLTO** | Faster build, good performance | Balanced |
+| **NoLTO** | Build compatibility | Problem devices |
+
+---
+
+## 🔄 Compatibility
+
+**Use Compat if:**
+- You experience boot issues
+- Vendor modules fail to load
+- Device KMI mismatch
+- Standard variants don't boot
+
+---
+
+## 📥 Downloads
+
+**All releases:** [GitHub Releases](https://github.com/ahmed-alnassif/GKID-Kernels/releases)
+
+**Each release includes:**
+- 📦 AnyKernel3 flashable packages
+- 📦 WirelessKSU modules (when applicable)
+- 🔐 SHA256 and MD5 checksums
+- 📝 Build information and changelogs
+
+---
+
+## 📡 TCP Congestion Control
+
+Switch congestion control algorithms (temporary, resets on reboot):
+
+'''bash
+# Westwood+ - better for WiFi and mobile data
+su -c "sysctl -w net.ipv4.tcp_congestion_control=westwood"
+
+# BBRv3 - default, best for speed
+su -c "sysctl -w net.ipv4.tcp_congestion_control=bbr"
+'''
+
+**Make permanent:** Create a script in `/data/adb/service.d/` with the sysctl command or use ReSuSFS.
+
+---
+
+## Other Ways to Help
+
+- **Star the Repository** ⭐ - Helps others discover this project
+- **Share** 📢 - Spread the word in your community or forums
+- **Report Issues** 🐛 - Found a bug? Open an issue with detailed logs
+- **Contribute** 🔧 - Pull requests, suggestions, and feedback are always welcome
+
+---
+
+## 💬 Community
+
+- **Telegram:** [@ahmed_alnassif_tg](https://t.me/ahmed_alnassif_tg)
+- **Discussions:** [GitHub Discussions](https://github.com/ahmed-alnassif/GKID-Kernels/discussions)
+- **Issues:** [GitHub Issues](https://github.com/ahmed-alnassif/GKID-Kernels/issues)
+
+---
+
+## 📄 License
+
+See [LICENSE](LICENSE).
