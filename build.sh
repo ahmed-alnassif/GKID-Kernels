@@ -143,8 +143,12 @@ echo "COMPILER_STRING=$COMPILER_STRING" >> $GITHUB_ENV
 cd $KSRC
 
 echo "::group::[+] Applied patches"
-log "Applying BBRv3 patch"
-patch -p1 --fuzz=3 < $KERNEL_PATCHES/bbrv3/bbrv3.patch
+if [ "$KERNEL_VERSION" = "6.1" ]; then
+  log "Applying BBRv3 patch"
+  patch -p1 --fuzz=3 < $KERNEL_PATCHES/bbrv3/bbrv3.patch
+else
+  warning "Only 6.1 support bbrv3 for now"
+fi
 
 log "Applying NTSync patches..."
 curl -LSs "https://github.com/WildKernels/kernel_patches/raw/main/common/ntsync/ntsync_base.patch" | patch -p1 --fuzz=3
