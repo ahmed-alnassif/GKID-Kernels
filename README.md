@@ -272,13 +272,13 @@ Separate KernelSU module containing wireless drivers and firmware when built as 
 
 Switch congestion control algorithms (temporary, resets on reboot):
 
-'''bash
+```bash
 # Westwood+ - better for WiFi and mobile data
 su -c "sysctl -w net.ipv4.tcp_congestion_control=westwood"
 
 # BBRv3 - default, best for speed
 su -c "sysctl -w net.ipv4.tcp_congestion_control=bbr"
-'''
+```
 
 **Make permanent:** Create a script in `/data/adb/service.d/` with the sysctl command or use ReSuSFS.
 
