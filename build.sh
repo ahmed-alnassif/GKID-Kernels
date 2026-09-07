@@ -279,10 +279,6 @@ fi
 echo "::endgroup::"
 set +eo pipefail
 
-if [ "$KERNEL_VERSION" = "6.12" ]; then
-  fix_task_mmu_corruption
-fi
-
 AK3_ZIP_NAME=${AK3_ZIP_NAME//KVER/$LINUX_VERSION}
 AK3_ZIP_NAME=${AK3_ZIP_NAME//VARIANT/$VARIANT}
 

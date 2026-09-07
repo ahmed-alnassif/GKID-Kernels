@@ -361,6 +361,10 @@ apply_susfs_patches() {
         fi
     fi
 
+    if [ "$KERNEL_VERSION" = "6.12" ]; then
+      fix_task_mmu_corruption
+    fi
+
     SUSFS_VERSION=$(grep -E '^#define SUSFS_VERSION' ./include/linux/susfs.h | cut -d' ' -f3 | sed 's/"//g')
     echo "SUSFS_VERSION=$SUSFS_VERSION" >> $GITHUB_ENV
 }
