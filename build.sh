@@ -154,12 +154,10 @@ if [ "$KERNEL_VERSION" != "6.1" ]; then
   apply_extract_cert_key_pass_patch
 fi
 
-if [ "$KERNEL_VERSION" = "6.1" ]; then
-  log "Applying BBRv3 patch"
-  apply_patch_file $KERNEL_PATCHES/bbrv3/bbrv3.patch
-else
-  warning "Only 6.1 support bbrv3 for now"
-fi
+
+log "Applying BBRv3 patch"
+apply_patch_file $KERNEL_PATCHES/bbrv3/bbrv3.patch
+
 
 if kernel_version_lt "$KERNEL_VERSION" "6.12"; then
   log "Applying NTSync patches..."
