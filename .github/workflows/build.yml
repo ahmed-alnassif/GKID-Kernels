@@ -172,32 +172,26 @@ jobs:
           mkdir -p "$WKSU/lkm"
           mkdir -p "$WKSU/system/etc/firmware/rtw88"
 
-          if [ -d "out/drivers/net/wireless/realtek/rtw88" ]; then
-
-          for mod in rfkill cfg80211 mac80211; do
-            find out/ -iname "$mod*.ko" -exec cp {} $WKSU/lkm/ \; 2>/dev/null || true
+          for mod in rfkill cfg80211 mac80211 'rtw88*' r8188eu libarc4; do
+            found=$(find out/ -iname "${mod}.ko" 2>/dev/null)
+            if [ -n "$found" ]; then
+              echo "$found" | xargs -I{} cp {} "$WKSU/lkm/"
+            else
+              echo "[-] $mod: no .ko found (not built or built-in)"
+            fi
           done
 
-            find out/drivers/net/wireless/realtek/rtw88 -name "*.ko" -exec cp {} $WKSU/lkm/ \;
-            find out/drivers/staging/r8188eu -name "*.ko" -exec cp {} $WKSU/lkm/ \;
-
-            if [ -n "$(ls -A $WKSU/lkm 2>/dev/null)" ]; then
-                    sed -i "s/version=.*/version=${{ env.RELEASE }}-${{ matrix.kernel_version }}-${{ env.VARIANT }}/" "$WKSU/module.prop"
-                    cp ksrc/drivers/net/wireless/realtek/rtw88/firmware/* "$WKSU/system/etc/firmware/rtw88"
-                    echo "Modules found:"
-                    ls -la $WKSU/lkm/
-                    mkdir -p artifacts
-                    cd $WKSU
-                    # Kernel version must be part of the filename: the same
-                    # variant name is reused across every GKI line in the
-                    # "All Kernels" matrix, and release assets must be unique.
-                    zip -9 -r "$RPWD/artifacts/$NAME-${{ matrix.kernel_version }}-${{ env.VARIANT }}-${{ env.RELEASE }}.zip" .
-                    echo "$NAME-${{ matrix.kernel_version }}-${{ env.VARIANT }}-${{ env.RELEASE }}.zip created"
-            else
-                    echo "No .ko files found (driver may be built-in)"
-            fi
+          if [ -n "$(ls -A "$WKSU/lkm" 2>/dev/null)" ]; then
+            sed -i "s/version=.*/version=${{ env.RELEASE }}-${{ matrix.kernel_version }}-${{ env.VARIANT }}/" "$WKSU/module.prop"
+            cp ksrc/drivers/net/wireless/realtek/rtw88/firmware/* "$WKSU/system/etc/firmware/rtw88" 2>/dev/null || echo "[-] rtw88 firmware not found, skipping"
+            echo "Modules found:"
+            ls -la "$WKSU/lkm/"
+            mkdir -p artifacts
+            cd "$WKSU"
+            zip -9 -r "$RPWD/artifacts/$NAME-${{ matrix.kernel_version }}-${{ env.VARIANT }}-${{ env.RELEASE }}.zip" .
+            echo "$NAME-${{ matrix.kernel_version }}-${{ env.VARIANT }}-${{ env.RELEASE }}.zip created"
           else
-            echo "wireless directory not found (driver may not be built or is built-in)"
+            echo "No .ko files found (drivers may be built-in for this kernel version)"
           fi
 
       - name: ccache stats
