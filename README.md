@@ -20,6 +20,7 @@ A feature-rich Generic Kernel Image (GKI) kernel built for the **Poco X6 Pro (Du
 > [!Important]
 > - This is a **GKI** kernel and not a **custom** kernel!
 > - It supports **ALL** devices that shipped with **Linux 6.1.x** and **Android 14** (stock or AOSP)
+> - The build pipeline can also target other GKI LTS lines (**5.10, 5.15, 6.6, 6.12, 6.18**) via a `KERNEL_VERSION` build input — see [Supported GKI Kernel Versions](#-supported-gki-kernel-versions) below. **6.1 remains the primary, actually-tested target for the Poco X6 Pro; the other lines are generic AOSP-sourced builds and are less battle-tested.**
 > - **If GKID Kernel is useful to you, please consider a donation.** It helps support continued updates, new features, and fixes for reported issues. See [💰 Donations](#-support-this-project) below.
 
 ✨ **ReSuSFS** – Your SuSFS Companion
@@ -112,11 +113,24 @@ Enhance your device with these companion modules:
 >[!TIP]
 >Both modules are designed specifically for Poco X6 Pro hardware quirks and work seamlessly with any GKID kernel variant.
 
-## 📱 Compatibility
-*   **Primary Device:** Poco X6 Pro (codenamed `duchamp`)
+## 🧬 Supported GKI Kernel Versions
 
-*   **GKI Requirement:** Flashes on any device with a **6.1.xx-android14** kernel.  
+Prebuilt kernel images are available for download from the [Releases](https://github.com/ahmed-alnassif/GKID-Kernels/releases) page. Each release targets a specific GKI LTS line:
+
+| `KERNEL_VERSION` | AOSP branch | Android release | Prebuilt availability | Status |
+|---|---|---|---|---|
+| `6.1` (default) | — | Android 14 | ✅ [Download from Releases](https://github.com/ahmed-alnassif/GKID-Kernels/releases) | ✅ Primary, tested on Poco X6 Pro |
+| `5.10` | `android13-5.10` | Android 13 | ✅ [Download from Releases](https://github.com/ahmed-alnassif/GKID-Kernels/releases) | ⚠️ Untested |
+| `5.15` | `android14-5.15` | Android 14 | ✅ [Download from Releases](https://github.com/ahmed-alnassif/GKID-Kernels/releases) | ⚠️ Untested |
+| `6.6` | `android15-6.6` | Android 15 | ✅ [Download from Releases](https://github.com/ahmed-alnassif/GKID-Kernels/releases) | ⚠️ Untested |
+| `6.12` | `android16-6.12` | Android 16 | ✅ [Download from Releases](https://github.com/ahmed-alnassif/GKID-Kernels/releases) | ⚠️ Untested |
+
+## 📱 Compatibility
+
+*   **Primary Device:** Poco X6 Pro (codenamed `duchamp`)
+*   **GKI Requirement:** Compatible with any device running a **6.1.xx-android14** kernel
     *(Note: Only tested on the Poco X6 Pro. Please exercise caution on other devices.)*
+*   **Other LTS lines:** Download the corresponding release for **5.10/5.15/6.6/6.12 based** devices. These are untested outside CI. Exercise even more caution.
 
 ## ⬇️ Downloads
 Find the latest builds for all variants in the [Releases](https://github.com/ahmed-alnassif/GKI-Duchamp/releases) section.
