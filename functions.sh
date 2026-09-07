@@ -274,3 +274,25 @@ apply_force_load_module_patch() {
 
     success "Force load module patch applied via sed"
 }
+
+apply_extract_cert_key_pass_patch() {
+    local file="certs/extract-cert.c"
+
+    if [[ ! -f "$file" ]]; then
+        warning "extract-cert.c not found - skipping key_pass patch"
+        return 0
+    fi
+
+    if grep -q "ifdef USE_PKCS11_ENGINE" "$file" && grep -qB2 "static const char \*key_pass;" "$file" | grep -q "ifdef USE_PKCS11_ENGINE"; then
+        success "extract-cert key_pass patch already applied"
+        return 0
+    fi
+
+    sed -i '/^static const char \*key_pass;/i #ifdef USE_PKCS11_ENGINE' "$file"
+    sed -i '/^static const char \*key_pass;/a #endif' "$file"
+
+    sed -i 's/^\([[:space:]]*\)if (key_pass)$/\1#ifdef USE_PKCS11_ENGINE\n\1if (key_pass)/' "$file"
+    sed -i '/ERR(!ENGINE_ctrl_cmd_string(e, "PIN", key_pass, 0), "Set PKCS#11 PIN");/a #endif' "$file"
+
+    success "extract-cert key_pass patch applied via sed"
+}
