@@ -31,6 +31,17 @@ on:
           - "thinLTO"
           - "fullLTO"
 
+      KERNEL_VERSION:
+        description: "GKI LTS kernel line to build"
+        default: "6.1"
+        type: choice
+        options:
+          - "5.10"
+          - "5.15"
+          - "6.1"
+          - "6.6"
+          - "6.12"
+
       BUILD_VANILLA:
         description: "Build Vanilla (no KSU)"
         type: boolean
@@ -130,6 +141,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           KERNEL_REPO: https://github.com/ahmed-alnassif/GKI-Duchamp-6.1
+          KERNEL_VERSION: ${{ inputs.KERNEL_VERSION }}
           KSU: ${{ matrix.KSU }}
           KSU_COMPAT: ${{ matrix.KSU_COMPAT }}
           KSU_SUSFS: ${{ matrix.KSU_SUSFS }}
@@ -202,6 +214,10 @@ jobs:
           BASE_NAME=${{ env.BASE_NAME }}
           KSU=${{ matrix.KSU }}
           KSU_SUSFS=${{ matrix.KSU_SUSFS }}
+          KERNEL_VERSION=${{ env.KERNEL_VERSION }}
+          ANDROID_RELEASE=${{ env.ANDROID_RELEASE }}
+          KERNEL_SOURCE_REPO=${{ env.KERNEL_SOURCE_REPO }}
+          KERNEL_SOURCE_BRANCH=${{ env.KERNEL_SOURCE_BRANCH }}
           EOF
 
           echo "BUILD_VARIANT=${{ matrix.name }}" >> build-env-${{ matrix.name }}.txt
@@ -296,12 +312,21 @@ jobs:
           RUN_NUMBER: ${{ github.run_number }}
           RELEASE_NAME: ${{ env.RELEASE_NAME }}
           RELEASE_URL: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ env.RELEASE }}
+          KERNEL_VERSION: ${{ env.KERNEL_VERSION }}
+          ANDROID_RELEASE: ${{ env.ANDROID_RELEASE }}
         run: |
           set -euo pipefail
 
           [[ -n "$BOT_TOKEN" ]] || { echo "::error::BOT_TOKEN is not set"; exit 1; }
           [[ -n "$CHAT_ID" ]] || { echo "::error::CHAT_ID is not set"; exit 1; }
           [[ -n "$TOPIC_ID" ]] || { echo "::error::TOPIC_ID is not set"; exit 1; }
+
+          # #TODO: KERNEL_VERSION/ANDROID_RELEASE come from build-env-*.txt via
+          # prepare_release.py's load_env_from_builds(). If that file is ever
+          # missing them, fall back to the original 6.1/Android 14 wording
+          # instead of printing a blank version in the announcement.
+          KERNEL_VERSION="${KERNEL_VERSION:-6.1}"
+          ANDROID_RELEASE="${ANDROID_RELEASE:-14}"
 
           RELEASE_NAME=$(python3 .github/scripts/markdown_to_telegram.py --escape "$RELEASE_NAME")
 
@@ -313,10 +338,15 @@ jobs:
             fi
           }
 
+          # MarkdownV2-escape the "AndroidNN-K.V-LTS" label and bare kernel
+          # version for use inside the heredocs below.
+          KERNEL_LABEL_ESCAPED=$(printf '%s' "Android${ANDROID_RELEASE}-${KERNEL_VERSION}-LTS" | sed -e 's/\./\\./g' -e 's/-/\\-/g')
+          KERNEL_VERSION_ESCAPED=$(printf '%s' "$KERNEL_VERSION" | sed 's/\./\\./g')
+
           CHANGELOG_BODY=$(cat <<INNER
           What's new:
-          **Android14\-6\.1\-LTS:**
-          $(read_or_default "release-artifacts/android_kernel-6.1_changelog.txt")
+          **${KERNEL_LABEL_ESCAPED}:**
+          $(read_or_default "release-artifacts/android_kernel-${KERNEL_VERSION}_changelog.txt")
 
           \-\-\-
           **SuSFS:**
@@ -355,7 +385,7 @@ jobs:
           **✨ $RELEASE_NAME ✨**
 
           **Supported devices:**
-          📱 **All devices** that shipped with **Linux 6\.1\.x** and **Android 14** \(stock or AOSP\)
+          📱 **All devices** that shipped with **Linux ${KERNEL_VERSION_ESCAPED}\.x** and **Android ${ANDROID_RELEASE}** \(stock or AOSP\)
 
           $CHANGELOG_QUOTED
 
