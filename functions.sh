@@ -151,9 +151,23 @@ retry() {
 }
 
 curl() { retry command curl "$@"; }
-git() { retry command git "$@"; }  
 wget() { retry command wget "$@"; }
 bash() { retry command bash "$@"; }
+
+git() {
+    local cmd="$1"
+    shift
+
+    case "$cmd" in
+        clone|fetch|pull|push|ls-remote|submodule)
+            retry command git "$cmd" "$@"
+            ;;
+        *)
+            command git "$cmd" "$@"
+            ;;
+    esac
+}
+
 export -f retry curl git wget bash
 
 apply_susfs_patches() {
