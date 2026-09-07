@@ -152,7 +152,18 @@ retry() {
 
 curl() { retry command curl "$@"; }
 wget() { retry command wget "$@"; }
-bash() { retry command bash "$@"; }
+
+bash() {
+    case "$*" in
+
+        *curl*|*wget*|*git*clone*|*git*fetch*|*git*pull*|*git*push*|*git*ls-remote*|*git*submodule*)
+            retry command bash "$@"
+            ;;
+        *)
+            command bash "$@"
+            ;;
+    esac
+}
 
 git() {
     local cmd="$1"
