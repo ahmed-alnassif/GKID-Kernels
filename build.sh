@@ -35,7 +35,7 @@ if [ "$KERNEL_VERSION" = "6.1" ]; then
     KERNEL_BRANCH="GKID-6.1"
   fi
 else
-  IFS='|' read -r KERNEL_REPO KERNEL_BRANCH <<< "$(resolve_kernel_source "$KERNEL_VERSION")"
+  IFS='|' read -r KERNEL_REPO KERNEL_BRANCH KERNEL_KMI <<< "$(resolve_kernel_source "$KERNEL_VERSION")"
 fi
 
 ANDROID_RELEASE="$(android_release_for_version "$KERNEL_VERSION")"
@@ -167,7 +167,7 @@ curl -LSs "https://github.com/WildKernels/kernel_patches/raw/main/common/ntsync/
 if [ "$KERNEL_VERSION" = "6.1" ]; then
   curl -LSs "https://github.com/WildKernels/kernel_patches/raw/main/common/ntsync/ntsync_compat_android14-6.1.patch" | patch -p1 --fuzz=3
 else
-  apply_ntsync_compat_patch "$KERNEL_BRANCH"
+  apply_ntsync_compat_patch "$KERNEL_KMI"
 fi
 success "NTSync patches applied"
 

@@ -8,11 +8,18 @@ declare -A ANDROID_RELEASE_FOR_KVER=(
   ["6.12"]="16"
 )
 
-declare -A GKI_AOSP_BRANCH=(
+declare -A GKI_BRANCH=(
   ["5.10"]="android12-5.10"
   ["5.15"]="android13-5.15"
   ["6.6"]="android15-6.6"
   ["6.12"]="android16-6.12"
+)
+
+declare -A GKI_AOSP_BRANCH=(
+  ["5.10"]="android12-5.10-lts"
+  ["5.15"]="android13-5.15-lts"
+  ["6.6"]="android15-6.6-lts"
+  ["6.12"]="android16-6.12-lts"
 )
 
 declare -A GKI_SUSFS_BRANCH=(
@@ -30,13 +37,14 @@ android_release_for_version() {
 resolve_kernel_source() {
   local ver="$1"
   local branch="${GKI_AOSP_BRANCH[$ver]:-}"
+  local kmi="${GKI_BRANCH[$ver]:-}"
 
   if [ -z "$branch" ]; then
     error "No AOSP GKI branch mapped for KERNEL_VERSION='$ver' (see GKI_AOSP_BRANCH in functions.sh)"
     exit 1
   fi
 
-  echo "https://android.googlesource.com/kernel/common|$branch"
+  echo "https://android.googlesource.com/kernel/common|$branch|$kmi"
 }
 
 resolve_susfs_branch() {
