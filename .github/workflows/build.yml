@@ -321,6 +321,7 @@ jobs:
         with:
           name: ${{ env.RELEASE_NAME }}
           tag_name: ${{ env.RELEASE }}
+          prerelease: true
           files: |
             release-artifacts/*.zip
             release-artifacts/checksums.txt
