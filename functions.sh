@@ -354,11 +354,11 @@ apply_susfs_patches() {
 
     if [ "$SUSFS_PATCH" = "gki-android14-6.1" ]; then
       cd $SUSFS_DIR
-      apply_patch_file "$KERNEL_PATCHES/susfs/susfs_fs_namespace_fix.patch"
+      patch -p1 --fuzz=3 < "$KERNEL_PATCHES/susfs/susfs_fs_namespace_fix.patch"
       cd $OLDPWD
     fi
 
-    if ! apply_patch_file "$SUSFS_PATCHES/50_add_susfs_in_${SUSFS_PATCH}.patch"; then
+    if ! patch -p1 --fuzz=3 < "$SUSFS_PATCHES/50_add_susfs_in_${SUSFS_PATCH}.patch"; then
         if [ "$KERNEL_KMI" = "android13-5.15" ]; then
             fix_namespace_susfs_mount
         fi
