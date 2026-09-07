@@ -126,7 +126,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ccache gh bc bison flex libssl-dev libelf-dev dwarves cpio
+          sudo apt-get install -y libdw-dev ccache gh bc bison flex libssl-dev libelf-dev dwarves cpio
           pip install lxml
 
       - name: Cache ccache + LTO
