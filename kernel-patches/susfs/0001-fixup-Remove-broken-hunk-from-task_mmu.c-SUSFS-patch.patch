@@ -9,13 +9,13 @@ Remove the no-op hunk so the patch applies cleanly.
 
 Signed-off-by: Ahmed Al-Nassif <mr.ahmed.nassif@gmail.com>
 ---
- kernel-patches/susfs/fs/proc/task_mmu.c | 69 ++++++++++++++++++++++++-
+ fs/proc/task_mmu.c | 69 ++++++++++++++++++++++++-
  1 file changed, 68 insertions(+), 1 deletion(-)
 
-diff --git a/kernel-patches/susfs/fs/proc/task_mmu.c b/kernel-patches/susfs/fs/proc/task_mmu.c
+diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
 index 365c5cf..34d90cc 100644
---- a/kernel-patches/susfs/fs/proc/task_mmu.c
-+++ b/kernel-patches/susfs/fs/proc/task_mmu.c
+--- a/fs/proc/task_mmu.c
++++ b/fs/proc/task_mmu.c
 @@ -27,6 +27,9 @@
  #include <linux/overflow.h>
  #include <linux/buildid.h>
