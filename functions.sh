@@ -1,5 +1,14 @@
 #!/usr/bin/env bash
 
+declare -A ANDROID_RELEASE_FOR_KVER=(
+  ["5.10"]="13"
+  ["5.15"]="14"
+  ["6.1"]="14"
+  ["6.6"]="15"
+  ["6.12"]="16"
+  ["6.18"]="17"
+)
+
 declare -A GKI_AOSP_BRANCH=(
   ["5.10"]="android13-5.10"
   ["5.15"]="android14-5.15"
@@ -14,6 +23,10 @@ declare -A GKI_SUSFS_BRANCH=(
   ["6.6"]="gki-android15-6.6"
   ["6.12"]="gki-android16-6.12"
 )
+
+android_release_for_version() {
+  echo "${ANDROID_RELEASE_FOR_KVER[$1]:-unknown}"
+}
 
 resolve_kernel_source() {
   local ver="$1"
