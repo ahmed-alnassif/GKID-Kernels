@@ -462,9 +462,11 @@ success "Final storage: $(df -h / | awk 'NR==2 {print $4}') available"
 success "Final memory:  $(free -h | awk '/^Mem:/ {print $7}') available | Swap: $(free -h | awk '/^Swap:/ {print $2}')"
 echo "::endgroup::"
 
+set -eo pipefail
 echo "::group::[*] Building kernel"
 make ${MAKE_ARGS[@]} CC="ccache clang" CXX="ccache clang++"
 echo "::endgroup::"
+set +eo pipefail
 
 cd $WORKDIR
 
