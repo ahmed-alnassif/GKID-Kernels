@@ -246,8 +246,8 @@ jobs:
           if [ -d "rejected-patches-${{ matrix.name }}" ] && [ "$(find rejected-patches-${{ matrix.name }} -type f | wc -l)" -gt 0 ]; then
             for file in rejected-patches-${{ matrix.name }}/*; do
               if [ -f "$file" ]; then
-                curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendDocument" \
-                  -F chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+                curl -s -X POST "https://api.telegram.org/bot${{ secrets.rej_BOT_TOKEN }}/sendDocument" \
+                  -F chat_id="${{ secrets.rej_CHAT_ID }}" \
                   -F document=@"$file" \
                   -F caption="Rejected patch: $(basename "$file") - ${{ matrix.name }}"
                 sleep 1
