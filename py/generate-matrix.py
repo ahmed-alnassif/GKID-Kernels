@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-"""
-Generate build matrix for kernel compilation.
-"""
 
 import json
 import os
@@ -46,6 +43,8 @@ BUILD_CONFIGS: Dict[str, List[Dict[str, Any]]] = {
 	]
 }
 
+ALL_KERNEL_VERSIONS: List[str] = ["5.10", "5.15", "6.1", "6.6", "6.12"]
+
 def get_env_bool(var_name: str, default: bool = False) -> bool:
 	"""Read environment variable as boolean."""
 	value = os.environ.get(var_name, "").strip().lower()
@@ -53,24 +52,46 @@ def get_env_bool(var_name: str, default: bool = False) -> bool:
 		return default
 	return value in ("true", "1", "yes", "on")
 
+def resolve_kernel_versions() -> List[str]:
+	selected = os.environ.get("KERNEL_VERSION", "All").strip()
+
+	if not selected or selected.lower() == "all":
+		return ALL_KERNEL_VERSIONS
+
+	if selected not in ALL_KERNEL_VERSIONS:
+		raise ValueError(
+			f"Unknown KERNEL_VERSION='{selected}'. "
+			f"Expected 'All' or one of: {', '.join(ALL_KERNEL_VERSIONS)}"
+		)
+
+	return [selected]
+
 def generate_matrix() -> Dict[str, List[Dict[str, Any]]]:
-	"""Generate the matrix based on enabled build configurations."""
-	entries = []
+	variant_entries = []
 
 	for env_var, configs in BUILD_CONFIGS.items():
 		if get_env_bool(env_var):
-			entries.extend(configs)
+			variant_entries.extend(configs)
 
-	if not entries:
+	if not variant_entries:
 		raise ValueError(
-			"No build configurations selected!"
+			"No build configurations selected! "
 			"Set at least one BUILD_* environment variable to 'true'."
 		)
+
+	kernel_versions = resolve_kernel_versions()
+
+	entries = []
+	for kernel_version in kernel_versions:
+		for variant in variant_entries:
+			entry = deepcopy(variant)
+			entry["kernel_version"] = kernel_version
+			entry["name"] = f"{kernel_version}-{entry['name']}"
+			entries.append(entry)
 
 	return {"include": entries}
 
 def main() -> None:
-	"""Main entry point."""
 	try:
 		matrix = generate_matrix()
 		print(f"matrix={json.dumps(matrix)}")

@@ -33,9 +33,10 @@ on:
 
       KERNEL_VERSION:
         description: "GKI LTS kernel line to build"
-        default: "6.1"
+        default: "All"
         type: choice
         options:
+          - "All"
           - "5.10"
           - "5.15"
           - "6.1"
@@ -98,15 +99,12 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Generate build matrix
-        id: set-matrix
+      - name: Run Build Script
         env:
-          BUILD_VANILLA: ${{ github.event.inputs.BUILD_VANILLA }}
-          BUILD_KSU: ${{ github.event.inputs.BUILD_KSU }}
-          BUILD_KSUN: ${{ github.event.inputs.BUILD_KSUN }}
-          BUILD_KSU_SUSFS: ${{ github.event.inputs.BUILD_KSU_SUSFS }}
-        run: |
-          python3 py/generate-matrix.py >> "$GITHUB_OUTPUT"
+          GH_TOKEN: ${{ github.token }}
+          KERNEL_REPO: https://github.com/ahmed-alnassif/GKI-Duchamp-6.1
+          KERNEL_VERSION: ${{ matrix.kernel_version }}
+          KSU: ${{ matrix.KSU }}
 
   build:
     needs: prepare
@@ -180,14 +178,17 @@ jobs:
             find out/drivers/staging/r8188eu -name "*.ko" -exec cp {} $WKSU/lkm/ \;
 
             if [ -n "$(ls -A $WKSU/lkm 2>/dev/null)" ]; then
-                    sed -i "s/version=.*/version=${{ env.RELEASE }}-${{ env.VARIANT }}/" "$WKSU/module.prop"
+                    sed -i "s/version=.*/version=${{ env.RELEASE }}-${{ matrix.kernel_version }}-${{ env.VARIANT }}/" "$WKSU/module.prop"
                     cp ksrc/drivers/net/wireless/realtek/rtw88/firmware/* "$WKSU/system/etc/firmware/rtw88"
                     echo "Modules found:"
                     ls -la $WKSU/lkm/
                     mkdir -p artifacts
                     cd $WKSU
-                    zip -9 -r "$RPWD/artifacts/$NAME-${{ env.VARIANT }}-${{ env.RELEASE }}.zip" .
-                    echo "$NAME-${{ env.VARIANT }}-${{ env.RELEASE }}.zip created"
+                    # Kernel version must be part of the filename: the same
+                    # variant name is reused across every GKI line in the
+                    # "All Kernels" matrix, and release assets must be unique.
+                    zip -9 -r "$RPWD/artifacts/$NAME-${{ matrix.kernel_version }}-${{ env.VARIANT }}-${{ env.RELEASE }}.zip" .
+                    echo "$NAME-${{ matrix.kernel_version }}-${{ env.VARIANT }}-${{ env.RELEASE }}.zip created"
             else
                     echo "No .ko files found (driver may be built-in)"
             fi
@@ -312,6 +313,8 @@ jobs:
           RUN_NUMBER: ${{ github.run_number }}
           RELEASE_NAME: ${{ env.RELEASE_NAME }}
           RELEASE_URL: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ env.RELEASE }}
+          MULTI_KERNEL: ${{ env.MULTI_KERNEL }}
+          KERNEL_VERSIONS: ${{ env.KERNEL_VERSIONS }}
           KERNEL_VERSION: ${{ env.KERNEL_VERSION }}
           ANDROID_RELEASE: ${{ env.ANDROID_RELEASE }}
         run: |
@@ -321,13 +324,9 @@ jobs:
           [[ -n "$CHAT_ID" ]] || { echo "::error::CHAT_ID is not set"; exit 1; }
           [[ -n "$TOPIC_ID" ]] || { echo "::error::TOPIC_ID is not set"; exit 1; }
 
-          # #TODO: KERNEL_VERSION/ANDROID_RELEASE come from build-env-*.txt via
-          # prepare_release.py's load_env_from_builds(). If that file is ever
-          # missing them, fall back to the original 6.1/Android 14 wording
-          # instead of printing a blank version in the announcement.
-          KERNEL_VERSION="${KERNEL_VERSION:-6.1}"
-          ANDROID_RELEASE="${ANDROID_RELEASE:-14}"
-
+          # MULTI_KERNEL/KERNEL_VERSIONS/KERNEL_VERSION/ANDROID_RELEASE come
+          # from prepare_release.py's export_github_env(). ANDROID_RELEASE
+          # is only set when a single line was built.
           RELEASE_NAME=$(python3 .github/scripts/markdown_to_telegram.py --escape "$RELEASE_NAME")
 
           read_or_default() {
@@ -338,19 +337,43 @@ jobs:
             fi
           }
 
-          # MarkdownV2-escape the "AndroidNN-K.V-LTS" label and bare kernel
-          # version for use inside the heredocs below.
-          KERNEL_LABEL_ESCAPED=$(printf '%s' "Android${ANDROID_RELEASE}-${KERNEL_VERSION}-LTS" | sed -e 's/\./\\./g' -e 's/-/\\-/g')
-          KERNEL_VERSION_ESCAPED=$(printf '%s' "$KERNEL_VERSION" | sed 's/\./\\./g')
+          if [[ "$MULTI_KERNEL" == "true" ]]; then
+            # Several GKI lines were built in this run; a full per-line
+            # changelog dump doesn't fit a Telegram message, so point to
+            # the GitHub release notes instead.
+            LINES_ESCAPED=$(printf '%s' "$KERNEL_VERSIONS" | sed -e 's/\./\\./g' -e 's/,/, /g')
 
-          CHANGELOG_BODY=$(cat <<INNER
+            CAPTION=$(cat <<EOF
+          **$RELEASE_NAME**
+
+          **GKI lines built:** $LINES_ESCAPED
+
+          Full per\-line changelogs and downloads are on the release page\.
+
+          [**Download**]($RELEASE_URL)
+
+          [**Support the project**](https://github.com/ahmed-alnassif/GKI-Duchamp#-support-this-project)
+
+          [Commit]($COMMIT_URL) • [CI \#$RUN_NUMBER]($RUN_URL)
+          EOF
+            )
+          else
+            KERNEL_VERSION="${KERNEL_VERSION:-6.1}"
+            ANDROID_RELEASE="${ANDROID_RELEASE:-14}"
+
+            # MarkdownV2-escape the "AndroidNN-K.V-LTS" label and bare kernel
+            # version for use inside the heredocs below.
+            KERNEL_LABEL_ESCAPED=$(printf '%s' "Android${ANDROID_RELEASE}-${KERNEL_VERSION}-LTS" | sed -e 's/\./\\./g' -e 's/-/\\-/g')
+            KERNEL_VERSION_ESCAPED=$(printf '%s' "$KERNEL_VERSION" | sed 's/\./\\./g')
+
+            CHANGELOG_BODY=$(cat <<INNER
           What's new:
           **${KERNEL_LABEL_ESCAPED}:**
           $(read_or_default "release-artifacts/android_kernel-${KERNEL_VERSION}_changelog.txt")
 
           \-\-\-
           **SuSFS:**
-          $(read_or_default "release-artifacts/susfs_changelog.txt")
+          $(read_or_default "release-artifacts/susfs_changelog-${KERNEL_VERSION}.txt")
 
           \-\-\-
           **NoMount:**
@@ -368,24 +391,24 @@ jobs:
           **KernelSU Next:**
           $(read_or_default "release-artifacts/ksun_changelog.txt")
           INNER
-          )
+            )
 
-          CHANGELOG_QUOTED=$(printf '%s\n' "$CHANGELOG_BODY" | sed 's/^[[:space:]]*//' | awk '
-            NR==1 { print "**>" $0; next }
-            { lines[NR] = $0 }
-            END {
-              for (i = 2; i <= NR; i++) {
-                if (i == NR) print ">" lines[i] "||"
-                else print ">" lines[i]
+            CHANGELOG_QUOTED=$(printf '%s\n' "$CHANGELOG_BODY" | sed 's/^[[:space:]]*//' | awk '
+              NR==1 { print "**>" $0; next }
+              { lines[NR] = $0 }
+              END {
+                for (i = 2; i <= NR; i++) {
+                  if (i == NR) print ">" lines[i] "||"
+                  else print ">" lines[i]
+                }
               }
-            }
-          ')
+            ')
 
-          CAPTION=$(cat <<EOF
-          **✨ $RELEASE_NAME ✨**
+            CAPTION=$(cat <<EOF
+          **$RELEASE_NAME**
 
           **Supported devices:**
-          📱 **All devices** that shipped with **Linux ${KERNEL_VERSION_ESCAPED}\.x** and **Android ${ANDROID_RELEASE}** \(stock or AOSP\)
+          All devices that shipped with **Linux ${KERNEL_VERSION_ESCAPED}\.x** and **Android ${ANDROID_RELEASE}** \(stock or AOSP\)
 
           $CHANGELOG_QUOTED
 
@@ -395,7 +418,8 @@ jobs:
 
           [Commit]($COMMIT_URL) • [CI \#$RUN_NUMBER]($RUN_URL)
           EOF
-          )
+            )
+          fi
 
           CAPTION=$(printf '%s\n' "$CAPTION" | sed 's/^[[:space:]]*//')
 

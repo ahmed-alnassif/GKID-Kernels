@@ -2,6 +2,9 @@
 
 import glob
 import os
+import re
+
+KERNEL_VERSION_ORDER = ["5.10", "5.15", "6.1", "6.6", "6.12"]
 
 
 def read_or_default(path, default="*No changelog available*"):
@@ -10,117 +13,189 @@ def read_or_default(path, default="*No changelog available*"):
 	return default
 
 
-def load_env_from_builds():
-	env_files = sorted(glob.glob("release-artifacts/build-env-*.txt"))
-	env_vars = {
-		"KSU": "Not included",
-		"KSU_SUSFS": "Not included",
-		"SUSFS_VERSION": "Not included",
-		"KERNEL_VERSION": "6.1",
-		"ANDROID_RELEASE": "14",
-		"KERNEL_SOURCE_REPO": "ahmed-alnassif/GKI-Duchamp-6.1",
-		"KERNEL_SOURCE_BRANCH": "GKID-6.1",
-	}
+def slugify(text):
+	text = text.lower()
+	text = re.sub(r"[^\w\s-]", "", text)
+	text = re.sub(r"\s+", "-", text.strip())
+	return text
 
-	chosen = None
-	for f in env_files:
-		print(f"[*] Checking {f}...")
-		content = open(f).read()
-		if "SUSFS_VERSION=" in content and "KSU_SUSFS=true" in content:
-			chosen = f
-			print(f"[+] Found SUSFS build: {f}")
-			break
-	chosen = chosen or (env_files[0] if env_files else None)
 
-	if chosen:
-		print(f"[*] Loading environment from: {chosen}")
-		for line in open(chosen):
+def parse_env_file(path):
+	env = {}
+	with open(path) as f:
+		for line in f:
+			line = line.strip()
 			if "=" in line:
-				key, value = line.strip().split("=", 1)
-				if key and value:
-					env_vars[key] = value
-
-	github_env = os.environ.get("GITHUB_ENV")
-	if github_env:
-		with open(github_env, "a") as f:
-			for k, v in env_vars.items():
-				f.write(f"{k}={v}\n")
-
-	return env_vars
+				key, value = line.split("=", 1)
+				if key:
+					env[key] = value
+	return env
 
 
-def variant_link(variant, repo, tag):
-   return f"  - [{variant}](https://github.com/{repo}/releases/download/{tag}/{variant}.zip)"
+def load_build_envs():
+	env_files = sorted(glob.glob("release-artifacts/build-env-*.txt"))
+	if not env_files:
+		raise SystemExit("ERROR: no build-env-*.txt files found in release-artifacts/")
+
+	all_builds = [parse_env_file(f) for f in env_files]
+
+	shared_env = {}
+	for key in ("RELEASE_REPO", "RELEASE", "RELEASE_NAME", "KERNEL_NAME"):
+		values = {b[key] for b in all_builds if b.get(key)}
+		if not values:
+			raise SystemExit(f"ERROR: missing required build-env value: {key}")
+		shared_env[key] = sorted(values)[0]
+
+	return all_builds, shared_env
 
 
-def build_release_body(env_vars):
-	repo = env_vars.get("RELEASE_REPO")
-	tag = env_vars.get("RELEASE")
+def kernel_versions_present(all_builds):
+	present = {b.get("KERNEL_VERSION") for b in all_builds if b.get("KERNEL_VERSION")}
+	ordered = [v for v in KERNEL_VERSION_ORDER if v in present]
+	ordered += sorted(present - set(ordered))
+	return ordered
 
-	missing = [k for k in ("RELEASE_REPO", "RELEASE", "RELEASE_NAME", "LINUX_VERSION", "COMPILER_STRING") if not env_vars.get(k)]
-	if missing:
-		raise SystemExit(f"ERROR: missing required build-env values: {', '.join(missing)}")
 
-	variants = sorted(
-		os.path.basename(p)[:-4] for p in glob.glob("release-artifacts/*.zip")
-	)
-	gkid_variants = "\n".join(
-		variant_link(v, repo, tag) for v in variants if "gkid" in v.lower()
-	)
-	wireless_variants = "\n".join(
-		variant_link(v, repo, tag) for v in variants if "wirelessksu" in v.lower()
-	)
+def variant_zip_name(build):
+	"""Reconstruct the exact zip filename build.sh produced for this job."""
+	base_name = build.get("BASE_NAME")
+	release = build.get("RELEASE")
+	linux_version = build.get("LINUX_VERSION")
+	if not (base_name and release and linux_version):
+		return None
+	return f"{base_name}-{release}-{linux_version}.zip"
 
+
+def variant_link(display_name, filename, repo, tag):
+	return f"- [{display_name}](https://github.com/{repo}/releases/download/{tag}/{filename})"
+
+
+def display_variant_name(build):
+	name = build.get("BUILD_VARIANT", "")
+	kver = build.get("KERNEL_VERSION", "")
+	prefix = f"{kver}-"
+	return name[len(prefix):] if name.startswith(prefix) else name
+
+
+def build_kernel_section(kernel_version, builds, repo, tag, existing_zips, inputs):
+	android_release = builds[0].get("ANDROID_RELEASE", "unknown")
+	label = f"Android{android_release}-{kernel_version}-LTS"
+	anchor_title = f"{label} Files"
+
+	representative = next((b for b in builds if b.get("KSU_SUSFS") == "true"), builds[0])
+
+	file_lines = []
+	for b in sorted(builds, key=lambda b: display_variant_name(b)):
+		zip_name = variant_zip_name(b)
+		if zip_name and zip_name in existing_zips:
+			file_lines.append(variant_link(display_variant_name(b), zip_name, repo, tag))
+	files_block = "\n".join(file_lines) if file_lines else "- *No build artifacts found*"
+
+	wireless_prefix = f"WirelessKSU-{kernel_version}-"
+	wireless_zips = sorted(z for z in existing_zips if z.startswith(wireless_prefix))
+	if inputs["nh"] != "true":
+		wireless_block = "None (NetHunter disabled for this run)"
+	elif wireless_zips:
+		wireless_block = "\n".join(
+			f"- [{z[:-4]}](https://github.com/{repo}/releases/download/{tag}/{z})"
+			for z in wireless_zips
+		)
+	else:
+		wireless_block = "*Built-in driver, no separate module needed*"
+
+	changelog_file = f"release-artifacts/android_kernel-{kernel_version}_changelog.txt"
+	susfs_changelog_file = f"release-artifacts/susfs_changelog-{kernel_version}.txt"
+	susfs_version = representative.get("SUSFS_VERSION", "Not included")
+
+	section = f"""## {anchor_title}
+
+**Downloads:**
+{files_block}
+
+**Kali NetHunter KernelSU modules:**
+{wireless_block}
+
+**Build details:**
+- Linux version: {representative.get('LINUX_VERSION', 'unknown')}
+- Compiler: {representative.get('COMPILER_STRING', 'unknown')}
+- SuSFS: {susfs_version}
+
+**{label} kernel changelog (last 10 commits):**
+
+{read_or_default(changelog_file)}
+
+**Full commit history:** [Browse all commits](https://github.com/{representative.get('KERNEL_SOURCE_REPO', '')}/commits/{representative.get('KERNEL_SOURCE_BRANCH', '')})
+
+**SuSFS changelog for this line (last 5 commits):**
+
+{read_or_default(susfs_changelog_file)}
+"""
+	return label, section
+
+
+def build_release_body():
+	all_builds, shared_env = load_build_envs()
+	repo = shared_env["RELEASE_REPO"]
+	tag = shared_env["RELEASE"]
+	release_name = shared_env["RELEASE_NAME"]
+
+	existing_zips = {os.path.basename(p) for p in glob.glob("release-artifacts/*.zip")}
+	versions = kernel_versions_present(all_builds)
+
+	inputs = {
+		"nh": os.environ.get("NH_INPUT", ""),
+		"nm": os.environ.get("NM_INPUT", ""),
+		"droidspaces": os.environ.get("DROIDSPACES_INPUT", ""),
+		"lto": os.environ.get("LTO_INPUT", ""),
+		"test": os.environ.get("TEST_INPUT", ""),
+	}
 	status_map = {"true": "Enabled", "false": "Disabled"}
-	nh_input = os.environ.get("NH_INPUT", "")
-	nm_input = os.environ.get("NM_INPUT", "")
-	droidspaces_input = os.environ.get("DROIDSPACES_INPUT", "")
-	lto_input = os.environ.get("LTO_INPUT", "")
-	test_input = os.environ.get("TEST_INPUT", "")
+	cap_first = lambda s: s[0].upper() + s[1:] if s else s
 
 	warning = (
-		">[!warning]\n>This is an empty testing release — please do not download or install!\n\n"
-		if test_input == "yes"
+		"> [!Warning]\n> This is a test release for pipeline debugging - please do not download or install.\n\n"
+		if inputs["test"] == "yes"
 		else ""
 	)
 
-	kali_module_line = "None" if nh_input != "true" else ""
+	toc_entries = []
+	sections = []
+	for kv in versions:
+		builds_for_version = [b for b in all_builds if b.get("KERNEL_VERSION") == kv]
+		label, section = build_kernel_section(kv, builds_for_version, repo, tag, existing_zips, inputs)
+		toc_entries.append(f"- [{label}](#{slugify(label + ' files')})")
+		sections.append(section)
 
-	cap_first = lambda s: s[0].upper() + s[1:] if s else s
-	kernel_version = env_vars["KERNEL_VERSION"]
-	android_release = env_vars["ANDROID_RELEASE"]
-	kernel_source_repo = env_vars["KERNEL_SOURCE_REPO"]
-	kernel_source_branch = env_vars["KERNEL_SOURCE_BRANCH"]
-	kernel_version_tag = f"android{android_release}-{kernel_version}-lts"
-	changelog_title = f"Android{android_release}-{kernel_version}-LTS"
-	changelog_file = f"release-artifacts/android_kernel-{kernel_version}_changelog.txt"
-	body = f"""{warning}### ✨ {env_vars['RELEASE_NAME']} ✨
+	toc_block = "\n".join(toc_entries)
+	sections_block = "\n\n---\n\n".join(sections)
 
-> [!Tip]
-> 💰 **Support this project:** If GKID Kernel is useful to you, consider a donation - USDT (TRC20): `TCyghELuquAtoUFdY65iuJSMqJXbYhWidA`. Only send on the TRON network. See the [README](https://github.com/ahmed-alnassif/GKI-Duchamp#-support-this-project) for details.
+	body = f"""{warning}### {release_name}
 
-✨ **ReSuSFS** – Your SuSFS Companion
+## ❤️ Support This Project
 
-- **[ReSuSFS](https://github.com/ahmed-alnassif/ReSuSFS)** – The simplest way to manage SuSFS on KernelSU. Clean config files, toggle switches, and a built-in script editor for power users.
-- **Community:** Join the discussion and get support on [Telegram](https://t.me/ahmed_alnassif_tg).
+**USDT (TRC20):** `TCyghELuquAtoUFdY65iuJSMqJXbYhWidA`
 
-**Build Information:**
-- 🐧 **Kernel:** {env_vars['RELEASE_NAME']}
-- 🔥 **LTO optimizations:** {cap_first(lto_input)}
-- 🐉 **Kali NetHunter:** {status_map.get(nh_input, 'Disabled')}
-- 🐳 **DroidSpaces:** {status_map.get(droidspaces_input, 'Disabled')}
-- 🛡️ **SuSFS:** ඞ {env_vars['SUSFS_VERSION']}
-- 🥷 **NoMount:** {status_map.get(nm_input, 'Disabled')}
-- 🔖 **Version:** {env_vars['LINUX_VERSION']} ({kernel_version_tag})
-- 📦 **Variants:**
-{gkid_variants}
-- 🐉 **Kali NetHunter KernelSU modules:** {kali_module_line}
-{wireless_variants}
-- ⚙️ **Compiler:** {env_vars['COMPILER_STRING']}
+Your donations keep this project alive! I spend countless hours maintaining kernel builds for 5 different versions, fixing bugs, adding features, and supporting users. **Every donation matters!** 🙏
+
+- **[ReSuSFS](https://github.com/ahmed-alnassif/ReSuSFS)** – Root hiding made simple, powerful when you need it. A [KernelSU](https://kernelsu.org) module and WebUI that turns SuSFS into clean config files and toggle switches for everyday use, with **strong hiding applied out of the box** via built-in spoofing and hiding scripts for one-tap protection, plus a script manager for power users who want more, all without leaving the WebUI.
+
+- **Community:** join the discussion and get support on [Telegram](https://t.me/ahmed_alnassif_tg).
+
+**Run settings:**
+- LTO optimizations: {cap_first(inputs['lto']) or 'Unknown'}
+- Kali NetHunter: {status_map.get(inputs['nh'], 'Disabled')}
+- DroidSpaces: {status_map.get(inputs['droidspaces'], 'Disabled')}
+- NoMount: {status_map.get(inputs['nm'], 'Disabled')}
 
 > [!Important]
-> - This is a **GKI** kernel and not a **custom** kernel!
-> - It supports **ALL** devices that shipped with **Linux {kernel_version}.x** and **Android {android_release}** (stock or AOSP)
+> These are **GKI** kernels, not custom kernels. Each line below supports **all** devices that shipped with the matching Linux version and Android release (stock or AOSP).
+
+## Contents
+{toc_block}
+
+---
+
+{sections_block}
 
 ---
 
@@ -130,61 +205,61 @@ def build_release_body(env_vars):
 
 ---
 
-### 💬 Community & Support
+### Community & Support
 - **Have questions?** Start a [Discussion](https://github.com/ahmed-alnassif/GKI-Duchamp/discussions)
 - **Found a bug?** Open an [Issue](https://github.com/ahmed-alnassif/GKI-Duchamp/issues) with logs
-- **Enjoying the kernel?** ⭐ Star the [repo](https://github.com/ahmed-alnassif/GKI-Duchamp)!
+- **Enjoying the kernel?** Star the [repo](https://github.com/ahmed-alnassif/GKI-Duchamp)
 
 ---
 
-**⚡ Performance & Battery Optimizations**
-Engineered for smoother UI, better multitasking & gaming on Poco X6 Pro:
+**Performance & battery optimizations**
+Engineered for smoother UI, better multitasking, and gaming on Poco X6 Pro:
 
-**⚡ Performance**
-- **300Hz timer** → lower input lag, snappier feel
-- **MGLRU** → better multitasking & battery life
-- **Faster memory ops** → up to 50% faster string/memory handling
-- **mq-deadline I/O** → low-latency on UFS 4.0 storage
-- **CPU governors:** schedutil + ondemand → efficient & responsive
-- **NTSync driver** → faster Windows games/apps on Winlator/GameHub
+**Performance**
+- 300Hz timer -> lower input lag, snappier feel
+- MGLRU -> better multitasking & battery life
+- Faster memory ops -> up to 50% faster string/memory handling
+- mq-deadline I/O -> low-latency on UFS 4.0 storage
+- CPU governors: schedutil + ondemand -> efficient & responsive
+- NTSync driver -> faster Windows games/apps on Winlator/GameHub
 
-**🌐 Network**
-- **TCP BBRv3 + Westwood+** → better WiFi/mobile data speeds
-- **IPv6 NAT + IP Set** → better tethering & VPN
+**Network**
+- TCP BBRv3 + Westwood+ -> better WiFi/mobile data speeds
+- IPv6 NAT + IP Set -> better tethering & VPN
 
-**🔋 Battery Life**
-- **Wakelock cap:** 500ms → prevents battery drain
-- **Freeze timeout:** 20s → 1s → faster deadlock detection
-- **ext4 commit age:** 30s → fewer disk writes
-- **Minimized alarm wakeups** → less standby drain
+**Battery life**
+- Wakelock cap: 500ms -> prevents battery drain
+- Freeze timeout: 20s -> 1s -> faster deadlock detection
+- ext4 commit age: 30s -> fewer disk writes
+- Minimized alarm wakeups -> less standby drain
 
-**💾 Storage & Filesystem**
-- **F2FS tuning:** reduced GC sleep (50ms) → smoother I/O
-- **ext4 optimization** → extended commit age
+**Storage & filesystem**
+- F2FS tuning: reduced GC sleep (50ms) -> smoother I/O
+- ext4 optimization -> extended commit age
 
-**🛡️ Security**
-- **Baseband Guard (BBG)** → blocks unauthorized writes to critical partitions
+**Security**
+- Baseband Guard (BBG) -> blocks unauthorized writes to critical partitions
 
 ---
 
-### 📱 Recommended Companion Modules
+### Recommended companion modules
 Enhance your Poco X6 Pro with these modules designed for GKID kernels:
 
 | Module | Description | ROM |
 |--------|-------------|-----|
-| [**GPU Unlocker**](https://github.com/ahmed-alnassif/GPU-Unlocker) | Unlock Mali-G615 MC6 from **701MHz → 1.4GHz** (100% boost) | HyperOS |
-| [**Thermal Manager**](https://github.com/ahmed-alnassif/Thermal-Manager) | Fix thermal mode reset. Force-persist Balanced ⚖️, Battery Saver 🔋, Performance ⚡, or Gaming 🎮. Includes WebUI. | AOSP |
+| [**GPU Unlocker**](https://github.com/ahmed-alnassif/GPU-Unlocker) | Unlock Mali-G615 MC6 from 701MHz to 1.4GHz (100% boost) | HyperOS |
+| [**Thermal Manager**](https://github.com/ahmed-alnassif/Thermal-Manager) | Fix thermal mode reset. Force-persist Balanced, Battery Saver, Performance, or Gaming. Includes WebUI. | AOSP |
 | [**DSP AudioFix**](https://github.com/ahmed-alnassif/DSP-AudioFix) | Fix distorted audio on devices with Awinic smart amps | AOSP |
 
 > [!Tip]
-> **HyperOS users:** GPU Unlocker gives you a massive gaming performance boost.
-> **AOSP users:** Thermal Manager fixes a stock bug that resets your thermal mode.
+> HyperOS users: GPU Unlocker gives a large gaming performance boost.
+> AOSP users: Thermal Manager fixes a stock bug that resets your thermal mode.
 
 ---
 
 >[!Tip]
 >This kernel includes **TCP BBRv3** (default) and **Westwood+** congestion control algorithms.
->You can switch between them - **changes are temporary and reset after reboot.**
+>You can switch between them - changes are temporary and reset after reboot.
 
 **Switch to Westwood+ (better for some networks):**
 ```bash
@@ -196,50 +271,36 @@ su -c "sysctl -w net.ipv4.tcp_congestion_control=westwood"
 su -c "sysctl -w net.ipv4.tcp_congestion_control=bbr"
 ```
 
-Test both and choose the one that performs better on your network.
-> **Note:** To make the change permanent, create a script in `/data/adb/service.d/` with the sysctl command.
+Test both and use whichever performs better on your network.
+> **Note:** to make the change permanent, create a script in `/data/adb/service.d/` with the sysctl command.
 
 ---
-**{changelog_title} Kernel Changelog (last 10 commits):**
-
-{read_or_default(changelog_file)}
-
-**Full Commit History:** [Browse all commits](https://github.com/{kernel_source_repo}/commits/{kernel_source_branch})
-
----
-**SuSFS Changelog (last 5 commits):**
-
-{read_or_default("release-artifacts/susfs_changelog.txt")}
-
-**Full Commit History:** [Browse all commits](https://gitlab.com/simonpunk/susfs4ksu)
-
----
-**NoMount Changelog (last 5 commits):**
+**NoMount changelog (last 5 commits):**
 
 {read_or_default("release-artifacts/nomount_changelog.txt")}
 
-**Full Commit History:** [Browse all commits](https://github.com/maxsteeel/nomount/commits/master)
+**Full commit history:** [Browse all commits](https://github.com/maxsteeel/nomount/commits/master)
 
 ---
-**KernelSU Changelog (last 5 commits):**
+**KernelSU changelog (last 5 commits):**
 
 {read_or_default("release-artifacts/ksu_changelog.txt")}
 
-**Full Commit History:** [Browse all commits](https://github.com/tiann/KernelSU/commits/main)
+**Full commit history:** [Browse all commits](https://github.com/tiann/KernelSU/commits/main)
 
 ---
-**ReSukiSU Changelog (last 5 commits):**
+**ReSukiSU changelog (last 5 commits):**
 
 {read_or_default("release-artifacts/ReSukiSU_changelog.txt")}
 
-**Full Commit History:** [Browse all commits](https://github.com/ReSukiSU/ReSukiSU/commits/main)
+**Full commit history:** [Browse all commits](https://github.com/ReSukiSU/ReSukiSU/commits/main)
 
 ---
-**KernelSU Next Changelog (last 5 commits):**
+**KernelSU Next changelog (last 5 commits):**
 
 {read_or_default("release-artifacts/ksun_changelog.txt")}
 
-**Full Commit History:** [Browse all commits](https://github.com/KernelSU-Next/KernelSU-Next/commits/dev)
+**Full commit history:** [Browse all commits](https://github.com/KernelSU-Next/KernelSU-Next/commits/dev)
 
 ---
 **Checksums:**
@@ -247,15 +308,35 @@ Test both and choose the one that performs better on your network.
 {open("release-artifacts/checksums.txt").read().rstrip()}
 ```
 """
-	return body
+	return body, versions, shared_env, all_builds
+
+
+def export_github_env(versions, shared_env, all_builds):
+	github_env = os.environ.get("GITHUB_ENV")
+	if not github_env:
+		return
+
+	multi_kernel = "true" if len(versions) > 1 else "false"
+	with open(github_env, "a") as f:
+		f.write(f"RELEASE_REPO={shared_env['RELEASE_REPO']}\n")
+		f.write(f"RELEASE={shared_env['RELEASE']}\n")
+		f.write(f"RELEASE_NAME={shared_env['RELEASE_NAME']}\n")
+		f.write(f"MULTI_KERNEL={multi_kernel}\n")
+		f.write(f"KERNEL_VERSIONS={','.join(versions)}\n")
+		if len(versions) == 1:
+			# Kept for the single-line Telegram caption path.
+			single = versions[0]
+			build = next(b for b in all_builds if b.get("KERNEL_VERSION") == single)
+			f.write(f"KERNEL_VERSION={single}\n")
+			f.write(f"ANDROID_RELEASE={build.get('ANDROID_RELEASE', 'unknown')}\n")
 
 
 def main():
-	env_vars = load_env_from_builds()
-	body = build_release_body(env_vars)
+	body, versions, shared_env, all_builds = build_release_body()
 	with open("release_body.md", "w") as f:
 		f.write(body)
-	print("[+] release_body.md written.")
+	export_github_env(versions, shared_env, all_builds)
+	print(f"[+] release_body.md written for lines: {', '.join(versions)}")
 
 
 if __name__ == "__main__":

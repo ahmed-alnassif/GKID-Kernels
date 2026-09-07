@@ -99,7 +99,7 @@ log "Changelog of repos"
 clone_susfs 5
 cd "$SUSFS_DIR"
 git log --pretty=format:"- [%h](https://${SUSFS_URL#https://}/commit/%H) %s" -5 "$SUSFS_BRANCH" \
-> "$RELEASE_DIR/susfs_changelog.txt"
+> "$RELEASE_DIR/susfs_changelog-${KERNEL_VERSION}.txt"
 cd ..
 
 if [ "$KERNEL_VERSION" = "6.1" ]; then
