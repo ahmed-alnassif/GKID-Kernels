@@ -143,6 +143,11 @@ echo "COMPILER_STRING=$COMPILER_STRING" >> $GITHUB_ENV
 cd $KSRC
 
 echo "::group::[+] Applied patches"
+
+if [ "$KERNEL_VERSION" != "6.1" ]; then
+  apply_kernel_patches
+fi
+
 if [ "$KERNEL_VERSION" = "6.1" ]; then
   log "Applying BBRv3 patch"
   patch -p1 --fuzz=3 < $KERNEL_PATCHES/bbrv3/bbrv3.patch
