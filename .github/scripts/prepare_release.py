@@ -16,6 +16,10 @@ def load_env_from_builds():
 		"KSU": "Not included",
 		"KSU_SUSFS": "Not included",
 		"SUSFS_VERSION": "Not included",
+		"KERNEL_VERSION": "6.1",
+		"ANDROID_RELEASE": "14",
+		"KERNEL_SOURCE_REPO": "ahmed-alnassif/GKI-Duchamp-6.1",
+		"KERNEL_SOURCE_BRANCH": "GKID-6.1",
 	}
 
 	chosen = None
@@ -83,6 +87,13 @@ def build_release_body(env_vars):
 	kali_module_line = "None" if nh_input != "true" else ""
 
 	cap_first = lambda s: s[0].upper() + s[1:] if s else s
+	kernel_version = env_vars["KERNEL_VERSION"]
+	android_release = env_vars["ANDROID_RELEASE"]
+	kernel_source_repo = env_vars["KERNEL_SOURCE_REPO"]
+	kernel_source_branch = env_vars["KERNEL_SOURCE_BRANCH"]
+	kernel_version_tag = f"android{android_release}-{kernel_version}-lts"
+	changelog_title = f"Android{android_release}-{kernel_version}-LTS"
+	changelog_file = f"release-artifacts/android_kernel-{kernel_version}_changelog.txt"
 	body = f"""{warning}### ✨ {env_vars['RELEASE_NAME']} ✨
 
 > [!Tip]
@@ -100,7 +111,7 @@ def build_release_body(env_vars):
 - 🐳 **DroidSpaces:** {status_map.get(droidspaces_input, 'Disabled')}
 - 🛡️ **SuSFS:** ඞ {env_vars['SUSFS_VERSION']}
 - 🥷 **NoMount:** {status_map.get(nm_input, 'Disabled')}
-- 🔖 **Version:** {env_vars['LINUX_VERSION']} (android14-6.1-lts)
+- 🔖 **Version:** {env_vars['LINUX_VERSION']} ({kernel_version_tag})
 - 📦 **Variants:**
 {gkid_variants}
 - 🐉 **Kali NetHunter KernelSU modules:** {kali_module_line}
@@ -109,7 +120,7 @@ def build_release_body(env_vars):
 
 > [!Important]
 > - This is a **GKI** kernel and not a **custom** kernel!
-> - It supports **ALL** devices that shipped with **Linux 6.1.x** and **Android 14** (stock or AOSP)
+> - It supports **ALL** devices that shipped with **Linux {kernel_version}.x** and **Android {android_release}** (stock or AOSP)
 
 ---
 
@@ -189,11 +200,11 @@ Test both and choose the one that performs better on your network.
 > **Note:** To make the change permanent, create a script in `/data/adb/service.d/` with the sysctl command.
 
 ---
-**Android14-6.1-LTS Kernel Changelog (last 10 commits):**
+**{changelog_title} Kernel Changelog (last 10 commits):**
 
-{read_or_default("release-artifacts/android_kernel-6.1_changelog.txt")}
+{read_or_default(changelog_file)}
 
-**Full Commit History:** [Browse all commits](https://github.com/ahmed-alnassif/GKI-Duchamp-6.1/commits/GKID-6.1)
+**Full Commit History:** [Browse all commits](https://github.com/{kernel_source_repo}/commits/{kernel_source_branch})
 
 ---
 **SuSFS Changelog (last 5 commits):**
