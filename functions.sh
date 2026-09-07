@@ -226,7 +226,7 @@ apply_kernel_patches() {
     local patches=()
     while IFS= read -r -d '' patch; do
         patches+=("$patch")
-    done < <(find "$patch_dir" -type f \( -name "*.patch" -o -name "*.diff" \) -print0 | sort -z)
+    done < <(find "$patch_dir" -type f \( -name "*.patch" -o -name "*.diff" \) -print0 | sort -V)
 
     [[ ${#patches[@]} -eq 0 ]] && { warning "No patches found in $patch_dir"; return 0; }
 
@@ -235,17 +235,16 @@ apply_kernel_patches() {
     for patch in "${patches[@]}"; do
         info "Applying: $(basename "$patch")"
 
-        if git apply --check "$patch" 2>/dev/null; then
-            git apply "$patch" 2>/dev/null && success "Applied: $(basename "$patch")" || { error "Failed: $(basename "$patch")"; ((failed++)); }
-        elif git apply --check --3way "$patch" 2>/dev/null; then
-            git apply --3way "$patch" 2>/dev/null && success "Applied with 3way: $(basename "$patch")" || { error "Failed: $(basename "$patch")"; ((failed++)); }
-        elif head -1 "$patch" | grep -q "^From "; then
-            git am "$patch" 2>/dev/null && success "Applied via git am: $(basename "$patch")" || {
-                git am --abort 2>/dev/null
-                git apply --3way "$patch" 2>/dev/null && success "Applied via git am + 3way: $(basename "$patch")" || { error "Failed: $(basename "$patch")"; ((failed++)); }
-            }
+        if ! git apply --check "$patch" 2>/dev/null; then
+            warning "Skipping: $(basename "$patch") - does not apply"
+            ((failed++))
+            continue
+        fi
+
+        if git apply "$patch" 2>/dev/null; then
+            success "Applied: $(basename "$patch")"
         else
-            error "Cannot apply: $(basename "$patch")"
+            error "Failed: $(basename "$patch")"
             ((failed++))
         fi
     done
