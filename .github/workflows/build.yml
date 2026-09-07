@@ -240,6 +240,23 @@ jobs:
             rejected-patches-${{ matrix.name }}/
           retention-days: 1
 
+      - name: Send rejected patches to Telegram
+        if: always()
+        run: |
+          if [ -d "rejected-patches-${{ matrix.name }}" ] && [ "$(find rejected-patches-${{ matrix.name }} -type f | wc -l)" -gt 0 ]; then
+            for file in rejected-patches-${{ matrix.name }}/*; do
+              if [ -f "$file" ]; then
+                curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendDocument" \
+                  -F chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+                  -F document=@"$file" \
+                  -F caption="Rejected patch: $(basename "$file") - ${{ matrix.name }}"
+                sleep 1
+              fi
+            done
+          else
+            echo "No rejected patches to send"
+          fi
+
       - name: Upload build artifacts
         if: always()
         uses: actions/upload-artifact@v7.0.1
