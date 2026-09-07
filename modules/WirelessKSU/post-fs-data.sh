@@ -7,21 +7,31 @@ if lsmod | grep -q mac80211; then
     rmmod mac80211 2>/dev/null
 fi
 
-ksud insmod $MODPATH/lkm/mac80211.ko 2>/dev/null
+load() {
+    if [ -f "$MODPATH/lkm/$1.ko" ]; then
+        if ksud insmod "$MODPATH/lkm/$1.ko" 2>/dev/null; then
+            echo "rtw88: loaded $1" > /dev/kmsg
+        else
+            echo "rtw88: FAILED to load $1" > /dev/kmsg
+        fi
+    fi
+}
 
-ksud insmod $MODPATH/lkm/rtw88_core.ko 2>/dev/null
-ksud insmod $MODPATH/lkm/rtw88_usb.ko 2>/dev/null
+load mac80211
 
-ksud insmod $MODPATH/lkm/rtw88_88xxa.ko 2>/dev/null
-ksud insmod $MODPATH/lkm/rtw88_8723x.ko 2>/dev/null
+load rtw88_core
+load rtw88_usb
+
+load rtw88_88xxa
+load rtw88_8723x
 
 for mod in rtw88_8812a rtw88_8812au rtw88_8814a rtw88_8814au \
            rtw88_8821a rtw88_8821au rtw88_8821c rtw88_8821cu \
            rtw88_8822b rtw88_8822bu rtw88_8723d rtw88_8723du; do
-    ksud insmod $MODPATH/lkm/$mod.ko 2>/dev/null
+    load "$mod"
 done
 
-ksud insmod $MODPATH/lkm/r8188eu.ko 2>/dev/null
+load r8188eu
 
 echo "rtw88 modules loaded" > /dev/kmsg
 lsmod | grep -E "rtw|mac80211|cfg80211" > /dev/kmsg 2>&1
