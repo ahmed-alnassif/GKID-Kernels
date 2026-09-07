@@ -101,7 +101,7 @@ cd ..
 if [ "$KERNEL_VERSION" = "6.1" ]; then
   generate_gh_changelog "ahmed-alnassif/GKI-Duchamp-6.1" "$KERNEL_BRANCH" 10 "$RELEASE_DIR/android_kernel-6.1_changelog.txt"
 else
-  echo "No changelog generator wired up yet for KERNEL_VERSION=$KERNEL_VERSION" \
+  echo "No changelog generator wired up yet for $KERNEL_VERSION" \
     > "$RELEASE_DIR/android_kernel-${KERNEL_VERSION}_changelog.txt"
 fi
 generate_gh_changelog "maxsteeel/nomount" "master" 5 "$RELEASE_DIR/nomount_changelog.txt"
@@ -181,6 +181,13 @@ if { [ "$DROIDSPACES" = "true" ] || [ "$NH" = "true" ]; } && kernel_version_lt "
 elif [ "$DROIDSPACES" = "true" ] || [ "$NH" = "true" ]; then
   log "Applying DroidSpaces/NetHunter sysvipc patch"
   patch -p1 --fuzz=3 < "$KERNEL_PATCHES/droidspaces/001.GKI-6.12-or-above-fix_sysvipc_kabi.patch"
+fi
+
+if [ "$NH" = "true" ]; then
+  patch -p1 --fuzz=3 < "$KERNEL_PATCHES/nethunter/0001-mac80211-cfg80211-Add-monitor-mode-and-packet-inject.patch"
+  git clone --depth=1 "https://github.com/ahmed-alnassif/rtw88"
+  rm -rf "drivers/net/wireless/realtek/rtw88"
+  mv rtw88 "drivers/net/wireless/realtek/"
 fi
 
 if susfs_included && [ "$KSU" = "RSKSU" ]; then
