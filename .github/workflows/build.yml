@@ -222,12 +222,22 @@ jobs:
           echo "BUILD_VARIANT=${{ matrix.name }}" >> build-env-${{ matrix.name }}.txt
           echo "Saved environment for ${{ matrix.name }}"
 
+          if find . -name "*.rej" -type f | grep -q .; then
+          mkdir -p rejected-patches-${{ matrix.name }}
+          find . -name "*.rej" -type f -exec sh -c 'cp "$1" "rejected-patches-${{ matrix.name }}/$(echo "$1" | sed "s|^\./||; s|/|_|g")"' _ {} \;
+          echo "Found $(find rejected-patches-${{ matrix.name }} -type f | wc -l) rejected patch files"
+          else
+            echo "No rejected patches found for ${{ matrix.name }}"
+          fi
+
       - name: Upload environment file
         if: always()
         uses: actions/upload-artifact@v7.0.1
         with:
           name: build-env-${{ matrix.name }}-${{ github.run_number }}
-          path: build-env-${{ matrix.name }}.txt
+          path: |
+            build-env-${{ matrix.name }}.txt
+            rejected-patches-${{ matrix.name }}/
           retention-days: 1
 
       - name: Upload build artifacts
