@@ -358,15 +358,9 @@ apply_susfs_patches() {
       cd $OLDPWD
     fi
 
-    if [ "$KERNEL_VERSION" = "6.12" ]; then
-        if ! patch -p1 < "$SUSFS_PATCHES/50_add_susfs_in_${SUSFS_PATCH}.patch"; then
-            warning "SUSFS patch failed on 6.12, check .rej files"
-        fi
-    else
-        if ! patch -p1 --fuzz=3 < "$SUSFS_PATCHES/50_add_susfs_in_${SUSFS_PATCH}.patch"; then
-            if [ "$KERNEL_KMI" = "android13-5.15" ]; then
-                fix_namespace_susfs_mount
-            fi
+    if ! patch -p1 --fuzz=3 < "$SUSFS_PATCHES/50_add_susfs_in_${SUSFS_PATCH}.patch"; then
+        if [ "$KERNEL_KMI" = "android13-5.15" ]; then
+            fix_namespace_susfs_mount
         fi
     fi
 
