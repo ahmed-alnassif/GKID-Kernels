@@ -11,11 +11,7 @@ ANYKERNEL_REPO="https://github.com/ahmed-alnassif/AK3-GKID"
 
 KERNEL_DEFCONFIG="gki_defconfig"
 
-if [ "$NH" = "true" ]; then
-  KERNEL_BRANCH="GKID-NH"
-else
-  KERNEL_BRANCH="GKID-6.1"
-fi
+KERNEL_VERSION="${KERNEL_VERSION:-6.1}"
 
 sudo timedatectl set-timezone "$TIMEZONE" || export TZ="$TIMEZONE"
 
@@ -31,6 +27,22 @@ KERNEL_PATCHES="$WORKDIR/kernel-patches"
 PATCHES_DIR="$WORKDIR/patches"
 
 source $WORKDIR/functions.sh
+
+if [ "$KERNEL_VERSION" = "6.1" ]; then
+  if [ "$NH" = "true" ]; then
+    KERNEL_BRANCH="GKID-NH"
+  else
+    KERNEL_BRANCH="GKID-6.1"
+  fi
+else
+  IFS='|' read -r KERNEL_REPO KERNEL_BRANCH <<< "$(resolve_kernel_source "$KERNEL_VERSION")"
+fi
+
+ANDROID_RELEASE="$(android_release_for_version "$KERNEL_VERSION")"
+echo "KERNEL_VERSION=$KERNEL_VERSION" >> $GITHUB_ENV
+echo "ANDROID_RELEASE=$ANDROID_RELEASE" >> $GITHUB_ENV
+echo "KERNEL_SOURCE_REPO=$(simplify_gh_url "$KERNEL_REPO")" >> $GITHUB_ENV
+echo "KERNEL_SOURCE_BRANCH=$KERNEL_BRANCH" >> $GITHUB_ENV
 
 echo "RELEASE_REPO=$(simplify_gh_url "$GKI_RELEASES_REPO")" >> $GITHUB_ENV
 echo "KERNEL_NAME=${KERNEL_NAME}${RUN_NUM}" >> $GITHUB_ENV
@@ -70,8 +82,14 @@ susfs_included && VARIANT+="+SuSFS"
 SUSFS_URL="https://gitlab.com/simonpunk/susfs4ksu"
 SUSFS_DIR="$WORKDIR/susfs"
 SUSFS_PATCHES="${SUSFS_DIR}/kernel_patches"
-SUSFS_BRANCH="gki-android14-6.1"
-SUSFS_PATCH="gki-android14-6.1"
+
+if [ "$KERNEL_VERSION" = "6.1" ]; then
+  SUSFS_BRANCH="gki-android14-6.1"
+  SUSFS_PATCH="gki-android14-6.1"
+else
+  SUSFS_BRANCH="$(resolve_susfs_branch "$KERNEL_VERSION")"
+  SUSFS_PATCH="$SUSFS_BRANCH"
+fi
 
 log "Changelog of repos"
 clone_susfs 5
@@ -80,7 +98,12 @@ git log --pretty=format:"- [%h](https://${SUSFS_URL#https://}/commit/%H) %s" -5 
 > "$RELEASE_DIR/susfs_changelog.txt"
 cd ..
 
-generate_gh_changelog "ahmed-alnassif/GKI-Duchamp-6.1" "$KERNEL_BRANCH" 10 "$RELEASE_DIR/android_kernel-6.1_changelog.txt"
+if [ "$KERNEL_VERSION" = "6.1" ]; then
+  generate_gh_changelog "ahmed-alnassif/GKI-Duchamp-6.1" "$KERNEL_BRANCH" 10 "$RELEASE_DIR/android_kernel-6.1_changelog.txt"
+else
+  echo "No changelog generator wired up yet for KERNEL_VERSION=$KERNEL_VERSION" \
+    > "$RELEASE_DIR/android_kernel-${KERNEL_VERSION}_changelog.txt"
+fi
 generate_gh_changelog "maxsteeel/nomount" "master" 5 "$RELEASE_DIR/nomount_changelog.txt"
 generate_gh_changelog "tiann/KernelSU" "main" 5 "$RELEASE_DIR/ksu_changelog.txt"
 generate_gh_changelog "ReSukiSU/ReSukiSU" "main" 5 "$RELEASE_DIR/ReSukiSU_changelog.txt"
@@ -125,7 +148,12 @@ patch -p1 --fuzz=3 < $KERNEL_PATCHES/bbrv3/bbrv3.patch
 
 log "Applying NTSync patches..."
 curl -LSs "https://github.com/WildKernels/kernel_patches/raw/main/common/ntsync/ntsync_base.patch" | patch -p1 --fuzz=3
-curl -LSs "https://github.com/WildKernels/kernel_patches/raw/main/common/ntsync/ntsync_compat_android14-6.1.patch" | patch -p1 --fuzz=3
+
+if [ "$KERNEL_VERSION" = "6.1" ]; then
+  curl -LSs "https://github.com/WildKernels/kernel_patches/raw/main/common/ntsync/ntsync_compat_android14-6.1.patch" | patch -p1 --fuzz=3
+else
+  apply_ntsync_compat_patch "$KERNEL_BRANCH"
+fi
 success "NTSync patches applied"
 
 log "BBG included"
@@ -138,27 +166,12 @@ if [ "$KSU" = "no" ] || [ "$KSU" = "vnlto" ]; then
   VARIANT+="+NoDS"
 fi
 
-if [ "$DROIDSPACES" = "true" ] || [ "$NH" = "true" ]; then
+if { [ "$DROIDSPACES" = "true" ] || [ "$NH" = "true" ]; } && kernel_version_lt "$KERNEL_VERSION" "6.12"; then
   log "Applying DroidSpaces/NetHunter sysvipc patch"
   patch -p1 --fuzz=3 < "$KERNEL_PATCHES/droidspaces/001.GKI-below-6.12-fix_sysvipc_kabi_6_7_8.patch"
-fi
-
-if [ "$KSU" = "SKSU" ]; then
-  log "SukiSU-Ultra included"
-  if susfs_included; then
-    #install_ksu "ahmed-alnassif/SukiSU-Ultra" "builtin"
-    install_ksu "SukiSU-Ultra/SukiSU-Ultra" "builtin"
-  else
-    install_ksu "SukiSU-Ultra/SukiSU-Ultra" "main"
-  fi
-
-  if susfs_included; then
-
-    clone_susfs
-    apply_susfs_patches
-
-  fi
-
+elif [ "$DROIDSPACES" = "true" ] || [ "$NH" = "true" ]; then
+  log "Applying DroidSpaces/NetHunter sysvipc patch"
+  patch -p1 --fuzz=3 < "$KERNEL_PATCHES/droidspaces/001.GKI-6.12-or-above-fix_sysvipc_kabi.patch"
 fi
 
 if susfs_included && [ "$KSU" = "RSKSU" ]; then
