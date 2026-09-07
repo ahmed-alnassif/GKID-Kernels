@@ -149,9 +149,11 @@ apply_susfs_patches() {
     cp -R $SUSFS_PATCHES/fs/* ./fs
     cp -R $SUSFS_PATCHES/include/linux/* ./include/linux/
     
-    cd $SUSFS_DIR
-    patch -p1 --fuzz=3 < "$KERNEL_PATCHES/susfs/susfs_fs_namespace_fix.patch"
-    cd $OLDPWD
+    if [ "$SUSFS_PATCH" = "gki-android14-6.1" ]; then
+      cd $SUSFS_DIR
+      patch -p1 --fuzz=3 < "$KERNEL_PATCHES/susfs/susfs_fs_namespace_fix.patch"
+      cd $OLDPWD
+    fi
     
     patch -p1 --fuzz=3 < $SUSFS_PATCHES/50_add_susfs_in_${SUSFS_PATCH}.patch
     
