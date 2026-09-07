@@ -242,13 +242,22 @@ apply_patch_file() {
 
     [[ -z "$patch_data" ]] && { error "No patch data"; return 1; }
 
-    if ! echo "$patch_data" | git apply --check - 2>/dev/null; then
+    if echo "$patch_data" | git apply --check - 2>/dev/null; then
+        if echo "$patch_data" | git apply - 2>/dev/null; then
+            success "Applied patch successfully"
+            return 0
+        fi
+    fi
+
+    warning "git apply failed, trying patch with fuzz"
+
+    if ! echo "$patch_data" | patch -p1 --fuzz=3 --dry-run 2>/dev/null; then
         warning "Skipping: patch does not apply"
         return 1
     fi
 
-    if echo "$patch_data" | git apply - 2>/dev/null; then
-        success "Applied patch successfully"
+    if echo "$patch_data" | patch -p1 --fuzz=3 2>/dev/null; then
+        success "Applied patch with fuzz"
         return 0
     else
         error "Failed to apply patch"
