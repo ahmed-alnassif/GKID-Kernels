@@ -99,12 +99,16 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Run Build Script
+      - name: Generate build matrix
+        id: set-matrix
         env:
-          GH_TOKEN: ${{ github.token }}
-          KERNEL_REPO: https://github.com/ahmed-alnassif/GKI-Duchamp-6.1
-          KERNEL_VERSION: ${{ matrix.kernel_version }}
-          KSU: ${{ matrix.KSU }}
+          KERNEL_VERSION: ${{ github.event.inputs.KERNEL_VERSION }}
+          BUILD_VANILLA: ${{ github.event.inputs.BUILD_VANILLA }}
+          BUILD_KSU: ${{ github.event.inputs.BUILD_KSU }}
+          BUILD_KSUN: ${{ github.event.inputs.BUILD_KSUN }}
+          BUILD_KSU_SUSFS: ${{ github.event.inputs.BUILD_KSU_SUSFS }}
+        run: |
+          python3 py/generate-matrix.py >> "$GITHUB_OUTPUT"
 
   build:
     needs: prepare
@@ -139,7 +143,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           KERNEL_REPO: https://github.com/ahmed-alnassif/GKI-Duchamp-6.1
-          KERNEL_VERSION: ${{ inputs.KERNEL_VERSION }}
+          KERNEL_VERSION: ${{ matrix.kernel_version }}
           KSU: ${{ matrix.KSU }}
           KSU_COMPAT: ${{ matrix.KSU_COMPAT }}
           KSU_SUSFS: ${{ matrix.KSU_SUSFS }}
