@@ -334,8 +334,8 @@ fix_namespace_susfs_mount() {
         return 0
     fi
 
-    if grep -q "CL_COPY_MNT_NS" "$file" && grep -q "susfs_is_sdcard_android_data_not_decrypted" "$file"; then
-        success "namespace.c SusFS mount definitions already applied"
+    if grep -q "#define CL_COPY_MNT_NS" "$file" && grep -q "extern struct static_key_true susfs_is_sdcard_android_data_not_decrypted" "$file"; then
+        success "namespace.c SuSFS mount definitions already applied"
         return 0
     fi
 
@@ -343,7 +343,7 @@ fix_namespace_susfs_mount() {
 
     sed -i '/#include "internal.h"/a \\n#ifdef CONFIG_KSU_SUSFS_SUS_MOUNT\nextern bool susfs_is_current_ksu_domain(void);\nextern struct static_key_true susfs_is_sdcard_android_data_not_decrypted;\n\n#define CL_COPY_MNT_NS BIT(25)\n\n#endif' "$file"
 
-    success "namespace.c SusFS mount definitions added via sed"
+    success "namespace.c SuSFS mount definitions added via sed"
 }
 
 apply_susfs_patches() {
