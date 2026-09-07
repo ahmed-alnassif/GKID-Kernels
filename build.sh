@@ -156,20 +156,22 @@ fi
 
 if [ "$KERNEL_VERSION" = "6.1" ]; then
   log "Applying BBRv3 patch"
-  patch -p1 --fuzz=3 < $KERNEL_PATCHES/bbrv3/bbrv3.patch
+  apply_patch_file $KERNEL_PATCHES/bbrv3/bbrv3.patch
 else
   warning "Only 6.1 support bbrv3 for now"
 fi
 
-log "Applying NTSync patches..."
-curl -LSs "https://github.com/WildKernels/kernel_patches/raw/main/common/ntsync/ntsync_base.patch" | patch -p1 --fuzz=3
+if kernel_version_lt "$KERNEL_VERSION" "6.12"; then
+  log "Applying NTSync patches..."
+  curl -LSs "https://github.com/WildKernels/kernel_patches/raw/main/common/ntsync/ntsync_base.patch" | apply_patch_file
 
-if [ "$KERNEL_VERSION" = "6.1" ]; then
-  curl -LSs "https://github.com/WildKernels/kernel_patches/raw/main/common/ntsync/ntsync_compat_android14-6.1.patch" | patch -p1 --fuzz=3
-else
-  apply_ntsync_compat_patch "$KERNEL_KMI"
+  if [ "$KERNEL_VERSION" = "6.1" ]; then
+    curl -LSs "https://github.com/WildKernels/kernel_patches/raw/main/common/ntsync/ntsync_compat_android14-6.1.patch" | apply_patch_file
+  else
+    apply_ntsync_compat_patch "$KERNEL_KMI"
+  fi
+  success "NTSync patches applied"
 fi
-success "NTSync patches applied"
 
 log "BBG included"
 wget -qO- "https://github.com/vc-teahouse/Baseband-guard/raw/main/setup.sh" | bash
@@ -183,21 +185,21 @@ fi
 
 if { [ "$DROIDSPACES" = "true" ] || [ "$NH" = "true" ]; } && kernel_version_lt "$KERNEL_VERSION" "6.12"; then
   log "Applying DroidSpaces/NetHunter sysvipc patch"
-  patch -p1 --fuzz=3 < "$KERNEL_PATCHES/droidspaces/001.GKI-below-6.12-fix_sysvipc_kabi_6_7_8.patch"
+  apply_patch_file "$KERNEL_PATCHES/droidspaces/001.GKI-below-6.12-fix_sysvipc_kabi_6_7_8.patch"
 elif [ "$DROIDSPACES" = "true" ] || [ "$NH" = "true" ]; then
   log "Applying DroidSpaces/NetHunter sysvipc patch"
-  patch -p1 --fuzz=3 < "$KERNEL_PATCHES/droidspaces/001.GKI-6.12-or-above-fix_sysvipc_kabi.patch"
+  apply_patch_file "$KERNEL_PATCHES/droidspaces/001.GKI-6.12-or-above-fix_sysvipc_kabi.patch"
 fi
 
 if [ "$NH" = "true" ]; then
   log "Applying NetHunter patches"
-  patch -p1 --fuzz=3 < "$KERNEL_PATCHES/nethunter/0001-mac80211-cfg80211-Add-monitor-mode-and-packet-inject.patch"
+  apply_patch_file "$KERNEL_PATCHES/nethunter/0001-mac80211-cfg80211-Add-monitor-mode-and-packet-inject.patch"
   git clone --depth=1 "https://github.com/ahmed-alnassif/rtw88"
   rm -rf "drivers/net/wireless/realtek/rtw88"
   mv rtw88 "drivers/net/wireless/realtek/"
 
   if kernel_version_lt "$KERNEL_VERSION" "6.1"; then
-    patch -p1 --fuzz=3 < "$KERNEL_PATCHES/nethunter/0001-wifi-rtw88-rtw8723x-avoid-shared-loop-variable-name-.patch"
+    apply_patch_file "$KERNEL_PATCHES/nethunter/0001-wifi-rtw88-rtw8723x-avoid-shared-loop-variable-name-.patch"
   fi
 fi
 
@@ -224,12 +226,12 @@ if [ "$KSU" = "KSU" ]; then
     cd KernelSU
     #git reset --hard "61c6313"
     git reset --soft HEAD~1
-    patch -p1 --fuzz=3 < "$PATCHES_DIR/0001-feat-avc-log-spoofing.patch"
-    patch -p1 --fuzz=3 < "$PATCHES_DIR/0001-feat-add-multiple-managers.patch"
-    patch -p1 --fuzz=3 < "$PATCHES_DIR/0001-feat-throne_tracker-offload-to-kthread.patch"
-    patch -p1 --fuzz=3 < "$SUSFS_PATCHES/KernelSU/10_enable_susfs_for_ksu.patch"
-    patch -p1 --fuzz=3 < "$PATCHES_DIR/0001-feat-escape-persistent_allow_list-to-kthread.patch"
-    patch -p1 --fuzz=3 < "$PATCHES_DIR/0001-feat-supercalls-allow-userspace-to-pull-list-entries.patch"
+    apply_patch_file "$PATCHES_DIR/0001-feat-avc-log-spoofing.patch"
+    apply_patch_file "$PATCHES_DIR/0001-feat-add-multiple-managers.patch"
+    apply_patch_file "$PATCHES_DIR/0001-feat-throne_tracker-offload-to-kthread.patch"
+    apply_patch_file "$SUSFS_PATCHES/KernelSU/10_enable_susfs_for_ksu.patch"
+    apply_patch_file "$PATCHES_DIR/0001-feat-escape-persistent_allow_list-to-kthread.patch"
+    apply_patch_file "$PATCHES_DIR/0001-feat-supercalls-allow-userspace-to-pull-list-entries.patch"
     sed -i "/    git pull && echo \"\[+\] Repository updated.\"/d" "kernel/setup.sh"
     git config --global user.email "mr.ahmed.nassif@gmail.com"
     git config --global user.name "Ahmed Al-Nassif"
