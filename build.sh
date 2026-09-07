@@ -58,7 +58,11 @@ trap 'echo "[-] Received SIGTERM at $(date) - possible GitHub kill" >> "$BUILD_L
 trap 'echo "[-] Received SIGINT at $(date)" >> "$BUILD_LOGS"' INT
 
 log "Cloning kernel source from $(simplify_gh_url "$KERNEL_REPO")"
-git clone -q --depth=1 --recurse-submodules "$KERNEL_REPO" -b "$KERNEL_BRANCH" "$KSRC"
+if [ "$KERNEL_VERSION" = "6.1" ]; then
+  git clone -q --depth=1 --recurse-submodules "$KERNEL_REPO" -b "$KERNEL_BRANCH" "$KSRC"
+else
+  git clone -q --depth=1 "$KERNEL_REPO" -b "$KERNEL_BRANCH" "$KSRC"
+fi
 
 cd $KSRC
 LINUX_VERSION=$(make kernelversion)
