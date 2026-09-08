@@ -103,7 +103,6 @@ def build_kernel_section(kernel_version, builds, repo, tag, existing_zips, input
 	else:
 		wireless_block = "*Built-in driver, no separate module needed*"
 
-	changelog_file = f"release-artifacts/android_kernel-{kernel_version}_changelog.txt"
 	susfs_changelog_file = f"release-artifacts/susfs_changelog-{kernel_version}.txt"
 	susfs_version = representative.get("SUSFS_VERSION", "Not included")
 
@@ -119,12 +118,6 @@ def build_kernel_section(kernel_version, builds, repo, tag, existing_zips, input
 - Linux version: {representative.get('LINUX_VERSION', 'unknown')}
 - Compiler: {representative.get('COMPILER_STRING', 'unknown')}
 - SuSFS: {susfs_version}
-
-**{label} kernel changelog (last 10 commits):**
-
-{read_or_default(changelog_file)}
-
-**Full commit history:** [Browse all commits](https://github.com/{representative.get('KERNEL_SOURCE_REPO', '')}/commits/{representative.get('KERNEL_SOURCE_BRANCH', '')})
 
 **SuSFS changelog for this line (last 5 commits):**
 
