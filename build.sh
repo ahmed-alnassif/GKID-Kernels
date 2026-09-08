@@ -477,7 +477,8 @@ git clone -q --depth=1 $ANYKERNEL_REPO anykernel
 
 AK3_ZIP_NAME=${AK3_ZIP_NAME//REL/$RELEASE}
 sed -i \
-  "s/kernel.string=.*/kernel.string=${KERNEL_NAME} ${RELEASE} ${LINUX_VERSION} ${VARIANT} by Ahmed Al-Nassif (ahmed-alnassif)/g" \
+  -e "s/kernel.string=.*/kernel.string=${KERNEL_NAME} ${RELEASE} ${LINUX_VERSION} ${VARIANT} by Ahmed Al-Nassif (ahmed-alnassif)/g" \
+  -e "s/supported_kernel=\".*\"/supported_kernel=\"${KERNEL_VERSION}\"/g" \
   $WORKDIR/anykernel/anykernel.sh
 
 cd anykernel
