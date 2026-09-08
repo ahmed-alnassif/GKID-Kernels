@@ -146,7 +146,9 @@ echo "COMPILER_STRING=$COMPILER_STRING" >> $GITHUB_ENV
 
 cd $KSRC
 
+echo "::group::[+] pahole installation"
 build_and_install_pahole
+echo "::endgroup::"
 
 echo "::group::[+] Applied patches"
 
