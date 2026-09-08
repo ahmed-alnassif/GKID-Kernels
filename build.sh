@@ -211,12 +211,7 @@ fi
 set -eo pipefail
 if susfs_included && [ "$KSU" = "RSKSU" ]; then
   log "ReSukiSU included"
-
-  git clone --depth=10 "https://github.com/ReSukiSU/ReSukiSU" -b "main"
-
-  bash "ReSukiSU/kernel/setup.sh" "3c1882886dbbb54f4aae7ddf205f8ccde32c2a34"
-
-  # install_ksu "ReSukiSU/ReSukiSU" "main"
+  install_ksu "ReSukiSU/ReSukiSU" "main"
 
   clone_susfs
   apply_susfs_patches
