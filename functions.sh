@@ -343,6 +343,23 @@ fix_namespace_susfs_mount() {
     success "namespace.c SuSFS mount definitions added via sed"
 }
 
+cleanup_abi_gki_protected_exports() {
+    local abi_dir="android"
+
+    if [[ ! -d "$abi_dir" ]]; then
+        warning "android/ directory not found - skipping cleanup"
+        return 0
+    fi
+
+    if ! compgen -G "android/abi_gki_protected_exports_*" > /dev/null; then
+        success "No ABI GKI protected exports files found"
+        return 0
+    fi
+
+    rm -rf android/abi_gki_protected_exports_*
+    success "Removed ABI GKI protected exports files"
+}
+
 apply_susfs_patches() {
     log "Applying SUSFS patches"
 

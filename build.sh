@@ -158,6 +158,7 @@ if [ "$KERNEL_VERSION" != "6.1" ]; then
   apply_kernel_patches
   apply_force_load_module_patch
   apply_extract_cert_key_pass_patch
+  cleanup_abi_gki_protected_exports
 fi
 
 
