@@ -360,6 +360,90 @@ cleanup_abi_gki_protected_exports() {
     fi
 }
 
+build_and_install_pahole() {
+    local pahole_dir="$HOME/.local/src/pahole"
+    local install_prefix="$HOME/.local"
+    local bin_dir="$install_prefix/bin"
+
+    export CCACHE_DIR="${CCACHE_DIR:-$HOME/.ccache}"
+    export PATH="$bin_dir:$PATH"
+    mkdir -p "$bin_dir" "$CCACHE_DIR"
+
+    if command -v pahole >/dev/null 2>&1; then
+        local ver
+        ver=$(pahole --version 2>/dev/null | head -1)
+        if [[ "$ver" =\~ v1\.(2[5-9]|[3-9][0-9]) ]]; then
+            success "pahole $ver already available"
+            return 0
+        fi
+        if command -v apt-get >/dev/null 2>&1; then
+            sudo apt-get remove -y --purge dwarves pahole 2>/dev/null || true
+            sudo apt-get autoremove -y 2>/dev/null || true
+            hash -r
+        fi
+    fi
+
+    local missing=()
+    for pkg in cmake libdw-dev libelf-dev zlib1g-dev; do
+        if ! dpkg -s "$pkg" &>/dev/null; then
+            missing+=("$pkg")
+        fi
+    done
+    if (( ${#missing[@]} )); then
+        sudo apt-get update -qq
+        sudo apt-get install -y -qq "${missing[@]}" || {
+            error "failed to install build deps: ${missing[*]}"
+            return 1
+        }
+    fi
+
+    if [[ ! -d "$pahole_dir/.git" ]]; then
+        rm -rf "$pahole_dir"
+        git clone --depth=1 https://git.kernel.org/pub/scm/devel/pahole/pahole.git "$pahole_dir" || {
+            error "failed to clone pahole"
+            return 1
+        }
+    else
+        git -C "$pahole_dir" fetch --depth=1 origin master
+        git -C "$pahole_dir" reset --hard origin/master
+    fi
+
+    local build_dir="$pahole_dir/build"
+    rm -rf "$build_dir"
+    mkdir -p "$build_dir"
+    cd "$build_dir" || return 1
+
+    cmake \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX="$install_prefix" \
+        -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+        -D__LIB=lib \
+        .. || {
+        error "cmake failed"
+        return 1
+    }
+
+    make -j"$(nproc)" || {
+        error "pahole build failed"
+        return 1
+    }
+
+    make install || {
+        error "pahole install failed"
+        return 1
+    }
+
+    hash -r
+    if ! command -v pahole >/dev/null 2>&1; then
+        error "pahole not found in PATH after install"
+        return 1
+    fi
+
+    success "pahole $(pahole --version | head -1) installed to $bin_dir"
+    return 0
+}
+
 apply_susfs_patches() {
     log "Applying SUSFS patches"
 
