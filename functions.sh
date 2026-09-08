@@ -364,9 +364,14 @@ build_and_install_pahole() {
     local pahole_dir="$HOME/.local/src/pahole"
     local install_prefix="$HOME/.local"
     local bin_dir="$install_prefix/bin"
+    local lib_dir="$install_prefix/lib"
+    local start_dir
+    start_dir="$(pwd)"
 
     export CCACHE_DIR="${CCACHE_DIR:-$HOME/.ccache}"
     export PATH="$bin_dir:$PATH"
+    export LD_LIBRARY_PATH="$lib_dir${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
     mkdir -p "$bin_dir" "$CCACHE_DIR"
 
     if command -v apt-get >/dev/null 2>&1; then
@@ -410,25 +415,36 @@ build_and_install_pahole() {
         -DCMAKE_INSTALL_PREFIX="$install_prefix" \
         -DCMAKE_C_COMPILER_LAUNCHER=ccache \
         -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+        -DCMAKE_INSTALL_RPATH="$lib_dir" \
+        -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
         -D__LIB=lib \
         .. || {
         error "cmake failed"
+        cd "$start_dir"
         return 1
     }
 
     make -j"$(nproc)" || {
         error "pahole build failed"
+        cd "$start_dir"
         return 1
     }
 
     make install || {
         error "pahole install failed"
+        cd "$start_dir"
         return 1
     }
+
+    cd "$start_dir"
 
     hash -r
     if ! command -v pahole >/dev/null 2>&1; then
         error "pahole not found in PATH after install"
+        return 1
+    fi
+    if ! pahole --version >/dev/null 2>&1; then
+        error "pahole found but fails to run (check LD_LIBRARY_PATH/rpath)"
         return 1
     fi
 
