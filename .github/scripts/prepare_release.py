@@ -106,7 +106,9 @@ def build_kernel_section(kernel_version, builds, repo, tag, existing_zips, input
 	susfs_changelog_file = f"release-artifacts/susfs_changelog-{kernel_version}.txt"
 	susfs_version = representative.get("SUSFS_VERSION", "Not included")
 
-	section = f"""## {anchor_title}
+	anchor_id = slugify(label)
+	section = f"""<a name="{anchor_id}"></a>
+## {anchor_title}
 
 **Downloads:**
 {files_block}
@@ -156,7 +158,7 @@ def build_release_body():
 	for kv in versions:
 		builds_for_version = [b for b in all_builds if b.get("KERNEL_VERSION") == kv]
 		label, section = build_kernel_section(kv, builds_for_version, repo, tag, existing_zips, inputs)
-		toc_entries.append(f"- [{label}](#{slugify(label + ' files')})")
+		toc_entries.append(f"- [{label}](#{slugify(label)})")
 		sections.append(section)
 
 	toc_block = "\n".join(toc_entries)
@@ -182,6 +184,23 @@ Your donations keep this project alive! I spend countless hours maintaining kern
 
 > [!Important]
 > These are **GKI** kernels, not custom kernels. Each line below supports **all** devices that shipped with the matching Linux version and Android release (stock or AOSP).
+
+## 🧭 Which variant should I flash?
+
+| Variant | Root | SuSFS | LTO | Compat |
+|---------|------|-------|-----|--------|
+| Vanilla | ❌ | ❌ | Full | ❌ |
+| Vanilla+NoLTO | ❌ | ❌ | None | ❌ |
+| KernelSU | ✅ | ❌ | Full | ❌ |
+| KernelSU+SuSFS | ✅ | ✅ | Full | ❌ |
+| KSU+SuSFS+MM | ✅ | ✅ | Full | ❌ |
+| KernelSU-Next | ✅ | ❌ | Full | ❌ |
+| KSU-Next+SuSFS | ✅ | ✅ | Full | ❌ |
+| Compat+KSU+SuSFS | ✅ | ✅ | Full | ✅ |
+| Compat+KSU-Next+SuSFS | ✅ | ✅ | Full | ✅ |
+| Compat+LTO+KSU-Next+SuSFS | ✅ | ✅ | Full | ✅ |
+
+**Not sure? Use a `Compat` variant first**: it fixes most boot issues, vendor module failures, and KMI mismatches. Full feature breakdown, LTO explanation, and troubleshooting live in the [README](https://github.com/ahmed-alnassif/GKID-Kernels#-build-variants).
 
 ## Contents
 {toc_block}
