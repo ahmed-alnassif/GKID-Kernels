@@ -344,20 +344,20 @@ fix_namespace_susfs_mount() {
 }
 
 cleanup_abi_gki_protected_exports() {
-    local abi_dir="android"
+    local files_found=0
 
-    if [[ ! -d "$abi_dir" ]]; then
-        warning "android/ directory not found - skipping cleanup"
-        return 0
+    for path in "android" "."; do
+        if [[ -d "$path" ]] && compgen -G "$path/*protected_exports*" > /dev/null; then
+            rm -rf "$path"/*protected_exports*
+            files_found=1
+        fi
+    done
+
+    if [[ $files_found -eq 0 ]]; then
+        success "No ABI GKI protected exports files found to remove"
+    else
+        success "Removed ABI GKI protected exports file(s)"
     fi
-
-    if ! compgen -G "android/abi_gki_protected_exports_*" > /dev/null; then
-        success "No ABI GKI protected exports files found"
-        return 0
-    fi
-
-    rm -rf android/abi_gki_protected_exports_*
-    success "Removed ABI GKI protected exports files"
 }
 
 apply_susfs_patches() {
