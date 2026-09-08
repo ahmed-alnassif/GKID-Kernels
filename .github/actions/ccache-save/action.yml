@@ -1,0 +1,62 @@
+name: "Save ccache"
+description: "Save ccache + ThinLTO cache for one build matrix variant to the ci-ccache-store release."
+
+inputs:
+  repo:
+    description: "owner/repo to upload the release asset to"
+    required: true
+  token:
+    description: "GitHub token with contents:write"
+    required: true
+  variant:
+    description: "matrix.name for this build - used as the cache key"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        REPO: ${{ inputs.repo }}
+        MATRIX_NAME: ${{ inputs.variant }}
+      run: |
+        set -uo pipefail
+        CACHE_KEY="${MATRIX_NAME//+/_}"
+        ASSET_BASE="ccache-${CACHE_KEY}.tar.zst"
+
+        PATHS=()
+        [ -d ~/.ccache ] && PATHS+=(~/.ccache)
+        [ -d /dev/shm/thinlto-cache ] && PATHS+=(/dev/shm/thinlto-cache)
+
+        if [ ${#PATHS[@]} -eq 0 ]; then
+          echo "Nothing to cache, skipping upload"
+          exit 0
+        fi
+
+        tar --zstd -cf "/tmp/$ASSET_BASE" "${PATHS[@]}"
+        echo "Cache archive size: $(du -h "/tmp/$ASSET_BASE" | cut -f1)"
+
+        # GitHub caps each release asset at 2GB. A ThinLTO cache can exceed
+        # that, so split into 1900MiB chunks (safely under the cap) plus a
+        # manifest recording how many chunks there are. ccache-restore reads
+        # the manifest and only ever fetches exactly that many parts by
+        # name, so a leftover higher-numbered part from a previous, larger
+        # run is simply ignored instead of getting appended and corrupting
+        # the archive.
+        split -b 1900m -d -a 3 "/tmp/$ASSET_BASE" "/tmp/${ASSET_BASE}.part."
+        rm -f "/tmp/$ASSET_BASE"
+
+        PART_COUNT=$(ls -1 "/tmp/${ASSET_BASE}.part."* | wc -l)
+        echo "$PART_COUNT" > "/tmp/${ASSET_BASE}.manifest"
+        echo "Split into $PART_COUNT part(s) of up to 1900MiB each"
+
+        # --clobber overwrites this variant's previous manifest/parts, so
+        # the release always holds just the latest cache per matrix entry
+        # instead of growing forever like actions/cache's key history did.
+        gh release upload ci-ccache-store \
+          "/tmp/${ASSET_BASE}.manifest" \
+          /tmp/"${ASSET_BASE}".part.* \
+          --repo "$REPO" \
+          --clobber \
+          || echo "::warning::Failed to upload ccache parts for $ASSET_BASE, next run will start cold for this variant"

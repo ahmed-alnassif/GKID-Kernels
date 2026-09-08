@@ -1,0 +1,21 @@
+ensure-cache-release:
+    name: Ensure ccache release exists
+    needs: prepare
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create persistent cache release if missing
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view ci-ccache-store --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            echo "ci-ccache-store already exists"
+          else
+            echo "Creating ci-ccache-store release"
+            gh release create ci-ccache-store \
+              --repo "${{ github.repository }}" \
+              --title "CI ccache store (internal - do not delete)" \
+              --notes "Persistent compiler cache used by the build workflow. Each build matrix entry keeps one asset here (ccache-<variant>.tar.zst). Safe to delete if you want to force a cold cache for everything; the workflow recreates this release and rebuilds the caches automatically, just slower for the next run per variant." \
+              --prerelease \
+              --latest=false
+          fi

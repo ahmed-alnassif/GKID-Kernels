@@ -88,6 +88,25 @@ env:
   DEBIAN_FRONTEND: noninteractive
 
 jobs:
+  ensure-cache-release:
+    name: Ensure ccache release exists
+    needs: prepare
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 1
+
+      - name: Create persistent cache release if missing
+        uses: ./.github/actions/ensure-release
+        with:
+          repo: ${{ github.repository }}
+          token: ${{ github.token }}
+          tag: ci-ccache-store
+          title: "CI ccache store (internal - do not delete)"
+          notes: "Persistent compiler cache used by the build workflow. Each build matrix entry keeps one asset here (ccache-<variant>.tar.zst). Safe to delete if you want to force a cold cache for everything; the workflow recreates this release and rebuilds the caches automatically, just slower for the next run per variant."
+
   prepare:
     runs-on: ubuntu-latest
     outputs:
@@ -129,15 +148,13 @@ jobs:
           sudo apt-get install -y libdw-dev ccache gh bc bison flex libssl-dev libelf-dev dwarves cpio
           pip install lxml
 
-      - name: Cache ccache + LTO
-        uses: actions/cache@v6.1.0
-        id: ccache-cache
+      - name: Restore ccache from release
+        id: restore-ccache
+        uses: ./.github/actions/ccache-restore
         with:
-          path: |
-            ~/.ccache
-            /dev/shm/thinlto-cache
-          key: ccache-${{ matrix.name }}-${{ github.run_id }}
-          restore-keys: ccache-${{ matrix.name }}
+          repo: ${{ github.repository }}
+          token: ${{ github.token }}
+          variant: ${{ matrix.name }}
 
       - name: Run Build Script
         env:
@@ -198,6 +215,14 @@ jobs:
         if: always()
         run: |
           ccache --show-stats
+
+      - name: Save ccache to release
+        if: always()
+        uses: ./.github/actions/ccache-save
+        with:
+          repo: ${{ github.repository }}
+          token: ${{ github.token }}
+          variant: ${{ matrix.name }}
 
       - name: Save environment for release
         if: always()
