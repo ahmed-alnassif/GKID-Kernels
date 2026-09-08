@@ -282,10 +282,46 @@ apply_force_load_module_patch() {
         return 0
     fi
 
-    sed -i 's/pr_warn("%s: disagrees about version of symbol %s\\n", info->name, symname);/pr_warn("%s: disagrees about version of symbol %s, but ignore...\\n", info->name, symname);/' "$file"
-    sed -i 's/return 0;/return 1;/' "$file"
+    python3 - "$file" <<'PYEOF'
+import re
+import sys
 
-    success "Force load module patch applied via sed"
+path = sys.argv[1]
+
+with open(path, "r") as f:
+    content = f.read()
+
+# Match the specific pr_warn(...) + return 0; pair from check_version()'s
+# bad_version label. This string is unique to that function on both 5.10
+# (kernel/module.c) and 6.1+ (kernel/module/version.c).
+pattern = re.compile(
+    r'(pr_warn\("%s: disagrees about version of symbol %s\\n",\s*'
+    r'\n?\s*info->name, symname\);\s*\n\s*)return 0;'
+)
+
+def repl(m):
+    prefix = m.group(1).replace(
+        'disagrees about version of symbol %s\\n"',
+        'disagrees about version of symbol %s, but ignore...\\n"',
+    )
+    return prefix + "return 1;"
+
+new_content, n = pattern.subn(repl, content, count=1)
+
+if n == 0:
+    print("PATCH_PATTERN_NOT_FOUND", file=sys.stderr)
+    sys.exit(1)
+
+with open(path, "w") as f:
+    f.write(new_content)
+PYEOF
+
+    if [[ $? -eq 0 ]]; then
+        success "Force load module patch applied to $file"
+    else
+        warning "Force load module patch pattern not found in $file (source may differ from expected) - skipping"
+        return 1
+    fi
 }
 
 apply_extract_cert_key_pass_patch() {
