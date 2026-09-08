@@ -146,6 +146,12 @@ echo "COMPILER_STRING=$COMPILER_STRING" >> $GITHUB_ENV
 
 cd $KSRC
 
+if ! kernel_version_lt "$KERNEL_VERSION" "6.12"; then
+    info "BTFIDS fix for 6.12+"
+    export PAHOLE_FLAGS="${PAHOLE_FLAGS} --skip_encoding_btf_enum64"
+    export EXTRA_PAHOLEOPT="--skip_encoding_btf_enum64"
+fi
+
 echo "::group::[+] Applied patches"
 
 if [ "$KERNEL_VERSION" != "6.1" ]; then
