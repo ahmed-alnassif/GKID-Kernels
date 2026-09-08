@@ -369,18 +369,10 @@ build_and_install_pahole() {
     export PATH="$bin_dir:$PATH"
     mkdir -p "$bin_dir" "$CCACHE_DIR"
 
-    if command -v pahole >/dev/null 2>&1; then
-        local ver
-        ver=$(pahole --version 2>/dev/null | head -1)
-        if [[ "$ver" =~ v1\.(2[5-9]|[3-9][0-9]) ]]; then
-            success "pahole $ver already available"
-            return 0
-        fi
-        if command -v apt-get >/dev/null 2>&1; then
-            sudo apt-get remove -y --purge dwarves pahole 2>/dev/null || true
-            sudo apt-get autoremove -y 2>/dev/null || true
-            hash -r
-        fi
+    if command -v apt-get >/dev/null 2>&1; then
+        sudo apt-get remove -y --purge dwarves pahole 2>/dev/null || true
+        sudo apt-get autoremove -y 2>/dev/null || true
+        hash -r
     fi
 
     local missing=()
