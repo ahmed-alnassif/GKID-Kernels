@@ -372,7 +372,7 @@ build_and_install_pahole() {
     if command -v pahole >/dev/null 2>&1; then
         local ver
         ver=$(pahole --version 2>/dev/null | head -1)
-        if [[ "$ver" =\~ v1\.(2[5-9]|[3-9][0-9]) ]]; then
+        if [[ "$ver" =~ v1\.(2[5-9]|[3-9][0-9]) ]]; then
             success "pahole $ver already available"
             return 0
         fi
