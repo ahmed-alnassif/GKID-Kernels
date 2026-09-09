@@ -1,5 +1,9 @@
 # GKID Kernel
 
+<p align="center">
+  <img src="docs/banner.png" alt="GKID Kernels Banner">
+</p>
+
 [![Build Status](https://github.com/ahmed-alnassif/GKID-Kernels/actions/workflows/build.yml/badge.svg)](https://github.com/ahmed-alnassif/GKID-Kernels/actions/workflows/build.yml)
 [![Latest Release](https://img.shields.io/github/v/release/ahmed-alnassif/GKID-Kernels?label=Latest%20Release&color=00aa00)](https://github.com/ahmed-alnassif/GKID-Kernels/releases)
 [![Downloads](https://img.shields.io/github/downloads/ahmed-alnassif/GKID-Kernels/total?label=Downloads&color=00aa00)](https://github.com/ahmed-alnassif/GKID-Kernels/releases)
