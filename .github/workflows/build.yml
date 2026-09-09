@@ -406,7 +406,7 @@ jobs:
 
           [**Download**]($RELEASE_URL)
 
-          [**Support the project**](https://github.com/ahmed-alnassif/GKI-Duchamp#-support-this-project)
+          [**Support the project**](https://github.com/ahmed-alnassif/GKID-Kernels#-support-this-project)
 
           [Commit]($COMMIT_URL) • [CI \#$RUN_NUMBER]($RUN_URL)
           EOF
@@ -468,7 +468,7 @@ jobs:
 
           [**Download**]($RELEASE_URL)
 
-          [**Support the project**](https://github.com/ahmed-alnassif/GKI-Duchamp#-support-this-project)
+          [**Support the project**](https://github.com/ahmed-alnassif/GKID-Kernels#-support-this-project)
 
           [Commit]($COMMIT_URL) • [CI \#$RUN_NUMBER]($RUN_URL)
           EOF

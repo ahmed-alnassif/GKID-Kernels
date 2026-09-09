@@ -5,7 +5,7 @@ RELEASE_DIR="$WORKDIR/artifacts"
 
 KERNEL_NAME="GKID"
 USER="ahmed-alnassif"
-HOST="GKI-Duchamp"
+HOST="GKID"
 TIMEZONE="Asia/Damascus"
 ANYKERNEL_REPO="https://github.com/ahmed-alnassif/AK3-GKID"
 
@@ -19,7 +19,7 @@ RELEASE="$(date +v%y.%m.%d)${RUN_NUM}"
 
 mkdir -p $RELEASE_DIR
 
-GKI_RELEASES_REPO="https://github.com/ahmed-alnassif/GKI-Duchamp"
+GKI_RELEASES_REPO="https://github.com/ahmed-alnassif/GKID-Kernels"
 AK3_ZIP_NAME="$KERNEL_NAME-VARIANT-REL-KVER.zip"
 OUTDIR="$WORKDIR/out"
 KSRC="$WORKDIR/ksrc"

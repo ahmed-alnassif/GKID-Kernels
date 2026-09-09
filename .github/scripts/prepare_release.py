@@ -213,14 +213,14 @@ Your donations keep this project alive! I spend countless hours maintaining kern
 
 >[!Note]
 >- **Bootloop?** Flash a **Compat** variant first.
->- **Issues?** Check [Discussions](https://github.com/ahmed-alnassif/GKI-Duchamp/discussions) before opening an issue.
+>- **Issues?** Check [Discussions](https://github.com/ahmed-alnassif/GKID-Kernels/discussions) before opening an issue.
 
 ---
 
 ### Community & Support
-- **Have questions?** Start a [Discussion](https://github.com/ahmed-alnassif/GKI-Duchamp/discussions)
-- **Found a bug?** Open an [Issue](https://github.com/ahmed-alnassif/GKI-Duchamp/issues) with logs
-- **Enjoying the kernel?** Star the [repo](https://github.com/ahmed-alnassif/GKI-Duchamp)
+- **Have questions?** Start a [Discussion](https://github.com/ahmed-alnassif/GKID-Kernels/discussions)
+- **Found a bug?** Open an [Issue](https://github.com/ahmed-alnassif/GKID-Kernels/issues) with logs
+- **Enjoying the kernel?** Star the [repo](https://github.com/ahmed-alnassif/GKID-Kernels)
 
 ---
 
