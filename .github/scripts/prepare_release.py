@@ -315,11 +315,11 @@ Test both and use whichever performs better on your network.
 **Full commit history:** [Browse all commits](https://github.com/KernelSU-Next/KernelSU-Next/commits/dev)
 
 ---
-**Checksums:**
-```
-{open("release-artifacts/checksums.txt").read().rstrip()}
-```
+> [!Tip]
+> **Checksums:**
+> SHA256 checksums for all files in this release are available in [`checksums.txt`](https://github.com/{repo}/releases/download/{tag}/checksums.txt), attached below.
 """
+	return body, versions, shared_env, all_builds
 	return body, versions, shared_env, all_builds
 
 
