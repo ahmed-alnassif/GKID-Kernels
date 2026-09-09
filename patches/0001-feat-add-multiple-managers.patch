@@ -85,16 +85,6 @@ index 0000000..8550cc3
 +		.size = 0x375,
 +		.hash = "484fcba6e6c43b1fb09700633bf2fb4758f13cb0b2f4457b80d075084b26c588",
 +	},
-+	// KernelSU-Next
-+	{
-+		.size = 0x3e6,
-+		.hash = "79e590113c4c4c0c222978e413a5faa801666957b1212a328e46c00c69821bf7",
-+	},
-+	// pershoot
-+	{
-+		.size = 0x338,
-+		.hash = "f26471a28031130362bce7eebffb9a0b8afc3095f163ce0c75a309f03b644a1f",
-+	},
 +};
 +
 +#define MANAGER_SIGNATURES_COUNT (sizeof(manager_signatures) / sizeof(struct manager_signature))

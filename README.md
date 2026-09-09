@@ -11,7 +11,6 @@
 [![GitHub License](https://img.shields.io/github/license/ahmed-alnassif/GKID-Kernels?logo=gnu)](/LICENSE)
 [![SuSFS](https://img.shields.io/badge/SuSFS-4CAF50?&logo=gitlab&logoColor=white)](https://gitlab.com/simonpunk/susfs4ksu)
 [![KernelSU](https://img.shields.io/badge/KernelSU-000000?&logo=github&logoColor=white)](https://github.com/tiann/KernelSU)
-[![KernelSU Next](https://img.shields.io/badge/KernelSU--Next-1976D2?&logo=github&logoColor=white)](https://github.com/KernelSU-Next/KernelSU-Next)
 [![ReSukiSU](https://img.shields.io/badge/ReSukiSU-E91E63?&logo=github&logoColor=white)](https://github.com/ReSukiSU/ReSukiSU)
 [![Managers](https://img.shields.io/badge/Managers-multiple-success)](https://github.com/ahmed-alnassif/GKID-Kernels/releases)
 
@@ -69,12 +68,8 @@ Your donations keep this project alive! I spend countless hours maintaining kern
 | KernelSU | ✅ | ❌ | Full | ❌ |
 | KernelSU+SuSFS | ✅ | ✅ | Full | ❌ |
 | KSU+SuSFS+MM | ✅ | ✅ | Full | ❌ |
-| KernelSU-Next | ✅ | ❌ | Full | ❌ |
-| KSU-Next+SuSFS | ✅ | ✅ | Full | ❌ |
 | ReSukiSU+SuSFS | ✅ | ✅ | Full | ❌ |
 | Compat+KSU+SuSFS | ✅ | ✅ | Full | ✅ |
-| Compat+KSU-Next+SuSFS | ✅ | ✅ | Full | ✅ |
-| Compat+LTO+KSU-Next+SuSFS | ✅ | ✅ | Full | ✅ |
 
 **Optional features** (enable on any variant):
 - 🐳 DroidSpaces - Linux userspace support
@@ -172,7 +167,6 @@ Your donations keep this project alive! I spend countless hours maintaining kern
 | Feature | Description |
 |---------|-------------|
 | **KernelSU** | Stable kernel-based root with excellent hiding |
-| **KernelSU-Next** | Community fork with bleeding-edge features |
 | **ReSukiSU** | ReSukiSU kernel integration |
 | **Multiple Managers** | Run multiple KernelSU managers simultaneously |
 | **Vanilla** | No root for banking and corporate apps |

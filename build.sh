@@ -76,7 +76,6 @@ case "$KSU" in
   "SKSU") VARIANT="SukiSU-Ultra" ;;
   "RSKSU") VARIANT="ReSukiSU" ;;
   "KSU") VARIANT="KernelSU" ;;
-  "KSUN") VARIANT="KernelSU-Next" ;;
   "no") VARIANT="Vanilla" ;;
   "vnlto") VARIANT="Vanilla+NoLTO" ;;
   *) VARIANT="Vanilla" ;;
@@ -111,7 +110,6 @@ fi
 generate_gh_changelog "maxsteeel/nomount" "master" 5 "$RELEASE_DIR/nomount_changelog.txt"
 generate_gh_changelog "tiann/KernelSU" "main" 5 "$RELEASE_DIR/ksu_changelog.txt"
 generate_gh_changelog "ReSukiSU/ReSukiSU" "main" 5 "$RELEASE_DIR/ReSukiSU_changelog.txt"
-generate_gh_changelog "KernelSU-Next/KernelSU-Next" "dev" 5 "$RELEASE_DIR/ksun_changelog.txt"
 
 echo "::group::[*] Downloading Clang"
 CLANG_BIN="$WORKDIR/neutron-clang/bin"
@@ -249,21 +247,6 @@ if [ "$KSU" = "KSU" ]; then
   fi
 
 fi
-
-if [ "$KSU" = "KSUN" ]; then
-  log "KernelSU-Next included"
-  if susfs_included; then
-    install_ksu "pershoot/KernelSU-Next" "dev-susfs"
-  else
-    install_ksu "KernelSU-Next/KernelSU-Next" "dev"
-  fi
-
-  if susfs_included; then
-
-    clone_susfs
-    apply_susfs_patches
-
-  fi
 
 fi
 

@@ -31,19 +31,6 @@ jobs:
             chat_id_secret: KSU_CHAT_ID
             topic_id_secret: KSU_TOPIC_ID
 
-          - name: KernelSU-Next
-            owner: KernelSU-Next
-            repo: KernelSU-Next
-            workflow: build-manager-ci.yml
-            branch: dev
-            artifact_name: ""
-            file_pattern: "*.apk"
-            zip_if_dir: false
-            caption_prefix: "KernelSU-Next"
-            bot_token_secret: KSUN_BOT_TOKEN
-            chat_id_secret: KSUN_CHAT_ID
-            topic_id_secret: KSUN_TOPIC_ID
-
           - name: ReSukiSU
             owner: ReSukiSU
             repo: ReSukiSU

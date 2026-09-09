@@ -53,11 +53,6 @@ on:
         type: boolean
         default: true
 
-      BUILD_KSUN:
-        description: "Build with KernelSU-Next"
-        type: boolean
-        default: true
-
       BUILD_KSU_SUSFS:
         description: "Build with KernelSU and its forks (KernelSU Next) + SUSFS"
         type: boolean
@@ -127,7 +122,6 @@ jobs:
           KERNEL_VERSION: ${{ github.event.inputs.KERNEL_VERSION }}
           BUILD_VANILLA: ${{ github.event.inputs.BUILD_VANILLA }}
           BUILD_KSU: ${{ github.event.inputs.BUILD_KSU }}
-          BUILD_KSUN: ${{ github.event.inputs.BUILD_KSUN }}
           BUILD_KSU_SUSFS: ${{ github.event.inputs.BUILD_KSU_SUSFS }}
         run: |
           python3 py/generate-matrix.py >> "$GITHUB_OUTPUT"
@@ -440,10 +434,6 @@ jobs:
           \-\-\-
           **ReSukiSU:**
           $(read_or_default "release-artifacts/ReSukiSU_changelog.txt")
-
-          \-\-\-
-          **KernelSU Next:**
-          $(read_or_default "release-artifacts/ksun_changelog.txt")
           INNER
             )
 
