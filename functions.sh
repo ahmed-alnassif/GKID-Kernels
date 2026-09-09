@@ -74,6 +74,21 @@ kernel_version_lt() {
   return 1
 }
 
+kernel_version_ge() {
+  kernel_version_lt "$1" "$2" && return 1
+  return 0
+}
+
+kernel_version_gt() {
+  [ "$1" = "$2" ] && return 1
+  kernel_version_lt "$2" "$1"
+}
+
+kernel_version_le() {
+  kernel_version_gt "$1" "$2" && return 1
+  return 0
+}
+
 apply_ntsync_compat_patch() {
   local branch="$1"
   local url="https://github.com/WildKernels/kernel_patches/raw/main/common/ntsync/ntsync_compat_${branch}.patch"
