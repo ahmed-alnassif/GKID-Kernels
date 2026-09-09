@@ -27,7 +27,7 @@
 
 ## ❤️ Support This Project
 
-**USDT (TRC20):** `TCyghELuquAtoUFdY65iuJSMqJXbYhWidA`
+**[Donations](https://github.com/ahmed-alnassif#-support-my-work)**
 
 Your donations keep this project alive! I spend countless hours maintaining kernel builds for 5 different versions, fixing bugs, adding features, and supporting users. **Every donation matters!** 🙏
 
