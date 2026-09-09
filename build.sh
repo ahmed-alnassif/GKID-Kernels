@@ -248,8 +248,6 @@ if [ "$KSU" = "KSU" ]; then
 
 fi
 
-fi
-
 if [ "$KSU_COMPAT" = "true" ]; then
   if [ "$C_LTO" = "true" ]; then
     VARIANT="Compat+${VARIANT}"
