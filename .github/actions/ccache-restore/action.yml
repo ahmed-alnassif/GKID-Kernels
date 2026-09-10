@@ -32,6 +32,7 @@ runs:
         CACHE_KEY="${MATRIX_NAME//+/_}"
         ASSET_BASE="ccache-${CACHE_KEY}.tar.zst"
         PARTS_DIR=/tmp/ccache-parts
+        rm -rf "$PARTS_DIR"
         mkdir -p "$PARTS_DIR"
 
         if ! gh release download ci-ccache-store \
@@ -63,8 +64,16 @@ runs:
 
         if [ "$DOWNLOAD_OK" = "true" ]; then
           echo "Restoring cache from $PART_COUNT part(s)"
-          cat "$PARTS_DIR/${ASSET_BASE}".part.* | tar --zstd -xf - -C /
-          echo "restored=true" >> "$GITHUB_OUTPUT"
+          # Cat exact, zero-padded part names in a loop instead of globbing
+          # *.part.*, so no stale or out-of-order part can sneak in.
+          if for i in $(seq -f "%03g" 0 $((PART_COUNT - 1))); do
+               cat "$PARTS_DIR/${ASSET_BASE}.part.${i}"
+             done | tar --zstd -xf - -C /; then
+            echo "restored=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::tar extraction failed, treating as cold start"
+            echo "restored=false" >> "$GITHUB_OUTPUT"
+          fi
         else
           echo "restored=false" >> "$GITHUB_OUTPUT"
         fi
