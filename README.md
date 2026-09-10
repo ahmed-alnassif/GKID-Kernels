@@ -248,8 +248,6 @@ Separate KernelSU module containing wireless drivers and firmware when built as 
 
 **Use Compat if:**
 - You experience boot issues
-- Vendor modules fail to load
-- Device KMI mismatch
 - Standard variants don't boot
 
 ---

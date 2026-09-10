@@ -197,7 +197,7 @@ Your donations keep this project alive! I spend countless hours maintaining kern
 | ReSukiSU+SuSFS | ✅ | ✅ | Full | ❌ |
 | Compat+KSU+SuSFS | ✅ | ✅ | Full | ✅ |
 
-**Not sure? Use a `Compat` variant first**: it fixes most boot issues, vendor module failures, and KMI mismatches. Full feature breakdown, LTO explanation, and troubleshooting live in the [README](https://github.com/ahmed-alnassif/GKID-Kernels#-build-variants).
+**Not sure? Use a `Compat` variant first**: it fixes most boot issues. Full feature breakdown, LTO explanation, and troubleshooting live in the [README](https://github.com/ahmed-alnassif/GKID-Kernels#-build-variants).
 
 ## Contents
 {toc_block}
