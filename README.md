@@ -64,12 +64,13 @@ Your donations keep this project alive! I spend countless hours maintaining kern
 | Variant | Root | SuSFS | LTO | Compat |
 |---------|------|-------|-----|--------|
 | Vanilla | ❌ | ❌ | Full | ❌ |
-| Vanilla+NoLTO | ❌ | ❌ | None | ❌ |
+| Vanilla+NoLTO | ❌ | ❌ | ❌ | ❌ |
 | KernelSU | ✅ | ❌ | Full | ❌ |
 | KernelSU+SuSFS | ✅ | ✅ | Full | ❌ |
 | KSU+SuSFS+MM | ✅ | ✅ | Full | ❌ |
 | ReSukiSU+SuSFS | ✅ | ✅ | Full | ❌ |
-| Compat+KSU+SuSFS | ✅ | ✅ | Full | ✅ |
+| Compat+KSU+SuSFS | ✅ | ✅ | ❌ | ✅ |
+| Compat+ReSukiSU+SuSFS | ✅ | ✅ | ❌ | ✅ |
 
 **Optional features** (enable on any variant):
 - 🐳 DroidSpaces - Linux userspace support

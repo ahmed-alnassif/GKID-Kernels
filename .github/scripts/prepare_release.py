@@ -190,12 +190,13 @@ Your donations keep this project alive! I spend countless hours maintaining kern
 | Variant | Root | SuSFS | LTO | Compat |
 |---------|------|-------|-----|--------|
 | Vanilla | ❌ | ❌ | Full | ❌ |
-| Vanilla+NoLTO | ❌ | ❌ | None | ❌ |
+| Vanilla+NoLTO | ❌ | ❌ | ❌ | ❌ |
 | KernelSU | ✅ | ❌ | Full | ❌ |
 | KernelSU+SuSFS | ✅ | ✅ | Full | ❌ |
 | KSU+SuSFS+MM | ✅ | ✅ | Full | ❌ |
 | ReSukiSU+SuSFS | ✅ | ✅ | Full | ❌ |
-| Compat+KSU+SuSFS | ✅ | ✅ | Full | ✅ |
+| Compat+KSU+SuSFS | ✅ | ✅ | ❌ | ✅ |
+| Compat+ReSukiSU+SuSFS | ✅ | ✅ | ❌ | ✅ |
 
 **Not sure? Use a `Compat` variant first**: it fixes most boot issues. Full feature breakdown, LTO explanation, and troubleshooting live in the [README](https://github.com/ahmed-alnassif/GKID-Kernels#-build-variants).
 
