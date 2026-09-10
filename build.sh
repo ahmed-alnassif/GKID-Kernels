@@ -151,7 +151,9 @@ echo "::endgroup::"
 echo "::group::[+] Applied patches"
 
 if [ "$KERNEL_VERSION" != "6.1" ]; then
-  apply_kernel_patches
+  if kernel_version_ge "$KERNEL_VERSION" "6.1"; then
+    apply_kernel_patches
+  fi
   apply_force_load_module_patch
   apply_extract_cert_key_pass_patch
   cleanup_abi_gki_protected_exports
@@ -174,11 +176,9 @@ if kernel_version_lt "$KERNEL_VERSION" "6.12"; then
   success "NTSync patches applied"
 fi
 
-if kernel_version_ge "$KERNEL_VERSION" "6.1"; then
-  log "BBG included"
-  wget -qO- "https://github.com/vc-teahouse/Baseband-guard/raw/main/setup.sh" | bash
-  sed -i '/^config LSM$/,/^help$/{ /^[[:space:]]*default/ { /baseband_guard/! s/selinux/selinux,baseband_guard/ } }' "security/Kconfig"
-fi
+log "BBG included"
+wget -qO- "https://github.com/vc-teahouse/Baseband-guard/raw/main/setup.sh" | bash
+sed -i '/^config LSM$/,/^help$/{ /^[[:space:]]*default/ { /baseband_guard/! s/selinux/selinux,baseband_guard/ } }' "security/Kconfig"
 
 if [ "$KSU" = "no" ] || [ "$KSU" = "vnlto" ]; then
   export DROIDSPACES="false"
