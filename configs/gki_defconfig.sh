@@ -53,7 +53,7 @@ EOF
     ;;
 esac
 
-if [ "$No_DS" = "true" ]:
+if [ "$No_DS" = "true" ]; then
   export DROIDSPACES="false"
 fi
 
