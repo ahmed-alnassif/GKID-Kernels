@@ -30,6 +30,12 @@ declare -A GKI_SUSFS_BRANCH=(
   ["6.12"]="gki-android16-6.12"
 )
 
+declare -A GKI_SUSFS_COMMIT=(
+  ["6.1"]="153f88df3be2501d2d33364f8fe05247aecb3cef"
+  ["6.6"]="3f0b811b2e105afd8dc858cd71389090e01f404b"
+  ["6.12"]="fb58aef70a9c2aca8f0f85fba14017af94c4e789"
+)
+
 android_release_for_version() {
   echo "${ANDROID_RELEASE_FOR_KVER[$1]:-unknown}"
 }
@@ -536,7 +542,13 @@ apply_susfs_patches() {
 
 clone_susfs() {
     DEPTH=${1:-1}
+    local pin="${GKI_SUSFS_COMMIT[$KERNEL_VERSION]:-}"
     if [ ! -d "$SUSFS_DIR" ]; then
-        git clone --depth=$DEPTH -q "$SUSFS_URL" -b "$SUSFS_BRANCH" "$SUSFS_DIR"
+        if [ -n "$pin" ]; then
+            git clone -q "$SUSFS_URL" -b "$SUSFS_BRANCH" "$SUSFS_DIR"
+            git -C "$SUSFS_DIR" checkout -q "$pin"
+        else
+            git clone --depth=$DEPTH -q "$SUSFS_URL" -b "$SUSFS_BRANCH" "$SUSFS_DIR"
+        fi
     fi
 }
