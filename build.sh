@@ -182,7 +182,7 @@ sed -i '/^config LSM$/,/^help$/{ /^[[:space:]]*default/ { /baseband_guard/! s/se
 
 if [ "$KSU" = "no" ] || [ "$KSU" = "vnlto" ] || [ "$No_DS" = "true" ]; then
   export DROIDSPACES="false"
-  warning "DroidSpaces doesn't supported in this builds"
+  warning "DroidSpaces/NetHunter doesn't supported in this builds"
   VARIANT+="+NoDS"
 fi
 
@@ -197,7 +197,7 @@ elif [ "$DROIDSPACES" = "true" ] || [ "$NH" = "true" ]; then
   apply_patch_file "$KERNEL_PATCHES/droidspaces/001.GKI-6.12-or-above-fix_sysvipc_kabi.patch"
 fi
 
-if [ "$NH" = "true" ] && ! kernel_version_eq "$KERNEL_VERSION" "6.1" && kernel_version_gt "$KERNEL_VERSION" "5.15"; then
+if [ "$NH" = "true" ] && ! kernel_version_eq "$KERNEL_VERSION" "6.1" && kernel_version_gt "$KERNEL_VERSION" "5.15" && [ "$No_DS" = "false" ]; then
   log "Applying NetHunter patches"
   apply_patch_file "$KERNEL_PATCHES/nethunter/0001-mac80211-cfg80211-Add-monitor-mode-and-packet-inject.patch"
   git clone --depth=1 "https://github.com/ahmed-alnassif/rtw88"

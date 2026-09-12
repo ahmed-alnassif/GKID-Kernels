@@ -55,6 +55,7 @@ esac
 
 if [ "$No_DS" = "true" ]; then
   export DROIDSPACES="false"
+  export NH="false"
 fi
 
 if [ "$DROIDSPACES" = "true" ]; then
