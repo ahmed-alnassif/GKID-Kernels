@@ -76,7 +76,7 @@ on:
       NM:
         description: "Enable NoMount support"
         type: boolean
-        default: true
+        default: false
 
 env:
   MAN_DISABLE: true
