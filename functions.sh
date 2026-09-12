@@ -543,12 +543,29 @@ apply_susfs_patches() {
 clone_susfs() {
     DEPTH=${1:-1}
     local pin="${GKI_SUSFS_COMMIT[$KERNEL_VERSION]:-}"
+
     if [ ! -d "$SUSFS_DIR" ]; then
         if [ -n "$pin" ]; then
-            git clone -q "$SUSFS_URL" -b "$SUSFS_BRANCH" "$SUSFS_DIR"
-            git -C "$SUSFS_DIR" checkout -q "$pin"
+            log "Cloning $SUSFS_URL (branch $SUSFS_BRANCH) to pin commit $pin"
+            git clone -q --single-branch -b "$SUSFS_BRANCH" "$SUSFS_URL" "$SUSFS_DIR"
         else
+            log "Cloning $SUSFS_URL (branch $SUSFS_BRANCH, depth $DEPTH, no pin)"
             git clone --depth=$DEPTH -q "$SUSFS_URL" -b "$SUSFS_BRANCH" "$SUSFS_DIR"
         fi
+    else
+        log "$SUSFS_DIR already exists, reusing existing clone"
     fi
+
+    if [ -n "$pin" ]; then
+        git -C "$SUSFS_DIR" fetch -q origin "$pin" 2>/dev/null || true
+        if ! git -C "$SUSFS_DIR" checkout -q "$pin"; then
+            error "Failed to checkout pinned commit $pin for KERNEL_VERSION=$KERNEL_VERSION on branch $SUSFS_BRANCH"
+            exit 1
+        fi
+        success "Commit pin $pin applied for KERNEL_VERSION=$KERNEL_VERSION (branch $SUSFS_BRANCH)"
+    else
+        log "No commit pin configured for KERNEL_VERSION=$KERNEL_VERSION, using branch $SUSFS_BRANCH tip"
+    fi
+
+    log "susfs4ksu HEAD is now $(git -C "$SUSFS_DIR" rev-parse HEAD)"
 }
