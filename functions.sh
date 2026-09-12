@@ -74,6 +74,11 @@ kernel_version_lt() {
   return 1
 }
 
+kernel_version_eq() {
+  [ "$1" = "$2" ] || return 1
+  return 0
+}
+
 kernel_version_ge() {
   kernel_version_lt "$1" "$2" && return 1
   return 0

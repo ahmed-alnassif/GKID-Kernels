@@ -189,7 +189,7 @@ fi
 if { [ "$DROIDSPACES" = "true" ] || [ "$NH" = "true" ]; } && kernel_version_lt "$KERNEL_VERSION" "6.12"; then
   log "Applying DroidSpaces/NetHunter sysvipc patch"
   apply_patch_file "$KERNEL_PATCHES/droidspaces/001.GKI-below-6.12-fix_sysvipc_kabi_6_7_8.patch"
-  if kernel_version_ge "$KERNEL_VERSION" "5.10"; then
+  if kernel_version_eq "$KERNEL_VERSION" "5.10"; then
     apply_patch_file "$KERNEL_PATCHES/droidspaces/002.5.10_or_lower_use_android_abi_padding_for_posix_mqueue.patch"
   fi
 elif [ "$DROIDSPACES" = "true" ] || [ "$NH" = "true" ]; then
@@ -197,7 +197,7 @@ elif [ "$DROIDSPACES" = "true" ] || [ "$NH" = "true" ]; then
   apply_patch_file "$KERNEL_PATCHES/droidspaces/001.GKI-6.12-or-above-fix_sysvipc_kabi.patch"
 fi
 
-if [ "$NH" = "true" ]; then
+if [ "$NH" = "true" ] && ! kernel_version_eq "$KERNEL_VERSION" "6.1"; then
   log "Applying NetHunter patches"
   apply_patch_file "$KERNEL_PATCHES/nethunter/0001-mac80211-cfg80211-Add-monitor-mode-and-packet-inject.patch"
   git clone --depth=1 "https://github.com/ahmed-alnassif/rtw88"
