@@ -180,9 +180,9 @@ log "BBG included"
 wget -qO- "https://github.com/vc-teahouse/Baseband-guard/raw/main/setup.sh" | bash
 sed -i '/^config LSM$/,/^help$/{ /^[[:space:]]*default/ { /baseband_guard/! s/selinux/selinux,baseband_guard/ } }' "security/Kconfig"
 
-if [ "$KSU" = "no" ] || [ "$KSU" = "vnlto" ]; then
+if [ "$KSU" = "no" ] || [ "$KSU" = "vnlto" ] || [ "$No_DS" = "true" ]; then
   export DROIDSPACES="false"
-  warning "DroidSpaces doesn't supported in vanilla builds"
+  warning "DroidSpaces doesn't supported in this builds"
   VARIANT+="+NoDS"
 fi
 

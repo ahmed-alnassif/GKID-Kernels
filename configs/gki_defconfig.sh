@@ -53,6 +53,10 @@ EOF
     ;;
 esac
 
+if [ "$No_DS" = "true" ]:
+  export DROIDSPACES="false"
+fi
+
 if [ "$DROIDSPACES" = "true" ]; then
   echo "🐳 DroidSpaces support enabled"
   apply_config "$WORKDIR/configs/droidspaces.config" "$DEFCONFIG"

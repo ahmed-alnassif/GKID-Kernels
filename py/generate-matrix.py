@@ -12,7 +12,8 @@ DEFAULT = {
 	"KSU": "Dummy",
 	"KSU_COMPAT": "false",
 	"KSU_SUSFS": "false",
-	"C_LTO": "false"
+	"C_LTO": "false",
+	"No_DS": "false"
 }
 
 def config(**overrides) -> Dict[str, Any]:
@@ -34,7 +35,9 @@ BUILD_CONFIGS: Dict[str, List[Dict[str, Any]]] = {
 		config(name="KSU+SUSFS", KSU="KSU", KSU_SUSFS="true"),
 		config(name="Compat+KSU+SUSFS", KSU="KSU", KSU_COMPAT="true", KSU_SUSFS="true"),
 		config(name="RSKSU+SUSFS", KSU="RSKSU", KSU_SUSFS="true"),
-		config(name="Compat+RSKSU+SUSFS", KSU="RSKSU", KSU_COMPAT="true", KSU_SUSFS="true")
+		config(name="Compat+RSKSU+SUSFS", KSU="RSKSU", KSU_COMPAT="true", KSU_SUSFS="true"),
+		config(name="Compat+NoDS+KSU+SUSFS", KSU="KSU", KSU_COMPAT="true", KSU_SUSFS="true", No_DS="true"),
+		config(name="Compat+NoDS+RSKSU+SUSFS", KSU="RSKSU", KSU_COMPAT="true", KSU_SUSFS="true", No_DS="true")
 	]
 }
 
