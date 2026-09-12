@@ -182,6 +182,7 @@ sed -i '/^config LSM$/,/^help$/{ /^[[:space:]]*default/ { /baseband_guard/! s/se
 
 if [ "$KSU" = "no" ] || [ "$KSU" = "vnlto" ] || [ "$No_DS" = "true" ]; then
   export DROIDSPACES="false"
+  export NH="false"
   warning "DroidSpaces/NetHunter doesn't supported in this builds"
   VARIANT+="+NoDS"
 fi
