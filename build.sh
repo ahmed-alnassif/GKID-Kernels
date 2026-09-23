@@ -236,7 +236,7 @@ if [ "$KSU" = "KSU" ]; then
     git reset --soft HEAD~1
     apply_patch_file "$PATCHES_DIR/0001-feat-avc-log-spoofing.patch"
     apply_patch_file "$PATCHES_DIR/0001-feat-add-multiple-managers.patch"
-    apply_patch_file "$PATCHES_DIR/0001-feat-throne_tracker-offload-to-kthread.patch"
+    #apply_patch_file "$PATCHES_DIR/0001-feat-throne_tracker-offload-to-kthread.patch"
     apply_patch_file "$SUSFS_PATCHES/KernelSU/10_enable_susfs_for_ksu.patch"
     apply_patch_file "$PATCHES_DIR/0001-feat-escape-persistent_allow_list-to-kthread.patch"
     apply_patch_file "$PATCHES_DIR/0001-feat-supercalls-allow-userspace-to-pull-list-entries.patch"
