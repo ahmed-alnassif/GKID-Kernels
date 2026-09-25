@@ -279,8 +279,8 @@ source "$WORKDIR/configs/gki_defconfig.sh"
 
 if [ "${TODO:-kernel}" = "kernel" ]; then
   LATEST_COMMIT_HASH=$(git rev-parse --short HEAD)
-  SUFFIX="${RELEASE}/${LATEST_COMMIT_HASH}"
-  config --set-str CONFIG_LOCALVERSION "-$KERNEL_NAME/$SUFFIX"
+  SUFFIX="${RUN_NUM}-${LATEST_COMMIT_HASH}"
+  config --set-str CONFIG_LOCALVERSION "-${KERNEL_NAME}${SUFFIX}"
   config --disable CONFIG_LOCALVERSION_AUTO
   sed -i 's/echo "+"/# echo "+"/g' scripts/setlocalversion
 fi
