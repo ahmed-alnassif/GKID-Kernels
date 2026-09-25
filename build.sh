@@ -28,7 +28,7 @@ PATCHES_DIR="$WORKDIR/patches"
 
 source $WORKDIR/functions.sh
 
-if [ "$KERNEL_VERSION" = "6.1" ]; then
+if kernel_version_eq "$KERNEL_VERSION" "6.1"; then
   if [ "$NH" = "true" ]; then
     KERNEL_BRANCH="GKID-NH"
   else
@@ -58,7 +58,7 @@ trap 'echo "[-] Received SIGTERM at $(date) - possible GitHub kill" >> "$BUILD_L
 trap 'echo "[-] Received SIGINT at $(date)" >> "$BUILD_LOGS"' INT
 
 log "Cloning kernel source from $(simplify_gh_url "$KERNEL_REPO")"
-if [ "$KERNEL_VERSION" = "6.1" ]; then
+if kernel_version_eq "$KERNEL_VERSION" "6.1"; then
   git clone -q --depth=1 --recurse-submodules "$KERNEL_REPO" -b "$KERNEL_BRANCH" "$KSRC"
 else
   git clone -q --depth=1 "$KERNEL_REPO" -b "$KERNEL_BRANCH" "$KSRC"
@@ -86,7 +86,7 @@ SUSFS_URL="https://gitlab.com/simonpunk/susfs4ksu"
 SUSFS_DIR="$WORKDIR/susfs"
 SUSFS_PATCHES="${SUSFS_DIR}/kernel_patches"
 
-if [ "$KERNEL_VERSION" = "6.1" ]; then
+if kernel_version_eq "$KERNEL_VERSION" "6.1"; then
   SUSFS_BRANCH="gki-android14-6.1"
   SUSFS_PATCH="gki-android14-6.1"
 else
@@ -101,7 +101,7 @@ git log --pretty=format:"- [%h](https://${SUSFS_URL#https://}/commit/%H) %s" -5 
 > "$RELEASE_DIR/susfs_changelog-${KERNEL_VERSION}.txt"
 cd ..
 
-if [ "$KERNEL_VERSION" = "6.1" ]; then
+if kernel_version_eq "$KERNEL_VERSION" "6.1"; then
   generate_gh_changelog "ahmed-alnassif/GKI-Duchamp-6.1" "$KERNEL_BRANCH" 10 "$RELEASE_DIR/android_kernel-6.1_changelog.txt"
 else
   echo "No changelog generator wired up yet for $KERNEL_VERSION" \
@@ -150,7 +150,7 @@ echo "::endgroup::"
 
 echo "::group::[+] Applied patches"
 
-if [ "$KERNEL_VERSION" != "6.1" ]; then
+if ! kernel_version_eq "$KERNEL_VERSION" "6.1"; then
   if kernel_version_ge "$KERNEL_VERSION" "6.1"; then
     apply_kernel_patches
   fi
@@ -168,7 +168,7 @@ if kernel_version_lt "$KERNEL_VERSION" "6.12"; then
   log "Applying NTSync patches..."
   curl -LSs "https://github.com/WildKernels/kernel_patches/raw/main/common/ntsync/ntsync_base.patch" | apply_patch_file
 
-  if [ "$KERNEL_VERSION" = "6.1" ]; then
+  if kernel_version_eq "$KERNEL_VERSION" "6.1"; then
     curl -LSs "https://github.com/WildKernels/kernel_patches/raw/main/common/ntsync/ntsync_compat_android14-6.1.patch" | apply_patch_file
   else
     apply_ntsync_compat_patch "$KERNEL_KMI"
