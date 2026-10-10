@@ -151,9 +151,7 @@ echo "::endgroup::"
 echo "::group::[+] Applied patches"
 
 if ! kernel_version_eq "$KERNEL_VERSION" "6.1"; then
-  if kernel_version_ge "$KERNEL_VERSION" "6.1"; then
-    apply_kernel_patches
-  fi
+  apply_kernel_patches
   apply_force_load_module_patch
   apply_extract_cert_key_pass_patch
   cleanup_abi_gki_protected_exports
@@ -198,7 +196,7 @@ elif [ "$DROIDSPACES" = "true" ] || [ "$NH" = "true" ]; then
   apply_patch_file "$KERNEL_PATCHES/droidspaces/001.GKI-6.12-or-above-fix_sysvipc_kabi.patch"
 fi
 
-if [ "$NH" = "true" ] && ! kernel_version_eq "$KERNEL_VERSION" "6.1" && kernel_version_gt "$KERNEL_VERSION" "5.15" && [ "$No_DS" = "false" ]; then
+if [ "$NH" = "true" ] && ! kernel_version_eq "$KERNEL_VERSION" "6.1" && [ "$No_DS" = "false" ]; then
   log "Applying NetHunter patches"
   apply_patch_file "$KERNEL_PATCHES/nethunter/0001-mac80211-cfg80211-Add-monitor-mode-and-packet-inject.patch"
   git clone --depth=1 "https://github.com/ahmed-alnassif/rtw88"
