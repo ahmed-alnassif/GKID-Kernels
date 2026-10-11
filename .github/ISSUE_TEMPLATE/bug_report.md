@@ -13,7 +13,7 @@ A clear and concise description of the issue (e.g., bootloop, WiFi not working, 
 **Device & Environment**
 - **Device:** [e.g., Poco X6 Pro (duchamp)]
 - **ROM:** [e.g., HyperOS 3.0, AOSP 16]
-- **Kernel variant:** [e.g., KernelSU, KernelSU Next, SukiSU Ultra, Vanilla, ReSukiSU]
+- **Kernel variant:** [e.g., KernelSU, KernelSU Next, SukiSU Ultra, Vanilla, BakaSU]
 - **Kernel version:** [e.g., `6.1.175-GKID/v26.07.26-r443/349b806bc`]
 
 **To Reproduce**

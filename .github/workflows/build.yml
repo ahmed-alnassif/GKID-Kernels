@@ -434,8 +434,8 @@ jobs:
           $(read_or_default "release-artifacts/ksu_changelog.txt")
 
           \-\-\-
-          **ReSukiSU:**
-          $(read_or_default "release-artifacts/ReSukiSU_changelog.txt")
+          **BakaSU:**
+          $(read_or_default "release-artifacts/BakaSU_changelog.txt")
           INNER
             )
 

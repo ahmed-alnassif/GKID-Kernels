@@ -74,7 +74,7 @@ cd $WORKDIR
 log "Setting Kernel variant"
 case "$KSU" in
   "SKSU") VARIANT="SukiSU-Ultra" ;;
-  "RSKSU") VARIANT="ReSukiSU" ;;
+  "BSU") VARIANT="BakaSU" ;;
   "KSU") VARIANT="KernelSU" ;;
   "no") VARIANT="Vanilla" ;;
   "vnlto") VARIANT="Vanilla+NoLTO" ;;
@@ -109,7 +109,7 @@ else
 fi
 generate_gh_changelog "maxsteeel/nomount" "master" 5 "$RELEASE_DIR/nomount_changelog.txt"
 generate_gh_changelog "tiann/KernelSU" "main" 5 "$RELEASE_DIR/ksu_changelog.txt"
-generate_gh_changelog "ReSukiSU/ReSukiSU" "main" 5 "$RELEASE_DIR/ReSukiSU_changelog.txt"
+generate_gh_changelog "Baka-SU/BakaSU" "main" 5 "$RELEASE_DIR/BakaSU_changelog.txt"
 
 echo "::group::[*] Downloading Clang"
 CLANG_BIN="$WORKDIR/neutron-clang/bin"
@@ -209,9 +209,9 @@ if [ "$NH" = "true" ] && ! kernel_version_eq "$KERNEL_VERSION" "6.1" && [ "$No_D
 fi
 
 set -eo pipefail
-if susfs_included && [ "$KSU" = "RSKSU" ]; then
-  log "ReSukiSU included"
-  install_ksu "ReSukiSU/ReSukiSU" "main"
+if susfs_included && [ "$KSU" = "BSU" ]; then
+  log "BakaSU included"
+  install_ksu "Baka-SU/BakaSU" "main"
 
   clone_susfs
   apply_susfs_patches

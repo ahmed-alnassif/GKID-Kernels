@@ -11,7 +11,7 @@
 [![GitHub License](https://img.shields.io/github/license/ahmed-alnassif/GKID-Kernels?logo=gnu)](/LICENSE)
 [![SuSFS](https://img.shields.io/badge/SuSFS-4CAF50?&logo=gitlab&logoColor=white)](https://gitlab.com/simonpunk/susfs4ksu)
 [![KernelSU](https://img.shields.io/badge/KernelSU-000000?&logo=github&logoColor=white)](https://github.com/tiann/KernelSU)
-[![ReSukiSU](https://img.shields.io/badge/ReSukiSU-E91E63?&logo=github&logoColor=white)](https://github.com/ReSukiSU/ReSukiSU)
+[![BakaSU](https://img.shields.io/badge/BakaSU-E91E63?&logo=github&logoColor=white)](https://github.com/Baka-SU/BakaSU)
 [![Managers](https://img.shields.io/badge/Managers-multiple-success)](https://github.com/ahmed-alnassif/GKID-Kernels/releases)
 
 **⚡ Blazing fast GKI kernel for Android** with KernelSU, SuSFS, NetHunter, NTSync, performance optimizations, battery improvements, and advanced security features.
@@ -74,9 +74,9 @@ Your donations keep this project alive! I spend countless hours maintaining kern
 | KernelSU | ✅ | ❌ | Full | ❌ |
 | KernelSU+SuSFS | ✅ | ✅ | Full | ❌ |
 | KSU+SuSFS+MM | ✅ | ✅ | Full | ❌ |
-| ReSukiSU+SuSFS | ✅ | ✅ | Full | ❌ |
+| BakaSU+SuSFS | ✅ | ✅ | Full | ❌ |
 | Compat+KSU+SuSFS | ✅ | ✅ | ❌ | ✅ |
-| Compat+ReSukiSU+SuSFS | ✅ | ✅ | ❌ | ✅ |
+| Compat+BakaSU+SuSFS | ✅ | ✅ | ❌ | ✅ |
 
 **Optional features** (enable on any variant):
 - 🐳 DroidSpaces - Linux userspace support
@@ -174,7 +174,7 @@ Your donations keep this project alive! I spend countless hours maintaining kern
 | Feature | Description |
 |---------|-------------|
 | **KernelSU** | Stable kernel-based root with excellent hiding |
-| **ReSukiSU** | ReSukiSU kernel integration |
+| **BakaSU** | BakaSU kernel integration |
 | **Multiple Managers** | Run multiple KernelSU managers simultaneously |
 | **Vanilla** | No root for banking and corporate apps |
 

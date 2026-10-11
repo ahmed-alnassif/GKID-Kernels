@@ -194,9 +194,9 @@ Your donations keep this project alive! I spend countless hours maintaining kern
 | KernelSU | ✅ | ❌ | Full | ❌ |
 | KernelSU+SuSFS | ✅ | ✅ | Full | ❌ |
 | KSU+SuSFS+MM | ✅ | ✅ | Full | ❌ |
-| ReSukiSU+SuSFS | ✅ | ✅ | Full | ❌ |
+| BakaSU+SuSFS | ✅ | ✅ | Full | ❌ |
 | Compat+KSU+SuSFS | ✅ | ✅ | ❌ | ✅ |
-| Compat+ReSukiSU+SuSFS | ✅ | ✅ | ❌ | ✅ |
+| Compat+BakaSU+SuSFS | ✅ | ✅ | ❌ | ✅ |
 
 **Not sure? Use a `Compat` variant first**: it fixes most boot issues. Full feature breakdown, LTO explanation, and troubleshooting live in the [README](https://github.com/ahmed-alnassif/GKID-Kernels#-build-variants).
 
@@ -299,11 +299,11 @@ Test both and use whichever performs better on your network.
 **Full commit history:** [Browse all commits](https://github.com/tiann/KernelSU/commits/main)
 
 ---
-**ReSukiSU changelog (last 5 commits):**
+**BakaSU changelog (last 5 commits):**
 
-{read_or_default("release-artifacts/ReSukiSU_changelog.txt")}
+{read_or_default("release-artifacts/BakaSU_changelog.txt")}
 
-**Full commit history:** [Browse all commits](https://github.com/ReSukiSU/ReSukiSU/commits/main)
+**Full commit history:** [Browse all commits](https://github.com/Baka-SU/BakaSU/commits/main)
 
 ---
 > [!Tip]
