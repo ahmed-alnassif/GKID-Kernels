@@ -54,7 +54,7 @@ on:
         default: true
 
       BUILD_KSU_SUSFS:
-        description: "Build with KernelSU and its forks (KernelSU Next) + SUSFS"
+        description: "Build with KernelSU and its forks + SUSFS"
         type: boolean
         default: true
 
