@@ -1,0 +1,30 @@
+name: Root manager upstream provenance
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  collect:
+    name: Collect upstream references (no kernel build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Collect root manager branch tips
+        run: python3 scripts/collect_root_provenance.py artifacts/root-upstream-provenance.json
+
+      - name: Show collected metadata
+        run: cat artifacts/root-upstream-provenance.json
+
+      - name: Upload provenance report
+        uses: actions/upload-artifact@v4
+        with:
+          name: root-upstream-provenance
+          path: artifacts/root-upstream-provenance.json
+          if-no-files-found: error
+          retention-days: 7
