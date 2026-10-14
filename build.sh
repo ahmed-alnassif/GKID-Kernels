@@ -222,6 +222,14 @@ if [ "$KSU" = "KSUN" ]; then
   fi
   log "KernelSU Next included (experimental)"
   install_ksu "KernelSU-Next/KernelSU-Next" "next"
+  # Record the actual installed checkout, not merely the requested upstream ref.
+  if [ -d "KernelSU-Next/.git" ]; then
+    KSUN_INSTALLED_SHA="$(git -C KernelSU-Next rev-parse HEAD)"
+    log "KernelSU Next installed commit: $KSUN_INSTALLED_SHA (requested ref: next)"
+  else
+    error "KernelSU Next checkout missing after installer"
+    exit 1
+  fi
 fi
 
 if [ "$KSU" = "KSU" ]; then
