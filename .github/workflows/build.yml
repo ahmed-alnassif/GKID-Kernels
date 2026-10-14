@@ -43,6 +43,18 @@ on:
           - "6.6"
           - "6.12"
 
+      BUILD_REVISION:
+        description: "Revision (optional, e.g. r9; blank = automatic run number)"
+        type: string
+        default: ""
+
+      CUSTOM_VERSION_NAME:
+        description: "Custom kernel name"
+        type: choice
+        default: "Cogan"
+        options:
+          - "Cogan"
+
       BUILD_VANILLA:
         description: "Build Vanilla (no KSU)"
         type: boolean
@@ -173,6 +185,8 @@ jobs:
           NM: ${{ inputs.NM }}
           BUILD_NAME: ${{ matrix.name }}
           RUN_NUM: -r${{ github.run_number }}
+          BUILD_REVISION: ${{ inputs.BUILD_REVISION }}
+          CUSTOM_VERSION_NAME: ${{ inputs.CUSTOM_VERSION_NAME }}
         run: |
           export GIT_CLONE_PROTECTION_ACTIVE=false
           chmod +x *.sh py/*.py
