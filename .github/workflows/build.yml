@@ -6,6 +6,18 @@ permissions:
 on:
   workflow_dispatch:
     inputs:
+      ROOT_MANAGER:
+        description: "Root manager (choose one, or all variants)"
+        type: choice
+        default: "KernelSU"
+        options:
+          - "KernelSU"
+          - "KernelSU Next"
+          - "KernelSU + SUSFS"
+          - "BakaSU + SUSFS"
+          - "Vanilla"
+          - "All variants (advanced)"
+
       TODO:
         description: "Task"
         default: "kernel"
@@ -54,18 +66,6 @@ on:
         default: "Cogan"
         options:
           - "Cogan"
-
-      ROOT_MANAGER:
-        description: "Root manager (choose one, or all variants)"
-        type: choice
-        default: "KernelSU"
-        options:
-          - "KernelSU"
-          - "KernelSU Next"
-          - "KernelSU + SUSFS"
-          - "BakaSU + SUSFS"
-          - "Vanilla"
-          - "All variants (advanced)"
 
       CLEAN_LTO_CACHE:
         description: "Clean ThinLTO cache (force reset)"
