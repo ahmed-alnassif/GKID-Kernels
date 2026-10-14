@@ -73,11 +73,6 @@ on:
         type: boolean
         default: true
 
-      NH:
-        description: "Enable NetHunter and WirelessKSU (disabled by default)"
-        type: boolean
-        default: false
-
       NM:
         description: "Enable NoMount support"
         type: boolean
@@ -175,7 +170,6 @@ jobs:
           LTO: ${{ inputs.LTO }}
           CLEAN_LTO_CACHE: ${{ inputs.CLEAN_LTO_CACHE }}
           DROIDSPACES: ${{ inputs.DROIDSPACES }}
-          NH: ${{ inputs.NH }}
           NM: ${{ inputs.NM }}
           BUILD_NAME: ${{ matrix.name }}
           RUN_NUM: -r${{ github.run_number }}
@@ -183,38 +177,6 @@ jobs:
           export GIT_CLONE_PROTECTION_ACTIVE=false
           chmod +x *.sh py/*.py
           ./build.sh
-
-      - name: Create KernelSU module for wireless modules
-        if: ${{ inputs.NH }}
-        run: |
-          echo "Extracting wireless modules..."
-          NAME="WirelessKSU"
-          WKSU="modules/$NAME"
-          RPWD=$(pwd)
-          mkdir -p "$WKSU/lkm"
-          mkdir -p "$WKSU/system/etc/firmware/rtw88"
-
-          for mod in rfkill cfg80211 mac80211 'rtw88*' r8188eu libarc4; do
-            found=$(find out/ -iname "${mod}.ko" 2>/dev/null)
-            if [ -n "$found" ]; then
-              echo "$found" | xargs -I{} cp {} "$WKSU/lkm/"
-            else
-              echo "[-] $mod: no .ko found (not built or built-in)"
-            fi
-          done
-
-          if [ -n "$(ls -A "$WKSU/lkm" 2>/dev/null)" ]; then
-            sed -i "s/version=.*/version=${{ env.RELEASE }}-${{ matrix.kernel_version }}-${{ env.VARIANT }}/" "$WKSU/module.prop"
-            cp ksrc/drivers/net/wireless/realtek/rtw88/firmware/* "$WKSU/system/etc/firmware/rtw88" 2>/dev/null || echo "[-] rtw88 firmware not found, skipping"
-            echo "Modules found:"
-            ls -la "$WKSU/lkm/"
-            mkdir -p artifacts
-            cd "$WKSU"
-            zip -9 -r "$RPWD/artifacts/$NAME-${{ matrix.kernel_version }}-${{ env.VARIANT }}-${{ env.RELEASE }}.zip" .
-            echo "$NAME-${{ matrix.kernel_version }}-${{ env.VARIANT }}-${{ env.RELEASE }}.zip created"
-          else
-            echo "No .ko files found (drivers may be built-in for this kernel version)"
-          fi
 
       - name: ccache stats
         if: always()
@@ -324,7 +286,6 @@ jobs:
         env:
           TEST_INPUT: ${{ inputs.TEST }}
           DROIDSPACES_INPUT: ${{ inputs.DroidSpaces }}
-          NH_INPUT: ${{ inputs.NH }}
           NM_INPUT: ${{ inputs.NM }}
           LTO_INPUT: ${{ inputs.LTO }}
         run: python3 .github/scripts/prepare_release.py

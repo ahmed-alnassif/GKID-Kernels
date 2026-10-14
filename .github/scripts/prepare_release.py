@@ -91,18 +91,6 @@ def build_kernel_section(kernel_version, builds, repo, tag, existing_zips, input
 			file_lines.append(variant_link(display_variant_name(b), zip_name, repo, tag))
 	files_block = "\n".join(file_lines) if file_lines else "- *No build artifacts found*"
 
-	wireless_prefix = f"WirelessKSU-{kernel_version}-"
-	wireless_zips = sorted(z for z in existing_zips if z.startswith(wireless_prefix))
-	if inputs["nh"] != "true":
-		wireless_block = "None (NetHunter disabled for this run)"
-	elif wireless_zips:
-		wireless_block = "\n".join(
-			f"- [{z[:-4]}](https://github.com/{repo}/releases/download/{tag}/{z})"
-			for z in wireless_zips
-		)
-	else:
-		wireless_block = "*Built-in driver, no separate module needed*"
-
 	susfs_changelog_file = f"release-artifacts/susfs_changelog-{kernel_version}.txt"
 	susfs_version = representative.get("SUSFS_VERSION", "Not included")
 
@@ -112,9 +100,6 @@ def build_kernel_section(kernel_version, builds, repo, tag, existing_zips, input
 
 **Downloads:**
 {files_block}
-
-**Kali NetHunter KernelSU modules:**
-{wireless_block}
 
 **Build details:**
 - Linux version: {representative.get('LINUX_VERSION', 'unknown')}
@@ -138,7 +123,6 @@ def build_release_body():
 	versions = kernel_versions_present(all_builds)
 
 	inputs = {
-		"nh": os.environ.get("NH_INPUT", ""),
 		"nm": os.environ.get("NM_INPUT", ""),
 		"droidspaces": os.environ.get("DROIDSPACES_INPUT", ""),
 		"lto": os.environ.get("LTO_INPUT", ""),
@@ -178,7 +162,6 @@ Your donations keep this project alive! I spend countless hours maintaining kern
 
 **Run settings:**
 - LTO optimizations: {cap_first(inputs['lto']) or 'Unknown'}
-- Kali NetHunter: {status_map.get(inputs['nh'], 'Disabled')}
 - DroidSpaces: {status_map.get(inputs['droidspaces'], 'Disabled')}
 - NoMount: {status_map.get(inputs['nm'], 'Disabled')}
 
