@@ -1,4 +1,4 @@
-name: GKID Builder
+name: Cogan Kernel Builder
 permissions:
   contents: write
   actions: write
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       TODO:
-        description: To do
+        description: "Task"
         default: "kernel"
         type: choice
         options:
@@ -15,7 +15,7 @@ on:
           - "defconfig"
 
       TEST:
-        description: debug the pipeline
+        description: "Debug pipeline"
         default: "no"
         type: choice
         options:
@@ -23,7 +23,7 @@ on:
           - "yes"
 
       LTO:
-        description: enable LTO optimization
+        description: "LTO optimization"
         default: "fullLTO"
         type: choice
         options:
@@ -33,7 +33,7 @@ on:
 
       KERNEL_VERSION:
         description: "GKI LTS kernel line to build"
-        default: "All"
+        default: "6.1"
         type: choice
         options:
           - "All"
@@ -58,7 +58,7 @@ on:
       BUILD_VANILLA:
         description: "Build Vanilla (no KSU)"
         type: boolean
-        default: true
+        default: false
 
       BUILD_KSU:
         description: "Build with KernelSU"
@@ -71,14 +71,14 @@ on:
         default: false
 
       BUILD_KSU_SUSFS:
-        description: "Build with KernelSU and its forks + SUSFS"
+        description: "Build with KernelSU and BakaSU + SUSFS"
         type: boolean
-        default: true
+        default: false
 
       CLEAN_LTO_CACHE:
-        description: "Clean ThinLTO cache to fix .config bug"
+        description: "Clean ThinLTO cache (force reset)"
         type: boolean
-        default: true
+        default: false
 
       DROIDSPACES:
         description: "Enable droidspaces-oss support"
