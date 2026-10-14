@@ -31,6 +31,9 @@ BUILD_CONFIGS: Dict[str, List[Dict[str, Any]]] = {
 	"BUILD_KSU": [
 		config(name="KSU", KSU="KSU")
 	],
+	"BUILD_KSUN": [
+		config(name="KSUN", KSU="KSUN")
+	],
 	"BUILD_KSU_SUSFS": [
 		config(name="KSU+SUSFS", KSU="KSU", KSU_SUSFS="true"),
 		config(name="Compat+KSU+SUSFS", KSU="KSU", KSU_COMPAT="true", KSU_SUSFS="true"),

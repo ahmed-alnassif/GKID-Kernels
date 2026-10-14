@@ -76,6 +76,7 @@ case "$KSU" in
   "SKSU") VARIANT="SukiSU-Ultra" ;;
   "BSU") VARIANT="BakaSU" ;;
   "KSU") VARIANT="KernelSU" ;;
+  "KSUN") VARIANT="KernelSU-Next" ;;
   "no") VARIANT="Vanilla" ;;
   "vnlto") VARIANT="Vanilla+NoLTO" ;;
   *) VARIANT="Vanilla" ;;
@@ -216,6 +217,15 @@ if susfs_included && [ "$KSU" = "BSU" ]; then
   clone_susfs
   apply_susfs_patches
 
+fi
+
+if [ "$KSU" = "KSUN" ]; then
+  if susfs_included; then
+    error "KSUN+SUSFS is not enabled until compatibility is validated"
+    exit 1
+  fi
+  log "KernelSU Next included (experimental)"
+  install_ksu "KernelSU-Next/KernelSU-Next" "next"
 fi
 
 if [ "$KSU" = "KSU" ]; then
