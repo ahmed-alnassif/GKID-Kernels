@@ -221,21 +221,22 @@ if [ "$KSU" = "KSUN" ]; then
     exit 1
   fi
   log "KernelSU Next included (experimental)"
-  install_ksu "KernelSU-Next/KernelSU-Next" "next"
-  # Record the actual installed checkout, not merely the requested upstream ref.
+  # Use the tag observed in the successful KSUN GKI 6.1 baseline, not the absent 'next' ref.
+  KSUN_REF="v3.4.2"
+  install_ksu "KernelSU-Next/KernelSU-Next" "$KSUN_REF"
+  # Fail closed if upstream setup.sh silently falls back after a failed checkout.
   if [ -d "KernelSU-Next/.git" ]; then
-    KSUN_INSTALLED_SHA="$(git -C KernelSU-Next rev-parse HEAD)"
-    log "KernelSU Next installed commit: $KSUN_INSTALLED_SHA (requested ref: next)"
-    KSUN_INSTALLED_REF="$(git -C KernelSU-Next describe --tags --exact-match HEAD 2>/dev/null || git -C KernelSU-Next symbolic-ref --quiet --short HEAD 2>/dev/null || printf 'detached/untagged')"
-    log "KernelSU Next checkout identity: $KSUN_INSTALLED_REF"
-    if git -C KernelSU-Next rev-parse --verify --quiet 'refs/remotes/origin/next^{commit}' >/dev/null; then
-      KSUN_NEXT_SHA="$(git -C KernelSU-Next rev-parse 'refs/remotes/origin/next^{commit}')"
-      if [ "$KSUN_INSTALLED_SHA" != "$KSUN_NEXT_SHA" ]; then
-        warning "KSUN installed SHA differs from fetched origin/next ($KSUN_NEXT_SHA); verify installer checkout before SUSFS integration"
-      fi
-    else
-      warning "KSUN origin/next is unavailable locally; requested ref 'next' cannot be verified against installed SHA"
+    KSUN_INSTALLED_SHA="$(git -C KernelSU-Next rev-parse HEAD)" || exit 1
+    log "KernelSU Next installed commit: $KSUN_INSTALLED_SHA (requested ref: $KSUN_REF)"
+    KSUN_EXPECTED_SHA="$(git -C KernelSU-Next rev-parse --verify "refs/tags/$KSUN_REF^{commit}")" || {
+      error "KSUN requested tag $KSUN_REF is not present in checkout"
+      exit 1
+    }
+    if [ "$KSUN_INSTALLED_SHA" != "$KSUN_EXPECTED_SHA" ]; then
+      error "KSUN checkout mismatch: installed $KSUN_INSTALLED_SHA, expected $KSUN_EXPECTED_SHA ($KSUN_REF)"
+      exit 1
     fi
+    log "KernelSU Next verified tag: $KSUN_REF ($KSUN_EXPECTED_SHA)"
   else
     error "KernelSU Next checkout missing after installer"
     exit 1
