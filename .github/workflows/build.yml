@@ -55,25 +55,17 @@ on:
         options:
           - "Cogan"
 
-      BUILD_VANILLA:
-        description: "Build Vanilla (no KSU)"
-        type: boolean
-        default: false
-
-      BUILD_KSU:
-        description: "Build with KernelSU"
-        type: boolean
-        default: true
-
-      BUILD_KSUN:
-        description: "Build with KernelSU Next (experimental, no SUSFS)"
-        type: boolean
-        default: false
-
-      BUILD_KSU_SUSFS:
-        description: "Build with KernelSU and BakaSU + SUSFS"
-        type: boolean
-        default: false
+      ROOT_MANAGER:
+        description: "Root manager (choose one, or all variants)"
+        type: choice
+        default: "KernelSU"
+        options:
+          - "KernelSU"
+          - "KernelSU Next"
+          - "KernelSU + SUSFS"
+          - "BakaSU + SUSFS"
+          - "Vanilla"
+          - "All variants (advanced)"
 
       CLEAN_LTO_CACHE:
         description: "Clean ThinLTO cache (force reset)"
@@ -132,10 +124,7 @@ jobs:
         id: set-matrix
         env:
           KERNEL_VERSION: ${{ github.event.inputs.KERNEL_VERSION }}
-          BUILD_VANILLA: ${{ github.event.inputs.BUILD_VANILLA }}
-          BUILD_KSU: ${{ github.event.inputs.BUILD_KSU }}
-          BUILD_KSUN: ${{ github.event.inputs.BUILD_KSUN }}
-          BUILD_KSU_SUSFS: ${{ github.event.inputs.BUILD_KSU_SUSFS }}
+          ROOT_MANAGER: ${{ inputs.ROOT_MANAGER }}
         run: |
           python3 py/generate-matrix.py >> "$GITHUB_OUTPUT"
 
