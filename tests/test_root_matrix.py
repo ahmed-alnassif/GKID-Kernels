@@ -6,7 +6,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-SCRIPT = Path(__file__).resolve().parents[1] / "py" / "generate-matrix.py"
+ROOT = Path(__file__).resolve().parents[1]
+SCRIPT = ROOT / "py" / "generate-matrix.py"
 FLAGS = ("BUILD_VANILLA", "BUILD_KSU", "BUILD_KSUN", "BUILD_KSU_SUSFS")
 
 def matrix(version="6.1", manager="", **flags):
@@ -43,6 +44,13 @@ def main():
         assert len(chosen) == 1
         assert chosen[0]["KSU"] == expected_ksu
         assert chosen[0]["KSU_SUSFS"] == expected_susfs
+    # Guard the unsupported KSUN+SUSFS combination until upstream compatibility
+    # and a targeted build/runtime test have been verified (Issue #19).
+    build_script = (ROOT / "build.sh").read_text()
+    assert 'if [ "$KSU" = "KSUN" ]; then' in build_script
+    assert 'if susfs_included; then' in build_script
+    assert 'KSUN+SUSFS is not enabled until compatibility is validated' in build_script
+    assert 'install_ksu "KernelSU-Next/KernelSU-Next" "next"' in build_script
     assert len(entries(matrix(manager="All variants (advanced)"))) == 10
     assert len(entries(matrix(version="All", manager="All variants (advanced)"))) == 50
     assert matrix(manager="invalid", BUILD_KSU=True).returncode != 0
