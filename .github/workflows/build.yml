@@ -133,7 +133,7 @@ jobs:
           python3 py/generate-matrix.py >> "$GITHUB_OUTPUT"
 
   build:
-    needs: prepare
+    needs: [prepare, ensure-cache-release]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
