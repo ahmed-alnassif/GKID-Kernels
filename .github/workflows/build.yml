@@ -74,9 +74,9 @@ on:
         default: true
 
       NH:
-        description: "Enable NetHunter support"
+        description: "Enable NetHunter and WirelessKSU (disabled by default)"
         type: boolean
-        default: true
+        default: false
 
       NM:
         description: "Enable NoMount support"
@@ -271,7 +271,7 @@ jobs:
           retention-days: 1
 
       - name: Send rejected patches to Telegram
-        if: always()
+        if: ${{ false }} # Disabled temporarily; preserve implementation
         run: |
           if [ -d "rejected-patches-${{ matrix.name }}" ] && [ "$(find rejected-patches-${{ matrix.name }} -type f | wc -l)" -gt 0 ]; then
             for file in rejected-patches-${{ matrix.name }}/*; do
@@ -359,6 +359,7 @@ jobs:
           body_path: release_body.md
 
       - name: Upload to Telegram
+        if: ${{ false }} # Disabled temporarily; preserve implementation
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
