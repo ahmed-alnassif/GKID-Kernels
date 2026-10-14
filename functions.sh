@@ -124,7 +124,18 @@ install_ksu() {
 
   URL="https://raw.githubusercontent.com/$REPO/$REF/kernel/setup.sh"
   log "Installing KernelSU from $REPO | $REF"
-  curl -LSs "$URL" | bash -s "$REF"
+  # Download before execution so HTTP/network errors cannot be masked by bash.
+  local installer
+  installer="$(mktemp)" || return 1
+  if ! curl --fail --location --silent --show-error "$URL" --output "$installer"; then
+    rm -f "$installer"
+    error "Failed to download root installer from $URL"
+    return 1
+  fi
+  local installer_status=0
+  bash "$installer" "$REF" || installer_status=$?
+  rm -f "$installer"
+  return "$installer_status"
 }
 
 ksu_included() {
