@@ -18,21 +18,14 @@ on:
           - "Vanilla"
           - "All variants (advanced)"
 
-      TODO:
-        description: "Task"
-        default: "kernel"
+      BUILD_MODE:
+        description: "Build Mode (legacy Task + Debug pipeline)"
+        default: "Standard Build"
         type: choice
         options:
-          - "kernel"
-          - "defconfig"
-
-      TEST:
-        description: "Debug pipeline"
-        default: "no"
-        type: choice
-        options:
-          - "no"
-          - "yes"
+          - "Standard Build"
+          - "Debug Build"
+          - "Config Check"
 
       LTO:
         description: "LTO optimization"
@@ -89,6 +82,11 @@ on:
         type: string
         default: "N"
 
+# Legacy mapping (Edo Tensei):
+# Standard Build -> TODO=kernel, TEST=no
+# Debug Build    -> TODO=kernel, TEST=yes
+# Config Check   -> TODO=defconfig, TEST=no
+# The build script still receives the original TODO/TEST environment variables.
 env:
   MAN_DISABLE: true
   DEBIAN_FRONTEND: noninteractive
@@ -171,7 +169,7 @@ jobs:
           pip install lxml
 
       - name: Restore ccache from release
-        if: github.event.inputs.TEST == 'no' && github.event.inputs.TODO != 'defconfig'
+        if: inputs.BUILD_MODE == 'Standard Build'
         id: restore-ccache
         uses: ./.github/actions/ccache-restore
         with:
@@ -189,8 +187,8 @@ jobs:
           KSU_SUSFS: ${{ matrix.KSU_SUSFS }}
           C_LTO: ${{ matrix.C_LTO }}
           No_DS: ${{ matrix.No_DS }}
-          TODO: ${{ inputs.TODO }}
-          TEST: ${{ inputs.TEST }}
+          TODO: ${{ inputs.BUILD_MODE == 'Config Check' && 'defconfig' || 'kernel' }}
+          TEST: ${{ inputs.BUILD_MODE == 'Debug Build' && 'yes' || 'no' }}
           LTO: ${{ inputs.LTO }}
           CLEAN_LTO_CACHE: 'true'
           DROIDSPACES: 'false'
@@ -212,7 +210,7 @@ jobs:
           ccache --show-stats
 
       - name: Save ccache to release
-        if: always() && github.event.inputs.TEST == 'no' && github.event.inputs.TODO != 'defconfig'
+        if: always() && inputs.BUILD_MODE == 'Standard Build'
         uses: ./.github/actions/ccache-save
         with:
           repo: ${{ github.repository }}
@@ -290,7 +288,7 @@ jobs:
 
   release:
     needs: build
-    if: always() && needs.build.result == 'success' && github.event.inputs.TODO != 'defconfig'
+    if: always() && needs.build.result == 'success' && inputs.BUILD_MODE != 'Config Check'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source
@@ -312,7 +310,7 @@ jobs:
 
       - name: Load environment from builds and prepare release body
         env:
-          TEST_INPUT: ${{ inputs.TEST }}
+          TEST_INPUT: ${{ inputs.BUILD_MODE == 'Debug Build' && 'yes' || 'no' }}
           DROIDSPACES_INPUT: 'false'
           NM_INPUT: 'true'
           LTO_INPUT: ${{ inputs.LTO }}
