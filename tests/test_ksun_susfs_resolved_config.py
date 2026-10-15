@@ -178,7 +178,7 @@ class ResolvedConfigTests(unittest.TestCase):
         lock = {"configuration": {**LOCK["configuration"],
                 "forbidden": [*LOCK["configuration"]["forbidden"],
                               "CONFIG_BBG_BLOCK_RECOVERY"]}}
-        errors = gate.audit((GOOD + "CONFIG_BBG_BLOCK_RECOVERY=y\\n").encode(), lock)
+        errors = gate.audit((GOOD + "CONFIG_BBG_BLOCK_RECOVERY=y\n").encode(), lock)
         self.assertTrue(any("CONFIG_BBG_BLOCK_RECOVERY" in e for e in errors))
 
     def test_nomount_module_not_builtin(self):
