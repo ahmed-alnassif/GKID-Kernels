@@ -90,9 +90,9 @@ on:
         default: "N"
 
       DROIDSPACES:
-        description: "Enable droidspaces-oss support"
+        description: "Enable droidspaces-oss support (off by default)"
         type: boolean
-        default: true
+        default: false
 
       EXTRA_FEATURES:
         description: "Optional: nomount,clean-lto-cache (comma-separated)"
@@ -328,8 +328,8 @@ jobs:
       - name: Load environment from builds and prepare release body
         env:
           TEST_INPUT: ${{ inputs.TEST }}
-          DROIDSPACES_INPUT: ${{ inputs.DroidSpaces }}
-          NM_INPUT: ${{ inputs.NM }}
+          DROIDSPACES_INPUT: ${{ inputs.DROIDSPACES }}
+          NM_INPUT: ${{ contains(format(',{0},', inputs.EXTRA_FEATURES), ',nomount,') }}
           LTO_INPUT: ${{ inputs.LTO }}
         run: python3 .github/scripts/prepare_release.py
 
