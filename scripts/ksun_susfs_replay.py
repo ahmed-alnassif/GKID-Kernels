@@ -2,7 +2,7 @@
 """Strict, isolated patch replay for a KSUN+SUSFS candidate.
 
 Manifest JSON:
-{"patches":[{"path":"patches/001.patch","sha256":"<64 hex chars>"}]}
+{"kernel_commit":"<40 hex chars>","patches":[{"path":"patches/001.patch","sha256":"<64 hex chars>"}]}
 Paths are relative to the manifest directory. Defaults to verification only.
 No downloads, builds, production workflow changes, or fuzzy patching.
 """
@@ -37,6 +37,12 @@ def main():
         if git(tree, "status", "--porcelain", "--untracked-files=all").stdout.strip():
             raise ValueError("kernel checkout is dirty; refusing replay")
         data = json.loads(manifest.read_text(encoding="utf-8"))
+        expected_head = data.get("kernel_commit")
+        if not isinstance(expected_head, str) or not re.fullmatch(r"[0-9a-f]{40}", expected_head):
+            raise ValueError("manifest requires immutable kernel_commit SHA")
+        actual_head = git(tree, "rev-parse", "HEAD").stdout.strip()
+        if actual_head != expected_head:
+            raise ValueError(f"kernel HEAD mismatch: expected {expected_head}, got {actual_head}")
         patches = data.get("patches")
         if not isinstance(patches, list) or not patches:
             raise ValueError("manifest must have a nonempty patches list")
