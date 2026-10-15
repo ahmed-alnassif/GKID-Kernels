@@ -193,6 +193,7 @@ jobs:
           TEST: no
           LTO: ${{ startsWith(inputs.LTO, 'noneLTO') && 'noneLTO' || startsWith(inputs.LTO, 'thinLTO') && 'thinLTO' || 'fullLTO' }}
           CLEAN_LTO_CACHE: 'true'
+          NETWORKING: ${{ inputs.NETWORKING }}
           DROIDSPACES: 'false'
           NM: 'true'
           KERNEL_SUBLEVEL: ${{ inputs.KERNEL_SUBLEVEL }}
