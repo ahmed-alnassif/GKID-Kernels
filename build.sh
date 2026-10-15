@@ -205,8 +205,12 @@ if ! kernel_version_eq "$KERNEL_VERSION" "6.1"; then
 fi
 
 
-log "Applying BBRv3 patch"
-apply_patch_file $KERNEL_PATCHES/bbrv3/bbrv3.patch
+if [ "${NETWORKING:-true}" = "true" ]; then
+  log "Applying BBRv3 patch (Networking enabled)"
+  apply_patch_file "$KERNEL_PATCHES/bbrv3/bbrv3.patch"
+else
+  log "Skipping optional BBRv3 patch (Networking disabled)"
+fi
 
 
 if kernel_version_lt "$KERNEL_VERSION" "6.12"; then
