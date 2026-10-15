@@ -326,7 +326,18 @@ echo "VARIANT=$VARIANT" >> $GITHUB_ENV
 
 if [ "$NM" = "true" ]; then
   log "Applying NoMount"
-  curl "https://raw.githubusercontent.com/maxsteeel/nomount/refs/heads/dev/kernel/setup.sh" | bash -s master
+  NOMOUNT_SETUP="$(mktemp)" || { error "Unable to allocate NoMount setup file"; exit 1; }
+  if ! curl -fsSL "https://raw.githubusercontent.com/maxsteeel/nomount/refs/heads/dev/kernel/setup.sh" -o "$NOMOUNT_SETUP"; then
+    rm -f "$NOMOUNT_SETUP"
+    error "NoMount setup download failed"
+    exit 1
+  fi
+  if ! bash "$NOMOUNT_SETUP" master; then
+    rm -f "$NOMOUNT_SETUP"
+    error "NoMount setup failed"
+    exit 1
+  fi
+  rm -f "$NOMOUNT_SETUP"
 fi
 echo "::endgroup::"
 set +eo pipefail
