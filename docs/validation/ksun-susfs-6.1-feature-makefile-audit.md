@@ -27,3 +27,9 @@ On 2026-10-15, the GitHub connector supplied the source of `scripts/check_ksun_s
 Result: **10 tests run, 10 passed, 0 failures, 0 errors** (0.021 s). This is a copied-source offline unit test, not a verified checkout-based CI run. It does not establish that a kernel `.config` has been generated or resolved, that the full toolchain is ready, or that kernel compilation succeeds.
 
 Next gate: restore the pinned integrated kernel tree, generate fresh `gki_defconfig` plus locked fragment via `olddefconfig`, and run the read-only validator on the resulting `.config`. Preserve the existing production, Actions, release, and flash restrictions.
+
+## NoMount compiler-flag decision gate (source-only follow-up)
+
+The pinned `002-nomount.patch` declares `CONFIG_NOMOUNT` as `tristate` with `default y`, and its Makefile adds `-std=gnu11 -Wno-declaration-after-statement -O3 -fno-stack-protector` to `ccflags-y`. The locked fragment and validator require `CONFIG_NOMOUNT=y`; `m` is not an acceptable substitute. `-fno-stack-protector` explicitly disables stack-protector instrumentation for these compilation units, and `-O3` overrides the ordinary optimization choice for this directory. Neither flag alone proves a build failure or a CFI bypass.
+
+**Gate:** before isolated compilation, inspect the *effective* compiler command for `fs/nomount/nomount.o` using the pinned Neutron toolchain, and determine whether the local `-fno-stack-protector` is required or conflicts with the project's hardening policy. Confirm Full LTO/CFI are still present in the resolved `.config`. If adaptation is justified, prepare a new separately checksummed candidate patch and update its lock only after review; do **not** silently alter the existing pinned patch or enable builds. This is a pending source/toolchain-dependent check, not a completed compiler test.
