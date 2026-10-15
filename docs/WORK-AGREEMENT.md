@@ -17,7 +17,7 @@ Dokumen ini adalah sumber utama aturan kerja dan urutan prioritas. Owner cukup m
 8. **Judul workflow harus sesuai isi pekerjaannya.** Ketidaksesuaian dicatat dan diperbaiki.
 9. **Checkpoint secukupnya.** Hanya di akhir satu blok kerja yang berarti (bukan setiap langkah), ditulis di bagian *Checkpoint* dokumen ini.
 10. **Menjalankan workflow GitHub Actions yang mengompilasi kernel hanya oleh owner** (diperjelas 2026-10-15). Kompilasi kernel lain, misalnya lokal di container sesi, **boleh** dilakukan Claude. Workflow ringan seperti `Validate` boleh berjalan otomatis lewat push/PR. Release, flash, dan penghapusan production guard tetap keputusan owner.
-11. **Ruang lingkup: kernel 6.1 saja** (keputusan owner 2026-10-15). Versi 5.10/5.15/6.6/6.12 diabaikan: tidak dipin, tidak dilaporkan, dan tidak dikerjakan, tetapi juga tidak dihapus dari form build.
+11. **Ruang lingkup: kernel 6.1 saja** (keputusan owner 2026-10-15). Versi 5.10/5.15/6.6/6.12 diabaikan: tidak dipin, tidak dilaporkan, dan tidak dikerjakan. Sejak 2026-10-16 form build **dikunci di 6.1** (permintaan owner) dan langkah prepare menolak versi lain; kode lama untuk versi lain dibiarkan.
 12. **Issue tidak pernah dihapus.** Issue ditutup hanya bila kriteria selesainya terpenuhi (keputusan owner 2026-10-15): #19 setelah uji perangkat lolos dan opsi KSUN+SUSFS dibuka; #3 setelah verifikasi Manager APK di perangkat; #2 setelah data ccache dari build alami berikutnya.
 
 ## B. Temuan audit (2026-10-15)
@@ -52,6 +52,7 @@ Dokumen ini adalah sumber utama aturan kerja dan urutan prioritas. Owner cukup m
 | W13 | P1 | BBG: pin + checkbox di bawah Networking (default on) + patch `003` (disetujui owner). | **Selesai** 2026-10-15 — `BBG_COMMIT` di lock, komponen `bbg` di Manual Update; `003` dipakai di build produksi dan kandidat KSUN+SUSFS (Image lokal `f5c68737…`) |
 | W14 | P1 | Toolchain Neutron clang dipin (`NEUTRON_RELEASE`/`NEUTRON_SHA256`), menggantikan `antman -S` yang selalu mengambil terbaru. | **Selesai** 2026-10-15 — 06092026 (= terbaru saat ini, jadi build hari ini tidak berubah); komponen `toolchain` di Manual Update |
 | W15 | P2 | Arsipkan tag rilis GKID milik Ahmed (permintaan owner 2026-10-15) supaya yang tersisa hanya rilis Cogan. | **Arsip siap** — 246 tag dicatat di `docs/archive/gkid-upstream-tags.tsv`; semuanya identik di `ahmed-alnassif/GKID-Kernels`, jadi tidak ada yang hilang. Dipertahankan: `v26.10.14-r2`, `v26.10.14-r3` (rilis owner) dan `ci-ccache-store` (cache build). Penghapusan tag diblokir izin sesi Claude → dijalankan owner (bagian G) |
+| W16 | P2 | Rapikan form Run workflow (permintaan owner 2026-10-16): urutan Root Manager KSU, KSU+SUSFS, KSUN, KSUN+SUSFS, BakaSU+SUSFS, Vanilla, All variants; Kernel Version dikunci 6.1. | **Selesai** 2026-10-16 — test form + prepare ditambah. BakaSU tanpa SUSFS **tidak** ditambahkan (rekomendasi: belum ada jalur build/uji, dan KSU/KSUN sudah mencakup root tanpa SUSFS) |
 
 ## D. Bukti hijau (tidak perlu diulang)
 

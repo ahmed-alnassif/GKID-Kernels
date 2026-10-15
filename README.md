@@ -20,7 +20,7 @@
 
 > [!Important]
 > - This is a **GKI** kernel, not a custom kernel. It works on **ANY** device that ships with a matching GKI Linux version.
-> - Supported GKI versions: **5.10, 5.15, 6.1, 6.6, 6.12** (see [Supported GKI Kernel Versions](#-supported-gki-kernel-versions) below).
+> - Supported GKI version: **6.1** (Android 14). Cogan builds kernel 6.1 only; the build form is locked to 6.1.
 
 ---
 
@@ -57,11 +57,7 @@ Your donations keep this project alive! I spend countless hours maintaining kern
 
 | Linux | Android |
 |-------|---------|
-| 5.10  | 12      |
-| 5.15  | 13      |
 | 6.1   | 14      |
-| 6.6   | 15      |
-| 6.12  | 16      |
 
 ---
 

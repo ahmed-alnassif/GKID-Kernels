@@ -231,7 +231,7 @@ class ShellLockTests(unittest.TestCase):
                                ("6.1", "abc"), ("6.1", "0177"), ("6.6", "177")):
             self.assertNotEqual(run(version, value).returncode, 0, (version, value))
         self.assertIn("Available: lts 160 161", run("6.1", "159").stdout)
-        self.assertEqual(run("6.6", "lts").returncode, 0)  # latest needs no 6.1 sublevel
+        self.assertNotEqual(run("6.6", "lts").returncode, 0)  # kernel version is locked to 6.1
 
     def test_build_script_maps_lts_to_the_latest_pin(self):
         build = (ROOT / "build.sh").read_text()

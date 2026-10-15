@@ -94,6 +94,18 @@ def main():
         rejected = prepare(**bad)
         assert rejected.returncode == 1, (bad, rejected.stderr)
         assert 'KSUN+SUSFS (uji)' in rejected.stderr, rejected.stderr
+    # Owner-ordered dropdown; the kernel version is locked to 6.1 in the form and in prepare.
+    inputs = workflow[True]["workflow_dispatch"]["inputs"]
+    assert inputs["ROOT_MANAGER"]["options"] == [
+        "KernelSU", "KernelSU + SUSFS", "KernelSU Next", "KernelSU Next + SUSFS (uji)",
+        "BakaSU + SUSFS", "Vanilla", "All variants (advanced)"]
+    assert inputs["KERNEL_VERSION"]["options"] == ["6.1"]
+    assert inputs["KERNEL_VERSION"]["default"] == "6.1"
+    for manager in inputs["ROOT_MANAGER"]["options"][:-1]:
+        assert len(entries(matrix(manager=manager))) == 1, manager
+    other = prepare(ROOT_MANAGER_INPUT="KernelSU", KERNEL_VERSION_INPUT="6.6")
+    assert other.returncode == 1 and "kernel 6.1 only" in other.stderr, other.stderr
+    assert prepare(ROOT_MANAGER_INPUT="KernelSU").returncode == 0
     assert len(entries(matrix(manager="All variants (advanced)"))) == 10
     assert len(entries(matrix(version="All", manager="All variants (advanced)"))) == 50
     assert matrix(manager="invalid", BUILD_KSU=True).returncode != 0

@@ -12,9 +12,9 @@ on:
         default: "KernelSU"
         options:
           - "KernelSU"
+          - "KernelSU + SUSFS"
           - "KernelSU Next"
           - "KernelSU Next + SUSFS (uji)"
-          - "KernelSU + SUSFS"
           - "BakaSU + SUSFS"
           - "Vanilla"
           - "All variants (advanced)"
@@ -36,16 +36,11 @@ on:
           - "fullLTO + NoMount + Clean LTO"
 
       KERNEL_VERSION:
-        description: "Kernel Version"
+        description: "Kernel Version (dikunci 6.1)"
         default: "6.1"
         type: choice
         options:
-          - "All"
-          - "5.10"
-          - "5.15"
           - "6.1"
-          - "6.6"
-          - "6.12"
 
       BUILD_REVISION:
         description: "Build Revision"
@@ -134,6 +129,8 @@ jobs:
               *) echo "::error::KSUN+SUSFS (uji) is only available for 6.1.177 (lts)" >&2; exit 1 ;;
             esac
           fi
+          # Cogan builds kernel 6.1 only (owner decision 2026-10-16); the form offers nothing else.
+          [[ "$KERNEL_VERSION_INPUT" == "6.1" ]] || { echo "::error::Cogan builds kernel 6.1 only" >&2; exit 1; }
           # "lts" (any case), "Auto" or empty mean the latest pinned sublevel.
           SUBLEVEL="${KERNEL_SUBLEVEL_INPUT:-}"
           case "${SUBLEVEL,,}" in auto|lts|"") SUBLEVEL="Auto" ;; esac
