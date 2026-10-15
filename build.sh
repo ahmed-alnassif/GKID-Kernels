@@ -412,6 +412,19 @@ echo "::group::[*] Generating config"
 make ${MAKE_ARGS[@]} "$KERNEL_DEFCONFIG"
 echo "::endgroup::"
 
+# Report the resolved kernel configuration, not merely the requested fragments.
+# Diagnostics only: avoid failing established builds on kernel-version differences.
+log "Resolved Networking config (NETWORKING=${NETWORKING:-true})"
+for symbol in CONFIG_TCP_CONG_BBR CONFIG_DEFAULT_BBR CONFIG_NET_SCH_FQ CONFIG_NET_SCH_FQ_CODEL CONFIG_IP_SET CONFIG_NETFILTER_XT_SET; do
+  if grep -q "^${symbol}=y$" "$OUTDIR/.config"; then
+    log "  ${symbol}=y"
+  elif grep -q "^# ${symbol} is not set$" "$OUTDIR/.config"; then
+    log "  ${symbol}=n"
+  else
+    log "  ${symbol}=unavailable or not built-in"
+  fi
+done
+
 if susfs_included; then
 
   log "DEBUG: Checking defconfig for SUSFS"
