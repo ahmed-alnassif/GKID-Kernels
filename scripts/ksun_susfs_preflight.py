@@ -12,6 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 EVIDENCE = ROOT / "docs/validation/ksun-susfs-6.1-partial-build.json"
+LOCK = ROOT / "configs/ksun-susfs-6.1.lock.json"
 
 def sha256(path):
     h = hashlib.sha256()
@@ -37,13 +38,32 @@ def git_head(path):
     )
     return result.stdout.strip()
 
+def lock_consistency(lock, evidence):
+    """Return mismatches between immutable candidate pins and recorded evidence."""
+    errors = []
+    for name in ("kernel", "ksun", "susfs"):
+        if lock["sources"][name]["commit"] != evidence["sources"][name]:
+            errors.append(f"{name} lock/evidence commit mismatch")
+    if lock["toolchain"]["archive_sha256"] != evidence["toolchain"]["archive_sha256"]:
+        errors.append("toolchain lock/evidence SHA256 mismatch")
+    if lock["build_enabled"] is not False:
+        errors.append("build gate must remain disabled")
+    if lock["validation"]["full_image_verified"] is not False or lock["validation"]["runtime_verified"] is not False:
+        errors.append("unverified full build/runtime must not be marked verified")
+    return errors
+
+
 def main(argv):
     if len(argv) != 5:
         print(__doc__.strip(), file=sys.stderr)
         return 2
     evidence = json.loads(EVIDENCE.read_text(encoding="utf-8"))
+    lock = json.loads(LOCK.read_text(encoding="utf-8"))
+    lock_errors = lock_consistency(lock, evidence)
     kernel, out, ksun, susfs = map(Path, argv[1:])
-    failures = []
+    failures = list(lock_errors)
+    for error in lock_errors:
+        print("FAIL candidate lock: " + error)
     checks = []
     for name, path in (("kernel", kernel), ("ksun", ksun), ("susfs", susfs)):
         expected = evidence["sources"][name]
