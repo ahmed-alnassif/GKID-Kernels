@@ -34,6 +34,17 @@ def audit(config_bytes, lock):
     for key in spec["forbidden"]:
         if values.get(key, "n") != "n":
             errors.append(f"{key}: forbidden value {values[key]}")
+    # Validate all enabled SUSFS subfeatures against the pinned fragment.
+    if "fragment" in spec:
+        fragment_path = ROOT / spec["fragment"]
+        fragment_raw = fragment_path.read_bytes()
+        if hashlib.sha256(fragment_raw).hexdigest() != spec["sha256"]:
+            raise ValueError("Locked candidate fragment SHA256 mismatch")
+        for line in fragment_raw.decode("utf-8").splitlines():
+            if line.startswith("CONFIG_KSU_SUSFS_") and line.endswith("=y"):
+                key = line.split("=", 1)[0]
+                if values.get(key, "n") != "y":
+                    errors.append(f"{key}: enabled in locked fragment but not resolved y")
     lsm = values.get("CONFIG_LSM", "").strip('"').split(",")
     if "baseband_guard" not in lsm:
         errors.append("CONFIG_LSM: baseband_guard token absent")
