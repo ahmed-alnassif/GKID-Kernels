@@ -21,8 +21,16 @@ def sha256(path):
     return h.hexdigest()
 
 def git_head(path):
+    path = path.resolve(strict=True)
+    # A linked Git worktree has a .git *file*, not necessarily a directory.
     if not (path / ".git").exists():
-        raise ValueError("source directory is not a Git checkout")
+        raise ValueError("source directory is not a Git checkout/worktree root")
+    top = subprocess.run(
+        ["git", "-C", str(path), "rev-parse", "--show-toplevel"],
+        capture_output=True, text=True, check=True, timeout=15,
+    ).stdout.strip()
+    if Path(top).resolve() != path:
+        raise ValueError("source path must be the checkout root")
     result = subprocess.run(
         ["git", "-C", str(path), "rev-parse", "HEAD"],
         capture_output=True, text=True, check=True, timeout=15,
