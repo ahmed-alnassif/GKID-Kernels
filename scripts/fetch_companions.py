@@ -62,6 +62,28 @@ def candidate_nomount_commit(path=FEATURE_LOCK):
     return None
 
 
+def newer_release(lock, pin_key, lister):
+    """Upstream release tag newer than the pinned one, or None. Never fails the build."""
+    _, _, url, ref = mu.PINS[pin_key]
+    _, tag, error = mu.resolve(url, ref, lister)
+    if error or not tag or tag == lock.get(mu.TAG_KEYS[pin_key]):
+        return None
+    return tag
+
+
+def reminder(lock, kind, pin_key, lister):
+    """Bilingual reminder to run Cogan Manual Update when upstream has a newer release."""
+    tag = newer_release(lock, pin_key, lister)
+    if not tag:
+        return None
+    label = {key: name for name, key in MANAGERS.values()}.get(pin_key, "NoMount")
+    group = "nomount" if kind == "nomount" else "root-managers"
+    pinned = lock.get(mu.TAG_KEYS[pin_key], "-")
+    return (f"🔔 {label} {tag} tersedia / available (terpasang / pinned: {pinned}). "
+            f"Jalankan / run **Cogan Manual Update** → `update` → `{group}`, lalu build ulang / then rebuild: "
+            f"kernel, root manager & NoMount naik bersama / move up together.")
+
+
 def fetch_one(lock, kind, pin_key, prefix, out, candidate, lister, fetch):
     """Returns (path or None, summary line)."""
     companion, tag_key = mu.COMPANIONS[pin_key], mu.TAG_KEYS[pin_key]
@@ -109,7 +131,7 @@ def main(argv=None, lister=mu.ls_remote, fetch=download):
         parser.error("unsupported --prefix")
     lock = mu.read_lock(mu.LOCK.read_text(encoding="utf-8"))
     candidate = args.ksu == "KSUN" and args.susfs == "true"
-    outputs, lines, status = {}, [], 0
+    outputs, lines, reminders, status = {}, [], [], 0
     if args.ksu in MANAGERS:
         for kind, pin_key in (("manager", MANAGERS[args.ksu][1]), ("nomount", "NOMOUNT_COMMIT")):
             try:
@@ -119,12 +141,24 @@ def main(argv=None, lister=mu.ls_remote, fetch=download):
             if path:
                 outputs[kind] = str(path)
             lines.append(line)
+            # The test kernel is a frozen fork: a newer official manager does not move it.
+            if not (candidate and kind == "manager"):
+                note = reminder(lock, kind, pin_key, lister)
+                if note:
+                    reminders.append(note)
     else:
         lines.append("Vanilla build: no root manager or NoMount module to attach.")
     report = ["### 📱 Root manager & NoMount", "",
               "🇮🇩 Pasang APK manager dan modul NoMount ini bersama ZIP kernel di atas: versinya sama dengan kernel.",
               "🇬🇧 Install this manager APK and NoMount module with the kernel ZIP above: they match the kernel.",
+              "",
+              "🔗 🇮🇩 Versi kernel, root manager dan NoMount dikunci bersama oleh **Cogan Manual Update** "
+              "(`configs/upstream.lock`); build ini hanya memakai pin tersebut.",
+              "🔗 🇬🇧 **Cogan Manual Update** pins the kernel, root manager and NoMount versions together "
+              "(`configs/upstream.lock`); this build only uses those pins.",
               "", *[f"- {line}" for line in lines], ""]
+    if reminders:
+        report += ["#### 🔔 Pengingat / Reminder", "", *[f"- {note}" for note in reminders], ""]
     print("\n".join(report))
     if args.summary:
         with open(args.summary, "a", encoding="utf-8") as handle:

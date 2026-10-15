@@ -24,15 +24,19 @@ FIXTURE = {
 
 
 class FetchCompanionsTests(unittest.TestCase):
-    def run_main(self, ksu, susfs="true", lock_updates=FIXTURE, tags=None, files=None):
+    def run_main(self, ksu, susfs="true", lock_updates=FIXTURE, tags=None, files=None, upstream=None):
         lock_text = fc.mu.write_lock(REAL_LOCK, dict(lock_updates))
         lock = fc.mu.read_lock(lock_text)
         tags = tags or {"tiann/KernelSU": lock["KSU_COMMIT"], "KernelSU-Next/KernelSU-Next": lock["KSUN_COMMIT"],
                         "maxsteeel/nomount": lock["NOMOUNT_COMMIT"]}
         files = files or {}
         fetched = []
+        pinned_tags = {fc.mu.PINS[key][2]: (lock.get(tag_key), lock[key]) for key, tag_key in fc.mu.TAG_KEYS.items()}
 
-        def lister(url, *patterns, **_):
+        def lister(url, *patterns, options=()):
+            if "--tags" in options:  # upstream release list: the pinned tag plus any newer one
+                tag, commit = pinned_tags[url]
+                return {**({f"refs/tags/{tag}": commit} if tag else {}), **(upstream or {}).get(url, {})}
             repo = url[len("https://github.com/"):-len(".git")]
             return {patterns[0]: tags[repo]}
 
@@ -63,6 +67,21 @@ class FetchCompanionsTests(unittest.TestCase):
         self.assertIn("https://github.com/tiann/KernelSU/releases/download/v3.3.1/"
                       "KernelSU_v3.3.1_32211-release.apk", fetched)
         self.assertIn("KernelSU v3.3.1", summary)
+
+    def test_summary_credits_manual_update_and_reminds_about_newer_releases(self):
+        status, _, _, summary, _ = self.run_main("KSU")
+        self.assertEqual(status, 0, summary)
+        self.assertIn("dikunci bersama oleh **Cogan Manual Update**", summary)
+        self.assertNotIn("Pengingat", summary)  # nothing newer upstream
+        newer = {fc.mu.PINS["KSU_COMMIT"][2]: {"refs/tags/v3.3.2": "e" * 40},
+                 fc.mu.PINS["NOMOUNT_COMMIT"][2]: {"refs/tags/v2.2.0": "f" * 40}}
+        status, outputs, _, summary, _ = self.run_main("KSU", upstream=newer)
+        self.assertEqual(status, 0, summary)  # a reminder never fails the build
+        self.assertEqual(set(outputs), {"manager", "nomount"})
+        self.assertIn("KernelSU v3.3.2 tersedia", summary)
+        self.assertIn("`update` → `root-managers`", summary)
+        self.assertIn("NoMount v2.2.0 tersedia", summary)
+        self.assertIn("`update` → `nomount`", summary)
 
     def test_wrong_checksum_fails_and_keeps_nothing(self):
         status, outputs, saved, summary, _ = self.run_main(

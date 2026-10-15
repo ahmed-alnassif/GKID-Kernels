@@ -97,7 +97,7 @@ Open **Actions → Cogan Kernel Builder → Run workflow** in your repository.
 - `Cogan-<variant>-<manager APK>.apk`: the official root manager from the same release tag as the kernel;
 - `Cogan-<variant>-NoMount-….zip`: the official NoMount module, the same version as the NoMount in the kernel.
 
-All SHA256 values are in the run summary.
+All SHA256 values are in the run summary. **Cogan Manual Update** pins these three versions together. When upstream publishes a newer release, the run summary shows a **🔔 Reminder**: run Cogan Manual Update (`update` → `root-managers` or `nomount`), then rebuild so the kernel, root manager and NoMount move up together.
 
 **Updating components:** open **Actions → Cogan Manual Update**.
 - `check` only reports versions.

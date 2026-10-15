@@ -97,7 +97,7 @@ Buka **Actions → Cogan Kernel Builder → Run workflow** di repositori Anda.
 - `Cogan-<varian>-<APK manager>.apk`: root manager resmi dari tag rilis yang sama dengan kernel;
 - `Cogan-<varian>-NoMount-….zip`: modul NoMount resmi dengan versi yang sama dengan NoMount di kernel.
 
-SHA256 semuanya tertulis di ringkasan run.
+SHA256 semuanya tertulis di ringkasan run. Ketiga versi ini dikunci bersama oleh **Cogan Manual Update**. Kalau upstream sudah merilis versi yang lebih baru, ringkasan run menampilkan **🔔 Pengingat**: jalankan Cogan Manual Update (`update` → `root-managers` atau `nomount`), lalu build ulang supaya kernel, root manager dan NoMount naik bersama.
 
 **Memperbarui komponen:** buka **Actions → Cogan Manual Update**.
 - `check` hanya menampilkan laporan versi.
