@@ -54,17 +54,21 @@ jobs:
 
           # Source revision discovery only; KSUN build currently pins tag v3.4.2.
           # Do not treat upstream branch HEAD as an approved update.
-          for label, directory in [
-              ("Networking / BBRv3", "kernel-patches/bbrv3"),
-              ("Clean LTO", "configs"),
-          ]:
-              folder = pathlib.Path(directory)
-              files = sorted(p for p in folder.rglob("*") if p.is_file()) if folder.exists() else []
+          local_files = [
+              ("Networking / BBRv3", ["kernel-patches/bbrv3/bbrv3.patch", "configs/custom.config"]),
+              ("Clean LTO", ["configs/gki_defconfig.sh", "build.sh"]),
+          ]
+          for label, paths in local_files:
+              missing = [p for p in paths if not pathlib.Path(p).is_file()]
+              if missing:
+                  rows.append((label, "Cogan local", "-", "MISSING: " + ", ".join(missing)))
+                  continue
               digest = hashlib.sha256()
-              for file in files:
-                  digest.update(file.as_posix().encode())
+              for name in paths:
+                  file = pathlib.Path(name)
+                  digest.update(name.encode())
                   digest.update(file.read_bytes())
-              rows.append((label, "Cogan local", digest.hexdigest()[:12] if files else "-", "Local fingerprint" if files else "PATH NOT FOUND; review required"))
+              rows.append((label, "Cogan local", digest.hexdigest()[:12], "Local files only; compatibility unverified"))
 
           output = [
               "## Cogan Manual Update — Check Only",
