@@ -65,6 +65,36 @@ class ResolvedConfigTests(unittest.TestCase):
         self.assertTrue(any("CONFIG_KSU" in error for error in
                             self.check(GOOD.replace("CONFIG_KSU=y", "CONFIG_KSU=n"))))
 
+    def test_locked_fragment_subfeature_missing(self):
+        import hashlib
+        from unittest.mock import patch
+        fragment = b"CONFIG_KSU_SUSFS_SUS_PATH=y\\n"
+        lock = {"configuration": {**LOCK["configuration"],
+                "fragment": "configs/ksun-susfs-6.1-features.config",
+                "sha256": hashlib.sha256(fragment).hexdigest()}}
+        with patch.object(gate.Path, "read_bytes", return_value=fragment):
+            errors = gate.audit(GOOD.encode(), lock)
+        self.assertTrue(any("CONFIG_KSU_SUSFS_SUS_PATH" in e for e in errors))
+
+    def test_locked_fragment_hash_mismatch(self):
+        from unittest.mock import patch
+        lock = {"configuration": {**LOCK["configuration"],
+                "fragment": "configs/ksun-susfs-6.1-features.config",
+                "sha256": "0" * 64}}
+        with patch.object(gate.Path, "read_bytes", return_value=b"wrong"):
+            with self.assertRaisesRegex(ValueError, "SHA256 mismatch"):
+                gate.audit(GOOD.encode(), lock)
+
+    def test_locked_fragment_subfeature_enabled(self):
+        import hashlib
+        from unittest.mock import patch
+        fragment = b"CONFIG_KSU_SUSFS_SUS_PATH=y\\n"
+        lock = {"configuration": {**LOCK["configuration"],
+                "fragment": "configs/ksun-susfs-6.1-features.config",
+                "sha256": hashlib.sha256(fragment).hexdigest()}}
+        with patch.object(gate.Path, "read_bytes", return_value=fragment):
+            self.assertEqual([], gate.audit((GOOD + "CONFIG_KSU_SUSFS_SUS_PATH=y\\n").encode(), lock))
+
     def test_nomount_module_not_builtin(self):
         self.assertTrue(any("CONFIG_NOMOUNT" in error for error in
                             self.check(GOOD.replace("CONFIG_NOMOUNT=y", "CONFIG_NOMOUNT=m"))))
