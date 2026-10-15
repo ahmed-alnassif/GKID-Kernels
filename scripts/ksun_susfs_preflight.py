@@ -38,6 +38,15 @@ def git_head(path):
     )
     return result.stdout.strip()
 
+def git_worktree_status(path):
+    """Read-only tracked/untracked source status; never cleans the candidate."""
+    result = subprocess.run(
+        ["git", "-C", str(path), "status", "--porcelain", "--untracked-files=all"],
+        capture_output=True, text=True, check=True, timeout=15,
+    )
+    return result.stdout.strip()
+
+
 def lock_consistency(lock, evidence):
     """Return mismatches between immutable candidate pins and recorded evidence."""
     errors = []
@@ -75,6 +84,18 @@ def main(argv):
         checks.append((name + " HEAD", ok, actual))
         if not ok:
             failures.append(name + " source pin mismatch")
+        if ok:
+            try:
+                dirty = git_worktree_status(path)
+            except (OSError, subprocess.SubprocessError) as exc:
+                dirty = "unavailable: " + str(exc)
+                failures.append(name + " working-tree status unavailable")
+            # Dirty trees may be historical patched candidates, not necessarily invalid.
+            # Without a recorded diff, they cannot be certified as identical.
+            checks.append((name + " working tree clean", not bool(dirty),
+                           "clean" if not dirty else "modified/untracked or unavailable"))
+            if dirty and not dirty.startswith("unavailable:"):
+                failures.append(name + " has unverified working-tree changes")
     config = out / ".config"
     if config.is_file():
         actual = sha256(config)
