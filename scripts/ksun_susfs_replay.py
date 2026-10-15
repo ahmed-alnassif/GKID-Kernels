@@ -12,6 +12,8 @@ import json
 import re
 import subprocess
 import sys
+import os
+import tempfile
 from pathlib import Path
 
 
@@ -64,6 +66,21 @@ def main():
         if not args.apply:
             print("VERIFY ONLY: no patch applied. Use --apply for strict sequential replay.")
             return 0
+        # Preflight the entire ordered series against a disposable index.
+        # A later incompatible patch must not leave earlier patches applied.
+        with tempfile.TemporaryDirectory(prefix="ksun-susfs-index-") as temp:
+            index_file = str(Path(temp) / "index")
+            env = dict(os.environ, GIT_INDEX_FILE=index_file)
+            subprocess.run(["git", "-C", str(tree), "read-tree", "HEAD"],
+                           check=True, capture_output=True, env=env, timeout=60)
+            for index, (path, raw) in enumerate(resolved, 1):
+                result = subprocess.run(["git", "-C", str(tree), "apply",
+                                         "--cached", "-"], input=raw,
+                                        capture_output=True, env=env, timeout=60)
+                if result.returncode:
+                    raise RuntimeError(f"preflight patch {index} ({path.name}) failed: "
+                                       + result.stderr.decode(errors="replace")[:2000])
+        print("Entire patch series passed isolated index preflight.")
         for index, (path, raw) in enumerate(resolved, 1):
             # No --3way, no --reject, no fuzz, no shell pipeline.
             for action in (["apply", "--check", "-"], ["apply", "-"]):
