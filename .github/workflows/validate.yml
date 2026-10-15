@@ -38,3 +38,4 @@ jobs:
         run: |
           python3 tests/test_root_matrix.py
           python3 -m unittest discover -s tests -p 'test_root_provenance.py'
+          python3 -m unittest discover -s tests -p 'test_ksun_susfs_preflight.py'
