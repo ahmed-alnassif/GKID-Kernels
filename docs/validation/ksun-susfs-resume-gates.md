@@ -50,3 +50,13 @@ Verified upstream provenance (GitHub API, 2026-10-15): `source_context.prerequis
 Current `functions.sh` `apply_susfs_patches()` copies SUSFS files and uses `patch -p1 --fuzz=3`; its main patch failure can fall through except for a 5.15-specific fallback. This is **not an acceptable fail-closed replay mechanism** for the pinned KSUN+SUSFS 6.1 candidate. Do not modify this shared helper as a shortcut: other root-manager variants use it.
 
 For a future **isolated** candidate replay, apply only checksum-verified patches in recorded order using `git apply --check` followed by `git apply` with no fuzz; stop on the first failure, preserve the exact rejection/log, and compare the resulting tracked changes and `.config` with recorded evidence. No production workflow change or build authorization is implied.
+
+## Gate F — Kernel-patched SUSFS only (owner decision)
+
+The selected integration is **KernelSU Next built-in + SUSFS patched into the kernel source**. SUSFS LKM is explicitly out of scope. Do not build, package, load, or fall back to `susfs_guard_lkm.ko`; the `kernel/susfs/` directory in the pinned KSUN upstream is a separate LKM implementation, **not** a source list for this candidate. Its presence does not prove that kernel-patched SUSFS works.
+
+The pinned KSUN `kernel/core/init.c` calls `susfs_init()` from `<linux/susfs.h>` under `CONFIG_KSU_SUSFS`, and blacklists `susfs_guard_lkm`. This is consistent with selecting the built-in path but is **not** proof of full link or runtime compatibility.
+
+Before patch replay, verify the actual kernel-patch implementation provides every referenced symbol with matching signatures. In particular, the locked companion adjustment introduces `ksu_handle_sys_read(unsigned int fd, char __user **buf_ptr, size_t *count_ptr)` and `ksu_is_init_rc_hook_enabled` references in the SUSFS kernel patch; confirm both providers in the pinned built-in KSUN/kernel source before applying. Do not silently substitute LKM hooks or add a guessed shim. If providers are absent or signatures differ, stop and document the incompatibility.
+
+Namespace fix overlap: `ksun-6.1-companion-adjustments.patch` already incorporates the `susfs_fs_namespace_fix.patch` hunk. Never replay both blindly. The two `task_mmu.c` fixes target different source contexts; select neither without matching the exact pinned kernel source and recording its provenance.
