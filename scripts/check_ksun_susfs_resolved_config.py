@@ -47,8 +47,10 @@ def main():
     parser.add_argument("config", type=Path, help="Existing final O=/.config after olddefconfig")
     args = parser.parse_args()
     try:
+        if args.config.is_symlink():
+            raise ValueError("Symlink config is not accepted")
         config = args.config.resolve(strict=True)
-        if not config.is_file() or config.is_symlink():
+        if not config.is_file():
             raise ValueError("Expected regular final config, not symlink")
         raw = config.read_bytes()
         lock = json.loads(LOCK.read_text(encoding="utf-8"))
