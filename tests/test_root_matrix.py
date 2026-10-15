@@ -38,7 +38,7 @@ def main():
     for manager, expected_ksu, expected_susfs in (
         ("KernelSU", "KSU", "false"),
         ("KernelSU Next", "KSUN", "false"),
-        ("KernelSU Next + SUSFS", "KSUN", "true"),
+        ("KernelSU Next + SUSFS (terkunci)", "KSUN", "true"),
         ("KernelSU + SUSFS", "KSU", "true"),
         ("BakaSU + SUSFS", "BSU", "true"),
         ("Vanilla", "no", "false"),
@@ -74,7 +74,7 @@ def main():
             step["run"] for step in workflow["jobs"]["prepare"]["steps"]
             if step["name"] == "Validate sublevel, build time and optional features"
         )
-        env.update(ROOT_MANAGER_INPUT="KernelSU Next + SUSFS")
+        env.update(ROOT_MANAGER_INPUT="KernelSU Next + SUSFS (terkunci)")
         rejected = subprocess.run(
             ["/bin/bash", "-c", preflight], cwd=directory,
             env=env, text=True, capture_output=True,

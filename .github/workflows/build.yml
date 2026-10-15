@@ -13,7 +13,7 @@ on:
         options:
           - "KernelSU"
           - "KernelSU Next"
-          - "KernelSU Next + SUSFS"
+          - "KernelSU Next + SUSFS (terkunci)"
           - "KernelSU + SUSFS"
           - "BakaSU + SUSFS"
           - "Vanilla"
@@ -137,7 +137,7 @@ jobs:
           BUILD_TIME_INPUT: ${{ inputs.BUILD_TIME }}
         run: |
           set -euo pipefail
-          if [[ "$ROOT_MANAGER_INPUT" == "KernelSU Next + SUSFS" ]]; then
+          if [[ "$ROOT_MANAGER_INPUT" == "KernelSU Next + SUSFS (terkunci)" ]]; then
             echo "::error::KSUN+SUSFS is not enabled until compatibility is validated" >&2
             exit 1
           fi
@@ -171,7 +171,7 @@ jobs:
             if [[ "${VALIDATION_OUTCOME}" != "success" ]]; then
               echo ""
               echo "**Persiapan gagal; kompilasi tidak dijalankan.**"
-              if [[ "${ROOT_MANAGER_INPUT}" == "KernelSU Next + SUSFS" ]]; then
+              if [[ "${ROOT_MANAGER_INPUT}" == "KernelSU Next + SUSFS (terkunci)" ]]; then
                 echo "KSUN + SUSFS masih dikunci hingga uji kompatibilitas selesai. Jalankan workflow **KSUN SUSFS Patch Apply Check** secara terpisah."
               else
                 echo "Periksa pesan error pertama pada langkah **Validate sublevel, build time and optional features**."
@@ -192,7 +192,7 @@ jobs:
             if [[ "${VALIDATION_OUTCOME}" != "success" ]]; then
               echo ""
               echo "**Preparation failed; no kernel compilation ran.**"
-              if [[ "${ROOT_MANAGER_INPUT}" == "KernelSU Next + SUSFS" ]]; then
+              if [[ "${ROOT_MANAGER_INPUT}" == "KernelSU Next + SUSFS (terkunci)" ]]; then
                 echo "KSUN + SUSFS remains locked pending compatibility validation. Use the separate **KSUN SUSFS Patch Apply Check** workflow."
               else
                 echo "Inspect the first error in **Validate sublevel, build time and optional features**."

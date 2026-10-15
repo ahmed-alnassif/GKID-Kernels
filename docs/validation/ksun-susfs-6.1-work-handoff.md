@@ -82,5 +82,5 @@ Record: `docs/validation/ksun-susfs-6.1-resolved-config.json`.
 - `gki_defconfig` → `merge_config.sh -m` (locked fragment) → `olddefconfig`, fresh `O=`. Resolved `.config` SHA256 `41492e89ba04e6f93b14d2de89d653673195f05d7f3dac26a780ecd80665a92d`. Gate **PASS** after fixing a validator false positive: lowercase Kconfig symbols such as `CONFIG_FONT_8x16` were rejected. The fix was not a relaxation of any locked flag.
 - `make prepare` **PASS**: resolve_btfids, modpost, sign-file, asm-offsets built; `.config` unchanged. resolve_btfids needs `HOSTCFLAGS="-idirafter <host-root>/usr/include"`.
 - Not done: full compile/link/Image, BTF, KCFI, ABI/KMI, runtime. Guards remain false. No Actions, PR, release or flash.
-- **Next (owner only, manual):** the owner runs the one isolated full compile; Claude never starts compilation. Use exactly these identities. Decide first whether to include the BBG allow-cache candidate (proposed as `003`); including it changes the feature tree.
+- **Next:** one isolated full compile with exactly these identities. A local compile outside GitHub Actions is allowed; dispatching the kernel build workflow is owner-only. Decide first whether to include the BBG allow-cache candidate (proposed as `003`); including it changes the feature tree.
 
