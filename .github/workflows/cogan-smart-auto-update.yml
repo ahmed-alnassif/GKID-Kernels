@@ -28,6 +28,7 @@ jobs:
           import subprocess
 
           rows = []
+          observed = {}
           sources = [
               ("Kernel GKI 6.1", "https://github.com/ahmed-alnassif/GKI-Duchamp-6.1.git", "GKID-6.1"),
               ("KernelSU", "https://github.com/tiann/KernelSU.git", "main"),
@@ -44,6 +45,7 @@ jobs:
                   sha = result.stdout.split()[0]
                   if len(sha) != 40:
                       raise ValueError("Invalid upstream SHA")
+                  observed[name] = sha
                   rows.append((name, branch, sha[:12], "Found; compatibility not verified"))
               except (subprocess.SubprocessError, ValueError) as exc:
                   rows.append((name, branch, "-", "Unavailable / check upstream manually"))
@@ -72,6 +74,35 @@ jobs:
           ]
           for row in rows:
               output.append("| " + " | ".join(row) + " |")
+          # Compare against the actual Cogan build pin; other sources are floating
+          # and cannot be labelled up-to-date without recording a prior build SHA.
+          ksun_tag = "v3.4.2"
+          try:
+              pinned = subprocess.run(
+                  ["git", "ls-remote", "--tags",
+                   "https://github.com/KernelSU-Next/KernelSU-Next.git",
+                   "refs/tags/" + ksun_tag, "refs/tags/" + ksun_tag + "^{}"],
+                  capture_output=True, text=True, timeout=35, check=True
+              )
+              tag_lines = [line.split() for line in pinned.stdout.splitlines()]
+              peeled = [sha for sha, ref in tag_lines if ref.endswith("^{}")]
+              pinned_sha = peeled[0] if peeled else (tag_lines[0][0] if tag_lines else "")
+          except subprocess.SubprocessError:
+              pinned_sha = ""
+          current = pinned_sha[:12] if pinned_sha else "unavailable"
+          available = observed.get("KernelSU Next", "")[:12] or "unavailable"
+          comparison = "DIFFERENT REVISION; REVIEW" if pinned_sha and available != "unavailable" and pinned_sha[:12] != available else "NO CHANGE DETECTED" if pinned_sha and available != "unavailable" else "UNKNOWN"
+          output += [
+              "",
+              "### Current build reference → upstream revision",
+              "",
+              "| Component | Cogan build reference | Upstream branch | Assessment |",
+              "|---|---|---|---|",
+              "| KernelSU Next | " + ksun_tag + " (" + current + ") | " + available + " | " + comparison + " |",
+              "| Kernel / KernelSU / BakaSU / NoMount | Floating or locally configured refs | See revision table | No baseline snapshot; review manually |",
+              "",
+              "Different commits do not establish that the upstream revision is newer or compatible.",
+          ]
           output += [
               "",
               "### Compatibility assessment",
