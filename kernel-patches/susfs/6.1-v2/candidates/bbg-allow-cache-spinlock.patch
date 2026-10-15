@@ -1,0 +1,85 @@
+diff --git a/security/baseband-guard/baseband_guard.c b/security/baseband-guard/baseband_guard.c
+--- a/security/baseband-guard/baseband_guard.c
++++ b/security/baseband-guard/baseband_guard.c
+@@ -12,32 +12,55 @@
+ #include <linux/cred.h>
+ #include <linux/dcache.h>
+ #include <linux/hashtable.h>
+-
+-#include "kernel_compat.h"
+-#include "baseband_guard.h"
+-#include "tracing/tracing.h"
+-#include "blkdev_helper.h"
+-
+-struct device_hash_node { dev_t dev; struct hlist_node h; };
+-DEFINE_HASHTABLE(allowed_devs, 7);
+-
+-static bool allow_has(dev_t dev)
+-{
+-	struct device_hash_node *p;
+-
+-	hash_for_each_possible(allowed_devs, p, h, (u64)dev)
+-		if (p->dev == dev) return true;
+-	return false;
+-}
+-
+-static void allow_add(dev_t dev)
+-{
+-	struct device_hash_node *n;
+-	if (!dev || allow_has(dev)) return;
+-	n = kmalloc(sizeof(*n), GFP_ATOMIC);
+-	if (!n) return;
+-	n->dev = dev;
+-	hash_add(allowed_devs, &n->h, (u64)dev);
++#include <linux/spinlock.h>
++
++#include "kernel_compat.h"
++#include "baseband_guard.h"
++#include "tracing/tracing.h"
++#include "blkdev_helper.h"
++
++struct device_hash_node { dev_t dev; struct hlist_node h; };
++DEFINE_HASHTABLE(allowed_devs, 7);
++static DEFINE_SPINLOCK(allowed_devs_lock);
++
++/* Requires allowed_devs_lock. */
++static bool allow_has_locked(dev_t dev)
++{
++	struct device_hash_node *p;
++	hash_for_each_possible(allowed_devs, p, h, (u64)dev)
++		if (p->dev == dev) return true;
++	return false;
++}
++
++static bool allow_has(dev_t dev)
++{
++	unsigned long flags;
++	bool found;
++	spin_lock_irqsave(&allowed_devs_lock, flags);
++	found = allow_has_locked(dev);
++	spin_unlock_irqrestore(&allowed_devs_lock, flags);
++	return found;
++}
++
++static void allow_add(dev_t dev)
++{
++	struct device_hash_node *n;
++	unsigned long flags;
++	bool inserted = false;
++	if (!dev || allow_has(dev)) return;
++	n = kmalloc(sizeof(*n), GFP_ATOMIC);
++	if (!n) return;
++	n->dev = dev;
++	spin_lock_irqsave(&allowed_devs_lock, flags);
++	if (!allow_has_locked(dev)) {
++		hash_add(allowed_devs, &n->h, (u64)dev);
++		inserted = true;
++	}
++	spin_unlock_irqrestore(&allowed_devs_lock, flags);
++	if (!inserted) {
++		kfree(n);
++		return;
++	}
+ 	bb_pr("allow-cache dev %u:%u\n", MAJOR(dev), MINOR(dev));
+ }
+ 
