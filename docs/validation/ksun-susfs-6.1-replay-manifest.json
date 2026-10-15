@@ -130,6 +130,14 @@
     "prior_source_lock_note": "Original source_locks.susfs a9bb4dd3ed248ada636b480bfdff70af704f1463 not present in fetched Git object set; do not silently replace lock or claim checkout equivalence",
     "susfs_c_observed_sha256": "5521aa600f6df698e1d5e31df72e3557a36d33c161bd65dcafe5788fb56a7fa7",
     "susfs_c_expected_sha256": "976f6d47a45260bcb0bb17d8ffe8beddeda398f8aba9bba54517ece9daf9e253",
-    "status": "blocked_companion_mismatch"
+    "status": "blocked_companion_mismatch",
+    "susfs_c_candidate": {
+      "sha256": "5521aa600f6df698e1d5e31df72e3557a36d33c161bd65dcafe5788fb56a7fa7",
+      "source_commit": "92aab7f579e9fb440a43e387c13bff519af13462",
+      "evidence": "owner Termux git show hash matches independently hashed uploaded ZIP",
+      "approval": "candidate_source_integrity_only",
+      "kernel_compatibility": "not_verified"
+    },
+    "next_gate": "Resolve expected historical susfs.c checksum provenance or explicitly approve candidate replacement after compatibility preflight; do not silently change source lock"
   }
 }
