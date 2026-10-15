@@ -35,3 +35,11 @@ Do not upgrade root manager revisions automatically, remove existing build choic
 - `kernel/Kconfig` does not declare `CONFIG_KSU_SUSFS`; `kernel/Kbuild` does not list those `kernel/susfs/` sources among `kernelsu-objs` in the inspected tag.
 - Do not blindly apply `KernelSU/10_enable_susfs_for_ksu.patch` to KSUN: the patch targets a different manager source tree.
 - Next: inspect KSUN's SUSFS integration points and compare against the selected Simonpunk patch revision before enabling compilation. Keep the existing fail-closed guard.
+
+## Distinct SUSFS implementations (source inspection)
+
+- KSUN v3.4.2 `kernel/susfs/Makefile` explicitly builds `susfs_guard_lkm.ko` via `obj-m`; it is an external loadable module, not a built-in `CONFIG_KSU_SUSFS` kernel option.
+- KSUN `kernel/setup.sh` only wires `drivers/kernelsu` into the kernel tree; it does not itself build or load `susfs_guard_lkm.ko`.
+- The LKM's `ksu_umount_gate.c` resolves `ksu_uid_should_umount` through kallsyms, with documented behavior when the symbol is missing and a potential stale pointer if KernelSU unloads first. This must be tested rather than assumed safe.
+- **Decision:** Keep Cogan's current `KernelSU Next + SUSFS` build variant blocked. Do not silently substitute the LKM for Simonpunk's in-kernel patch. First choose an explicit supported implementation, pin its sources, validate patch/hook compatibility, and only then change build behavior.
+- Upstream references: `KernelSU-Next/KernelSU-Next` tag `v3.4.2`, `kernel/susfs/Makefile`, `kernel/susfs/ksu_umount_gate.c`, and `kernel/setup.sh`.
