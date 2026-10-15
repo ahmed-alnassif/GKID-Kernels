@@ -21,6 +21,8 @@ def sha256(path):
     return h.hexdigest()
 
 def git_head(path):
+    if not (path / ".git").exists():
+        raise ValueError("source directory is not a Git checkout")
     result = subprocess.run(
         ["git", "-C", str(path), "rev-parse", "HEAD"],
         capture_output=True, text=True, check=True, timeout=15,
@@ -39,7 +41,7 @@ def main(argv):
         expected = evidence["sources"][name]
         try:
             actual = git_head(path)
-        except (OSError, subprocess.SubprocessError) as exc:
+        except (OSError, ValueError, subprocess.SubprocessError) as exc:
             actual = "unavailable: " + str(exc)
         ok = actual == expected
         checks.append((name + " HEAD", ok, actual))
@@ -56,6 +58,11 @@ def main(argv):
     else:
         checks.append((".config SHA256", False, "missing"))
         failures.append("missing resolved .config")
+    driver_archive = out / "drivers/kernelsu/built-in.a"
+    archive_ok = driver_archive.is_file() and driver_archive.stat().st_size > 0
+    checks.append(("KSUN built-in.a exists", archive_ok, str(driver_archive)))
+    if not archive_ok:
+        failures.append("KSUN built-in archive missing")
     for rel, expected in (
         ("fs/susfs.o", evidence["objects"]["core_susfs_sha256"]),
         ("fs/namespace.o", evidence["objects"]["namespace_sha256"]),
