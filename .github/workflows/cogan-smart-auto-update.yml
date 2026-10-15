@@ -31,7 +31,7 @@ jobs:
           sources = [
               ("Kernel GKI 6.1", "https://github.com/ahmed-alnassif/GKI-Duchamp-6.1.git", "GKID-6.1"),
               ("KernelSU", "https://github.com/tiann/KernelSU.git", "main"),
-              ("KernelSU Next", "https://github.com/KernelSU-Next/KernelSU-Next.git", "next"),
+              ("KernelSU Next", "https://github.com/KernelSU-Next/KernelSU-Next.git", "main"),
               ("BakaSU", "https://github.com/Baka-SU/BakaSU.git", "main"),
               ("NoMount", "https://github.com/maxsteeel/nomount.git", "master"),
           ]
@@ -48,6 +48,8 @@ jobs:
               except (subprocess.SubprocessError, ValueError) as exc:
                   rows.append((name, branch, "-", "Unavailable / check upstream manually"))
 
+          # Source revision discovery only; KSUN build currently pins tag v3.4.2.
+          # Do not treat upstream branch HEAD as an approved update.
           for label, directory in [
               ("Networking / BBRv3", "kernel-patches/bbrv3"),
               ("Clean LTO", "configs"),
@@ -72,6 +74,7 @@ jobs:
               output.append("| " + " | ".join(row) + " |")
           output += [
               "",
+              "**KernelSU Next build pin:** v3.4.2; upstream branch HEAD is informational only.",
               "**SUSFS: HOLD.** No automatic update or compatibility approval.",
               "",
               "**Important:** Upstream SHA discovery does not prove that a revision is safe or compatible. "
