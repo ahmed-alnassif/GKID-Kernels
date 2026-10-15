@@ -50,13 +50,28 @@ jobs:
           set -euo pipefail
           mkdir -p release-files
           gh api --paginate "repos/$REPO/actions/runs/$SOURCE_RUN/jobs?per_page=100" --jq '.jobs[] | select(.name | startswith("build (")) | [.name, .conclusion] | @tsv' > build-jobs.tsv
-          test -s build-jobs.tsv || { echo "::error::No matrix build jobs found"; exit 1; }
-          if awk -F '\\t' '$2 != "success" { bad=1; print "Unsuccessful build job:", $0 } END { exit !bad }' build-jobs.tsv; then
-            echo "::error::Not all matrix build jobs succeeded"
-            exit 1
-          fi
           gh api --paginate "repos/$REPO/actions/runs/$SOURCE_RUN/artifacts?per_page=100" --jq '.artifacts[] | select(.expired == false and (.name | startswith("build-"))) | .name' > artifact-names.txt
-          test -s artifact-names.txt || { echo "::error::No unexpired build artifacts"; exit 1; }
+          python3 - <<'PY'
+          from pathlib import Path
+          jobs = [line.split("\t") for line in Path("build-jobs.tsv").read_text().splitlines() if line.strip()]
+          artifacts = Path("artifact-names.txt").read_text().splitlines()
+          if not jobs or not artifacts:
+              raise SystemExit("Missing build matrix jobs or unexpired build artifacts")
+          failed = [name for name, result in jobs if result != "success"]
+          if failed:
+              raise SystemExit("Unsuccessful kernel build jobs: " + ", ".join(failed))
+          # GitHub matrix job name: build (6.1-KSU)
+          # Artifact name: build-6.1-KSU-<run_number>
+          variants = [name[len("build ("):-1] for name, _ in jobs if name.endswith(")")]
+          if len(variants) != len(jobs) or len(set(variants)) != len(variants):
+              raise SystemExit("Unexpected or duplicate matrix job names")
+          if len(artifacts) != len(variants):
+              raise SystemExit("Build artifact count does not match matrix job count")
+          for variant in variants:
+              if sum(name.startswith("build-" + variant + "-") for name in artifacts) != 1:
+                  raise SystemExit("Missing or ambiguous artifact for " + variant)
+          print("Verified", len(variants), "successful matrix build(s) and matching artifacts")
+          PY
           while IFS= read -r name; do
             gh run download "$SOURCE_RUN" --repo "$REPO" --name "$name" --dir "downloads/$name"
           done < artifact-names.txt
