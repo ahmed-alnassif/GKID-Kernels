@@ -118,6 +118,19 @@ class ResolvedConfigTests(unittest.TestCase):
                                              "CONFIG_NTSYNC=y").encode(), lock)
         self.assertTrue(any("disabled in locked fragment" in e for e in errors))
 
+    def test_locked_lsm_list_cannot_drop_selinux(self):
+        import hashlib
+        from unittest.mock import patch
+        fragment = b'CONFIG_LSM="landlock,selinux,baseband_guard"\n'
+        lock = {"configuration": {**LOCK["configuration"],
+                "fragment": "configs/ksun-susfs-6.1-features.config",
+                "sha256": hashlib.sha256(fragment).hexdigest()}}
+        reduced = GOOD.replace("landlock,selinux,baseband_guard",
+                               "landlock,baseband_guard")
+        with patch.object(gate.Path, "read_bytes", return_value=fragment):
+            errors = gate.audit(reduced.encode(), lock)
+        self.assertTrue(any("resolved list differs" in e for e in errors))
+
     def test_unquoted_lsm_is_rejected(self):
         errors = self.check(GOOD.replace('CONFIG_LSM="landlock,selinux,baseband_guard"',
                                          "CONFIG_LSM=landlock,selinux,baseband_guard"))
