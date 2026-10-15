@@ -218,19 +218,37 @@ jobs:
           {
             echo "## Cogan Kernel — Build Summary"
             echo ""
+            echo "<details open><summary>🇮🇩 Bahasa Indonesia</summary>"
+            echo ""
             echo "- Root manager: ${ROOT_MANAGER_INPUT}"
             echo "- Networking: ${NETWORKING_INPUT}"
-            echo "- Build script: ${BUILD_OUTCOME}"
-            echo "- Release: manual approval required; no automatic publishing"
+            echo "- Hasil skrip build: ${BUILD_OUTCOME}"
+            echo "- Rilis memerlukan persetujuan manual owner."
             echo ""
             if [ "${BUILD_OUTCOME}" != "success" ]; then
-              echo "### Build gagal / Failed"
-              echo "Periksa langkah **Run Build Script** untuk pesan error pertama."
-              echo "Tidak ada paket yang boleh dianggap siap flash dari run gagal."
+              echo "**Build gagal.** Periksa kesalahan pertama pada langkah **Run Build Script**."
+              echo "Jangan flash artefak dari build yang gagal."
             else
-              echo "### Build script selesai"
-              echo "Hasil tetap harus melewati pemeriksaan ZIP dan validasi perangkat."
+              echo "**Skrip build berhasil.** ZIP dan kompatibilitas perangkat tetap harus diverifikasi."
             fi
+            echo ""
+            echo "</details>"
+            echo ""
+            echo "<details><summary>🇬🇧 English</summary>"
+            echo ""
+            echo "- Root manager: ${ROOT_MANAGER_INPUT}"
+            echo "- Networking: ${NETWORKING_INPUT}"
+            echo "- Build script result: ${BUILD_OUTCOME}"
+            echo "- Release requires manual owner approval."
+            echo ""
+            if [ "${BUILD_OUTCOME}" != "success" ]; then
+              echo "**Build failed.** Inspect the first error in **Run Build Script**."
+              echo "Do not flash artifacts from a failed build."
+            else
+              echo "**Build script succeeded.** ZIP integrity and device compatibility still require verification."
+            fi
+            echo ""
+            echo "</details>"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: ccache stats
