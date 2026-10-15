@@ -8,6 +8,19 @@ Use `docs/validation/ksun-susfs-6.1-partial-build.json` as the single source of 
 
 Do not substitute the normal KSUN `v3.4.2` checkout for the pinned candidate commit: the tested candidate had a different HEAD. Do not reapply SUSFS patches to an already-patched tree or infer that matching Git HEAD alone proves an identical working tree.
 
+## Verified source-patch apply gate (2026-10-15)
+
+The manually triggered **KSUN SUSFS Patch Apply Check** completed its patch-application preflight successfully on GitHub Actions run [38691986084](https://github.com/cogan17/Cogan/actions/runs/38691986084), job [116279761088](https://github.com/cogan17/Cogan/actions/runs/38691986084/job/116279761088), using Cogan checkout `bb58b943516e7a39d61c5e66f8bfe8306b7c9b78`. Runner logs record:
+
+- Pinned SUSFS archive retrieval succeeded.
+- `scripts/prepare_susfs_kernel_patch.py` verified original, delta, and adjusted patch SHA256 against the lock.
+- Pinned kernel HEAD `a7ba124af5a535078d3f83b3e145f9cc8ec651b8` was checked out.
+- `git apply --check --verbose` examined all 24 files in the **adjusted main SUSFS patch** and ended with `PASS: git apply --check`. Some hunks matched at small line offsets without errors.
+
+**Evidence boundary:** this validates that the adjusted *main patch* applies cleanly to the pinned unmodified kernel source. It did **not** actually apply the patch, copy and verify SUSFS companion files, integrate KSUN into the kernel tree, replay the full ordered patch series, rebuild objects, produce an Image, or validate runtime. The historical partial-build candidate remains distinct from this source-only checkout. Do **not** rerun the successful check absent a changed pinned input.
+
+**Next gate:** recover and verify the historical candidate plus its full working-tree provenance, or reconstruct a new independently pinned candidate with an ordered, SHA256-verified replay manifest and companion-file verification. Then authorize at most one justified full Image/link build. Keep production KSUN+SUSFS guard enabled.
+
 ## Gate A — Recover existing candidate (preferred)
 
 1. Locate the **actual** candidate kernel checkout, KSUN checkout, SUSFS checkout, and output directory containing the prior `.config`, `drivers/kernelsu/built-in.a`, `fs/susfs.o`, and `fs/namespace.o`. Do not recreate empty directories to satisfy a path.
