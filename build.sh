@@ -246,6 +246,7 @@ set -eo pipefail
 if susfs_included && [ "$KSU" = "BSU" ]; then
   log "BakaSU included"
   install_ksu "Baka-SU/BakaSU" "main"
+  record_root_checkout KernelSU "Baka-SU/BakaSU" "main"
 
   clone_susfs
   apply_susfs_patches
@@ -271,6 +272,7 @@ if [ "$KSU" = "KSUN" ]; then
       exit 1
     fi
     log "KernelSU Next verified tag: $KSUN_REF ($KSUN_EXPECTED_SHA)"
+    record_root_checkout KernelSU-Next "KernelSU-Next/KernelSU-Next" "$KSUN_REF"
     echo "KSUN_REF=$KSUN_REF" >> "$GITHUB_ENV"
     echo "KSUN_INSTALLED_SHA=$KSUN_INSTALLED_SHA" >> "$GITHUB_ENV"
   else
@@ -283,11 +285,14 @@ if [ "$KSU" = "KSU" ]; then
   log "KernelSU included"
   if ! susfs_included; then
     install_ksu "tiann/KernelSU" "main"
+    record_root_checkout KernelSU "tiann/KernelSU" "main"
   fi
 
   if susfs_included; then
     VARIANT+="+Multiple-Managers"
     git clone "https://github.com/tiann/KernelSU" && echo "[+] Repository cloned."
+    # Upstream base before the local SUSFS patch commit replaces HEAD.
+    record_root_checkout KernelSU "tiann/KernelSU" "main"
     clone_susfs
 
     cd KernelSU

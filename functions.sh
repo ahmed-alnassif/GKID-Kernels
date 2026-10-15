@@ -126,6 +126,25 @@ install_ksu() {
   return "$installer_status"
 }
 
+# Record the root manager checkout actually used (informational, non-blocking).
+# Upstream setup.sh falls back to the default branch when checkout fails, so
+# the requested ref alone does not identify the source.
+record_root_checkout() {
+  local dir="$1" repo="$2" ref="$3" sha
+  # Require the directory's own .git so a parent repository (the kernel tree)
+  # is never reported by mistake.
+  if [ ! -e "$dir/.git" ] || ! sha="$(git -C "$dir" rev-parse HEAD 2>/dev/null)"; then
+    warning "Root manager checkout not found in $dir; provenance not recorded"
+    return 0
+  fi
+  log "Root manager checkout: $repo @ $sha (requested ref: $ref)"
+  {
+    echo "ROOT_MANAGER_REPO=$repo"
+    echo "ROOT_MANAGER_REF=$ref"
+    echo "ROOT_MANAGER_SHA=$sha"
+  } >> "${GITHUB_ENV:-/dev/null}"
+}
+
 ksu_included() {
   [ "$KSU" == "yes" ]
   return $?
@@ -569,5 +588,7 @@ clone_susfs() {
         log "No commit pin configured for KERNEL_VERSION=$KERNEL_VERSION, using branch $SUSFS_BRANCH tip"
     fi
 
-    log "susfs4ksu HEAD is now $(git -C "$SUSFS_DIR" rev-parse HEAD)"
+    SUSFS_SHA="$(git -C "$SUSFS_DIR" rev-parse HEAD)"
+    log "susfs4ksu HEAD is now $SUSFS_SHA"
+    echo "SUSFS_SHA=$SUSFS_SHA" >> "${GITHUB_ENV:-/dev/null}"
 }

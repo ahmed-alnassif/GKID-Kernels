@@ -5,8 +5,8 @@ Status: documentation only; **not** a verified version/Manager compatibility mat
 | Build identifier | Upstream source | Reference used in `build.sh` | Immutable commit | Manager compatibility |
 | --- | --- | --- | --- | --- |
 | KSUN | `KernelSU-Next/KernelSU-Next` | `v3.4.2` | `4c706b5938665866ebe16944a481a7b91e3396af` (upstream tag) | KSUN + SUSFS not verified |
-| KSU | `tiann/KernelSU` | `main` | Not recorded | Not verified |
-| BSU (BakaSU) | `Baka-SU/BakaSU` | `main` | Not recorded | Not verified |
+| KSU | `tiann/KernelSU` | `main` | Recorded per build as `ROOT_MANAGER_SHA` (not pinned) | Not verified |
+| BSU (BakaSU) | `Baka-SU/BakaSU` | `main` | Recorded per build as `ROOT_MANAGER_SHA` (not pinned) | Not verified |
 
 ## Evidence and limitations
 
@@ -21,13 +21,27 @@ Status: documentation only; **not** a verified version/Manager compatibility mat
 
 ## Follow-up checklist
 
-- [ ] Capture resolved upstream commit SHA and setup/install source for each selected manager in build metadata.
+- [x] Capture resolved upstream commit SHA and setup/install source for each selected manager in build metadata (`ROOT_MANAGER_REPO/REF/SHA` and `SUSFS_SHA` in `build-env-*.txt`, 2026-10-15).
 - [ ] Capture relevant patchset commit SHAs and source versions.
 - [ ] Verify matching Manager APK release/version and record the evidence.
 - [ ] Decide and pin known-good revisions only after compatibility testing.
 - [ ] Validate metadata generation offline before adding expensive build jobs.
 
 Do not upgrade root manager revisions automatically, remove existing build choices, or infer device compatibility from a successful compile.
+
+## Pin candidates — observed 2026-10-15, NOT applied
+
+Read-only `git ls-remote` plus a blobless clone; nothing was built. All three upstream `kernel/setup.sh` installers print `Checkout default branch` and continue when the requested ref fails, so a pin is only meaningful with a post-install SHA check like the KSUN one (`build.sh`).
+
+| Manager | `main` head | Latest tag (commit) | `main` ahead of tag | Assessment |
+| --- | --- | --- | --- | --- |
+| KernelSU (`tiann/KernelSU`) | `b94e0916bf6394cb75b03f50b0e8f5a90de3471c` (2026-10-15) | `v3.3.1` → `0c0fdb960178fa12d80d6cbcfdcb6ad8be6a865d` (2026-10-12) | 2 commits | Low drift. `v3.3.1` is a reasonable pin candidate **after** one KSU build on it succeeds. |
+| BakaSU (`Baka-SU/BakaSU`) | `d7260ca1e5c128061122924d0d48754e361e135c` (2026-10-14) | `v4.2.0-rc3` → `239e1e8871b8fcd51a6e5b3002e0ba522fdd99fb` (2026-09-23); last stable `v4.1.0` → `0d27e685…` (2025-12-05) | 58 commits ahead of rc3; 1515 ahead of `v4.1.0` | Pinning to `v4.1.0` would be a large regression. An rc tag is not a stable baseline. Keep `main`, rely on the recorded SHA, and revisit at the next stable tag. |
+| KSUN (`KernelSU-Next/KernelSU-Next`) | `dev` `723a599d9849aea29861d14370e42197bc40fe60` | `v3.4.2` → `4c706b5938665866ebe16944a481a7b91e3396af` | n/a | Already pinned and verified (PR #24). |
+
+Manager APK: the KernelSU-family Kbuild derives `KSU_VERSION` from the checkout's commit count (`30000 + git rev-list --count HEAD` for KernelSU). Use the Manager APK from the **same upstream release/commit** as the recorded `ROOT_MANAGER_SHA`. A compatible APK version has not been verified on a device.
+
+SUSFS: `GKI_SUSFS_COMMIT` entries in `functions.sh` remain commented out (branch tip). The commit actually used is now recorded as `SUSFS_SHA`; pin only after a build with that SHA is known good.
 
 ## KSUN v3.4.2 source inspection (2026-10-15)
 

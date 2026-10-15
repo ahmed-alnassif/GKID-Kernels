@@ -342,6 +342,10 @@ jobs:
           KSU_SUSFS=${{ matrix.KSU_SUSFS }}
           KSUN_REF=${{ env.KSUN_REF }}
           KSUN_INSTALLED_SHA=${{ env.KSUN_INSTALLED_SHA }}
+          ROOT_MANAGER_REPO=${{ env.ROOT_MANAGER_REPO }}
+          ROOT_MANAGER_REF=${{ env.ROOT_MANAGER_REF }}
+          ROOT_MANAGER_SHA=${{ env.ROOT_MANAGER_SHA }}
+          SUSFS_SHA=${{ env.SUSFS_SHA }}
           KERNEL_VERSION=${{ env.KERNEL_VERSION }}
           ANDROID_RELEASE=${{ env.ANDROID_RELEASE }}
           KERNEL_SOURCE_REPO=${{ env.KERNEL_SOURCE_REPO }}
