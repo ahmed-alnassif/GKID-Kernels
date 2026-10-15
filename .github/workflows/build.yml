@@ -60,27 +60,44 @@ on:
         type: string
         default: ""
 
-      CUSTOM_VERSION_NAME:
-        description: "Custom kernel name"
+      KERNEL_SUBLEVEL:
+        description: "Kernel 6.1 sublevel (source selected automatically)"
         type: choice
-        default: "Cogan"
+        default: "Auto"
         options:
-          - "Cogan"
+          - "Auto"
+          - "161"
+          - "162"
+          - "163"
+          - "164"
+          - "165"
+          - "166"
+          - "167"
+          - "168"
+          - "169"
+          - "170"
+          - "171"
+          - "172"
+          - "173"
+          - "174"
+          - "175"
+          - "176"
+          - "177"
 
-      CLEAN_LTO_CACHE:
-        description: "Clean ThinLTO cache (force reset)"
-        type: boolean
-        default: false
+      BUILD_TIME:
+        description: "N = current UTC; or Sat Oct 10 19:10:00 UTC 2026"
+        type: string
+        default: "N"
 
       DROIDSPACES:
         description: "Enable droidspaces-oss support"
         type: boolean
         default: true
 
-      NM:
-        description: "Enable NoMount support"
-        type: boolean
-        default: false
+      EXTRA_FEATURES:
+        description: "Optional: nomount,clean-lto-cache (comma-separated)"
+        type: string
+        default: ""
 
 env:
   MAN_DISABLE: true
@@ -119,6 +136,27 @@ jobs:
         uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 1
+
+      - name: Validate sublevel, build time and optional features
+        env:
+          KERNEL_VERSION_INPUT: ${{ inputs.KERNEL_VERSION }}
+          KERNEL_SUBLEVEL_INPUT: ${{ inputs.KERNEL_SUBLEVEL }}
+          BUILD_TIME_INPUT: ${{ inputs.BUILD_TIME }}
+          EXTRA_FEATURES_INPUT: ${{ inputs.EXTRA_FEATURES }}
+        run: |
+          set -euo pipefail
+          if [[ "$KERNEL_SUBLEVEL_INPUT" != "Auto" ]]; then
+            [[ "$KERNEL_VERSION_INPUT" == "6.1" && "$KERNEL_SUBLEVEL_INPUT" =~ ^(16[1-9]|17[0-7])$ ]] || { echo "::error::Sublevel 161-177 requires kernel 6.1"; exit 1; }
+          fi
+          if [[ "$BUILD_TIME_INPUT" != "N" ]]; then
+            [[ "$BUILD_TIME_INPUT" =~ ^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)[[:space:]](Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[[:space:]][0-9]{1,2}[[:space:]][0-9]{2}:[0-9]{2}:[0-9]{2}[[:space:]]UTC[[:space:]][0-9]{4}$ ]] || { echo "::error::Invalid BUILD_TIME format"; exit 1; }
+            date -u -d "$BUILD_TIME_INPUT" >/dev/null || exit 1
+            [[ "$(LC_ALL=C date -u -d "$BUILD_TIME_INPUT" +%a)" == "${BUILD_TIME_INPUT%% *}" ]] || { echo "::error::BUILD_TIME weekday mismatch"; exit 1; }
+          fi
+          IFS=',' read -ra features <<< "$EXTRA_FEATURES_INPUT"
+          for feature in "${features[@]}"; do
+            [[ -z "$feature" || "$feature" == "nomount" || "$feature" == "clean-lto-cache" ]] || { echo "::error::Unsupported extra feature: $feature"; exit 1; }
+          done
 
       - name: Generate build matrix
         id: set-matrix
@@ -169,13 +207,15 @@ jobs:
           TODO: ${{ inputs.TODO }}
           TEST: ${{ inputs.TEST }}
           LTO: ${{ inputs.LTO }}
-          CLEAN_LTO_CACHE: ${{ inputs.CLEAN_LTO_CACHE }}
+          CLEAN_LTO_CACHE: ${{ contains(format(',{0},', inputs.EXTRA_FEATURES), ',clean-lto-cache,') }}
           DROIDSPACES: ${{ inputs.DROIDSPACES }}
-          NM: ${{ inputs.NM }}
+          NM: ${{ contains(format(',{0},', inputs.EXTRA_FEATURES), ',nomount,') }}
+          KERNEL_SUBLEVEL: ${{ inputs.KERNEL_SUBLEVEL }}
+          BUILD_TIME: ${{ inputs.BUILD_TIME }}
           BUILD_NAME: ${{ matrix.name }}
           RUN_NUM: -r${{ github.run_number }}
           BUILD_REVISION: ${{ inputs.BUILD_REVISION }}
-          CUSTOM_VERSION_NAME: ${{ inputs.CUSTOM_VERSION_NAME }}
+          CUSTOM_VERSION_NAME: Cogan
         run: |
           export GIT_CLONE_PROTECTION_ACTIVE=false
           chmod +x *.sh py/*.py
