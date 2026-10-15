@@ -180,7 +180,8 @@ class ShellLockTests(unittest.TestCase):
         import yaml
         workflow = yaml.safe_load((ROOT / ".github/workflows/build.yml").read_text())
         sublevel = workflow[True]["workflow_dispatch"]["inputs"]["KERNEL_SUBLEVEL"]
-        self.assertEqual((sublevel["type"], sublevel["default"]), ("string", "Auto"))
+        self.assertEqual((sublevel["type"], sublevel["default"]), ("string", "lts"))
+        self.assertIn("lts = terbaru", sublevel["description"])
         self.assertIn("6.1.160", sublevel["description"])
         lock = mu.read_lock(REAL_LOCK)
         self.assertEqual(min(int(k.rsplit("_", 1)[1]) for k in lock if mu.SUBLEVEL_KEY.fullmatch(k)), 160)
@@ -194,12 +195,32 @@ class ShellLockTests(unittest.TestCase):
                    "KERNEL_SUBLEVEL_INPUT": value, "BUILD_TIME_INPUT": "N"}
             return subprocess.run(["bash", "-c", preflight], cwd=ROOT, env=env,
                                   capture_output=True, text=True)
-        for value in ("Auto", "160", "177"):
+        for value in ("lts", "LTS", "Auto", "", "160", "177"):
             self.assertEqual(run("6.1", value).returncode, 0, value)
         for version, value in (("6.1", "159"), ("6.1", "178"), ("6.1", "6.1.177"),
                                ("6.1", "abc"), ("6.1", "0177"), ("6.6", "177")):
             self.assertNotEqual(run(version, value).returncode, 0, (version, value))
-        self.assertIn("Available: 160 161", run("6.1", "159").stdout)
+        self.assertIn("Available: lts 160 161", run("6.1", "159").stdout)
+        self.assertEqual(run("6.6", "lts").returncode, 0)  # latest needs no 6.1 sublevel
+
+    def test_build_script_maps_lts_to_the_latest_pin(self):
+        build = (ROOT / "build.sh").read_text()
+        start = build.index('# "lts" (any case), "Auto" or empty')
+        end = build.index("\nfi\n", start) + 4
+        block = build[start:end]
+        lock = mu.read_lock(REAL_LOCK)
+        for value, expected in (("lts", lock["KERNEL_COMMIT_6_1"]), ("LTS", lock["KERNEL_COMMIT_6_1"]),
+                                ("Auto", lock["KERNEL_COMMIT_6_1"]), ("", lock["KERNEL_COMMIT_6_1"]),
+                                ("160", lock["KERNEL_COMMIT_6_1_160"])):
+            script = (f'WORKDIR="{ROOT}"; source "{ROOT}/functions.sh" >/dev/null; '
+                      f'load_upstream_lock "{ROOT}/configs/upstream.lock"; KERNEL_VERSION=6.1; '
+                      f'KERNEL_BRANCH=GKID-6.1; KERNEL_SUBLEVEL="{value}"\n{block}\n'
+                      'echo "$KERNEL_SUBLEVEL $KERNEL_BRANCH"')
+            result = subprocess.run(["bash", "-c", script], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual(result.stdout.split()[-1], expected, value)
+            if value != "160":
+                self.assertEqual(result.stdout.split()[-2], "Auto", value)
 
 if __name__ == "__main__":
     unittest.main()

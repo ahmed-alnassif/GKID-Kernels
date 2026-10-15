@@ -56,6 +56,11 @@ else
   IFS='|' read -r KERNEL_REPO KERNEL_BRANCH KERNEL_KMI <<< "$(resolve_kernel_source "$KERNEL_VERSION")"
 fi
 
+# "lts" (any case), "Auto" or empty all mean the latest pinned GKID 6.1 sublevel.
+case "${KERNEL_SUBLEVEL:-Auto}" in
+  [Aa][Uu][Tt][Oo]|[Ll][Tt][Ss]) KERNEL_SUBLEVEL="Auto" ;;
+esac
+
 # Verified upstream Makefile sublevels; historical commits are not build-tested.
 if [ "$KERNEL_VERSION" = "6.1" ]; then
   case "${KERNEL_SUBLEVEL:-Auto}" in

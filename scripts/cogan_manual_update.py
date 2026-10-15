@@ -236,12 +236,12 @@ def report(rows, fingerprints, mode, groups, updates, lock_keys=()):
     added = sorted(int(SUBLEVEL_KEY.fullmatch(key).group(1)) for key in updates
                    if SUBLEVEL_KEY.fullmatch(key))
     if added:
-        lines.append(f"Kernel Sublevel: 6.1.{added[-1]} becomes **Auto** and can also be typed as "
+        lines.append(f"Kernel Sublevel: 6.1.{added[-1]} becomes **lts** (latest) and can also be typed as "
                      f"`{added[-1]}` in the build form; older sublevels stay available.")
         lines.append("")
     pinned = sorted(int(SUBLEVEL_KEY.fullmatch(key).group(1)) for key in lock_keys if SUBLEVEL_KEY.fullmatch(key))
     if pinned:
-        lines.append(f"Available Kernel Sublevel values: Auto, {pinned[0]}–{pinned[-1]}.")
+        lines.append(f"Available Kernel Sublevel values: lts (= 6.1.{max(pinned)}), {pinned[0]}–{pinned[-1]}.")
         lines.append("")
     if mode == "update":
         if updates:
