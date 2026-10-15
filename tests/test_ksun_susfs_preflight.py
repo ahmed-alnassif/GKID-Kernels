@@ -2,6 +2,7 @@
 """Offline regression tests for the read-only KSUN+SUSFS preflight."""
 import importlib.util
 import io
+import json
 import subprocess
 import tempfile
 import unittest
@@ -16,6 +17,14 @@ spec.loader.exec_module(preflight)
 
 
 class PreflightTests(unittest.TestCase):
+    def test_lock_consistency_rejects_changed_pin(self):
+        evidence = json.loads(preflight.EVIDENCE.read_text())
+        lock = json.loads(preflight.LOCK.read_text())
+        self.assertEqual(preflight.lock_consistency(lock, evidence), [])
+        lock["sources"]["ksun"]["commit"] = "0" * 40
+        self.assertIn("ksun lock/evidence commit mismatch",
+                      preflight.lock_consistency(lock, evidence))
+
     def test_rejects_plain_directory(self):
         with tempfile.TemporaryDirectory() as tmp:
             with self.assertRaises(ValueError):
