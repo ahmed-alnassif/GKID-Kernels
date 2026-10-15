@@ -35,7 +35,8 @@ class ReplayTests(unittest.TestCase):
         self.write_manifest()
 
     def write_manifest(self, sha=None):
-        self.manifest.write_text(json.dumps({"patches": [{
+        head = subprocess.run(["git", "-C", str(self.kernel), "rev-parse", "HEAD"], check=True, capture_output=True, text=True).stdout.strip()
+        self.manifest.write_text(json.dumps({"kernel_commit": head, "patches": [{
             "path": self.patch.name,
             "sha256": sha or hashlib.sha256(self.patch.read_bytes()).hexdigest()
         }]}))
@@ -66,6 +67,14 @@ class ReplayTests(unittest.TestCase):
         result = self.run_replay("--apply")
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual((self.kernel / "sample.txt").read_text(), "dirty\n")
+
+    def test_wrong_kernel_commit_blocks(self):
+        data = json.loads(self.manifest.read_text())
+        data["kernel_commit"] = "0" * 40
+        self.manifest.write_text(json.dumps(data))
+        result = self.run_replay("--apply")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual((self.kernel / "sample.txt").read_text(), "before\\n")
 
     def test_nonapplicable_patch_blocks(self):
         self.patch.write_text(self.patch.read_text().replace("-before", "-absent"))
