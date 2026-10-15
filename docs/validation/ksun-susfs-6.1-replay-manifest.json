@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "status": "incomplete_do_not_execute",
+  "purpose": "Reproducible KSUN built-in + kernel-patched SUSFS candidate; source-only manifest, not a full candidate replay",
+  "kernel_commit": "a7ba124af5a535078d3f83b3e145f9cc8ec651b8",
+  "source_locks": {
+    "ksun": "2f858cb292265795dee2807759cec2eb8a7d79b1",
+    "susfs": "a9bb4dd3ed248ada636b480bfdff70af704f1463"
+  },
+  "verified_kernel_patch": {
+    "source": "kernel_patches/50_add_susfs_in_gki-android14-6.1.patch",
+    "source_sha256": "57e97f34055608a133594ff723ae5fa436b4559b1473d6e3284093c3ccb22156",
+    "adjustment": "kernel-patches/susfs/ksun-6.1-companion-adjustments.patch",
+    "adjustment_sha256": "6962a4a910ef74c776e7793cf64a064712fd26d71f90529208adbf35d9d88af1",
+    "prepared_sha256": "c9e79c169c42ddae58ce92318a5ae59dcc6b3142849833c79c02059a4d25c46b",
+    "apply_check_run": "https://github.com/cogan17/Cogan/actions/runs/38691986084/job/116279761088",
+    "apply_check": "PASS",
+    "applied_to_candidate": false
+  },
+  "companion_files": [
+    {
+      "source": "kernel_patches/fs/susfs.c",
+      "destination": "fs/susfs.c",
+      "sha256": "976f6d47a45260bcb0bb17d8ffe8beddeda398f8aba9bba54517ece9daf9e253"
+    },
+    {
+      "source": "kernel_patches/include/linux/susfs.h",
+      "destination": "include/linux/susfs.h",
+      "sha256": "fafff787b8856bd37a6736c2f0bbc5a57fd1f36232be267936f892fb57bc5120"
+    },
+    {
+      "source": "kernel_patches/include/linux/susfs_def.h",
+      "destination": "include/linux/susfs_def.h",
+      "sha256": "db7f98dcf8119a4eb5c45c05205b6c1065766047d6f803b0e86f3d14b1a251f0"
+    }
+  ],
+  "known_provenance_only": {
+    "prerequisite_commits": {
+      "ntsync": "41ae18b35d20e0c6ac04116785a4a1089528ae94",
+      "bbg": "a54e0dc6cf0aff4dd87fec49644a02d2eb612905",
+      "nomount": "7046c7ad3ee0bf4ae66e80f6b93b1e30db0cb4e3"
+    },
+    "warning": "Upstream commit references are not verified replay patches; do not cherry-pick blindly."
+  },
+  "missing_before_full_build": [
+    "Full ordered kernel and KSUN patch manifest with local paths, source revisions and SHA256",
+    "Historical candidate complete tracked and untracked working-tree diff or independently verified new candidate",
+    "Exact KSUN integration procedure and patch ordering",
+    "Toolchain archive URL and verified downloaded bytes",
+    "Exact .config generation commands and source configuration inputs",
+    "Companion files copied and checksum verified in candidate checkout",
+    "Candidate source tree and build output preflight"
+  ],
+  "guards": {
+    "production_build_enabled": false,
+    "susfs_lkm_allowed": false,
+    "run_full_build": false,
+    "release_or_flash_allowed": false
+  },
+  "notes": "This file is an evidence inventory, NOT compatible with scripts/ksun_susfs_replay.py. Never pass it to replay.py; that script expects a complete kernel_commit + patches array with local patch files."
+}
