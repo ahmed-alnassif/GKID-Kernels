@@ -1,0 +1,15 @@
+{
+  "kernel_commit": "3f08838cbc5a94bf877df6a462dabb9118095314",
+  "core_tree": "7e2b5164757d23fe0fbe3cd81ebec264769a0542",
+  "scope": "BBG and NoMount continuation only",
+  "patches": [
+    {
+      "path": "001-bbg.patch",
+      "sha256": "b61d26be2ea1f272966335863e51093925934ab9e52218a8a6e5a155a936da15"
+    },
+    {
+      "path": "002-nomount.patch",
+      "sha256": "b161795835c75aeaf98a7df222231d2b9c384fdc21b1358cade6b610903df38c"
+    }
+  ]
+}

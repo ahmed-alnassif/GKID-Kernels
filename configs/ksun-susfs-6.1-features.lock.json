@@ -1,0 +1,189 @@
+{
+  "schema_version": 1,
+  "scope": "KSUN SUSFS core v2 plus pinned BBG and NoMount; source and config preparation only",
+  "core_kernel_tree": "7e2b5164757d23fe0fbe3cd81ebec264769a0542",
+  "core_ksun_tree": "2fd43a2d0ef0e1750102348869dd1152d306afb1",
+  "kernel_inputs_sha256": {
+    "security/Makefile": "30a964a32a41a5b1b8737d9208d29c7ecb583de8fd6e5236e19dae1daae8bfde",
+    "security/Kconfig": "23a60d9e6c120826b0d53d6287e93ca152a3e1042094b4db351365463905fe9a",
+    "fs/Makefile": "b023989662daa267f46c3e4887168ea83387713c17084191a391ca1708c8d562",
+    "fs/Kconfig": "afc0bc232662d2b705b61ba5cccdff2c106654dccbd4c13673559a33489dfd3d"
+  },
+  "features": [
+    {
+      "name": "bbg",
+      "repository": "https://github.com/vc-teahouse/Baseband-guard",
+      "commit": "a54e0dc6cf0aff4dd87fec49644a02d2eb612905",
+      "patch": "001-bbg.patch",
+      "files": [
+        {
+          "path": "Makefile",
+          "blob_sha": "9d2f3f19b4eaedd1a464e767224f15b6a412dc0c",
+          "sha256": "0d1d5d4df97d564d02effda6ab4562a4089e670e2533930612fbd29fdda810e4",
+          "destination": "security/baseband-guard/Makefile",
+          "adapted_sha256": "b6816eaf225178d4da14d905552ea597cdcd66e35ec3bfd4c245b15a117171c6"
+        },
+        {
+          "path": "Kconfig",
+          "blob_sha": "e0dcf9ec08353c2debd20d80853a93e0c667d41c",
+          "sha256": "ed413c4d12e76fb6eec3b3d6b27f6fb0cd70838514c64c4038bc958fd6fdf77f",
+          "destination": "security/baseband-guard/Kconfig"
+        },
+        {
+          "path": "baseband_guard.c",
+          "blob_sha": "f95d9fa2865501095d8d4a19bbff09a48b2b2810",
+          "sha256": "07f45991d2233522d24a3e2297fef89e64f99a2aa1c0249284b2e15f5c5ff53e",
+          "destination": "security/baseband-guard/baseband_guard.c"
+        },
+        {
+          "path": "baseband_guard.h",
+          "blob_sha": "5d6d5935960d04f21d718b6bf4a788f67e597f5e",
+          "sha256": "881d0f418d72669e0d0a1e14ee3cfc2b73ff402d0c46fae3f3b88e4bd71e1ac9",
+          "destination": "security/baseband-guard/baseband_guard.h"
+        },
+        {
+          "path": "blkdev_helper.c",
+          "blob_sha": "ffeacc6fdfa90599a135cac8d572180ee0560390",
+          "sha256": "3d0664de564ae14177b9e4155970c297e49e4ba3f85e647065c778a4f2f4802f",
+          "destination": "security/baseband-guard/blkdev_helper.c"
+        },
+        {
+          "path": "blkdev_helper.h",
+          "blob_sha": "a5e49bc0959fe33d11fcf17587e68d1fd68cc4a9",
+          "sha256": "113345042edd80055cf5ab4497af73815b1671b3c683500089e51c55514c93a1",
+          "destination": "security/baseband-guard/blkdev_helper.h"
+        },
+        {
+          "path": "kernel_compat.h",
+          "blob_sha": "a45e5fc385d2b0443fb380261ab97ffae2f6d87e",
+          "sha256": "deb698515d2c2551a061c904beeb4874f0114d893715d67d8370da50041348c3",
+          "destination": "security/baseband-guard/kernel_compat.h"
+        },
+        {
+          "path": "tracing/Makefile",
+          "blob_sha": "79f4e3dc665ae23d9b36bb142297183e02e6d1e3",
+          "sha256": "9da4290e300c49fd8900d7e515e1eb753aaaba6218e3ec0920c22503d9854ff4",
+          "destination": "security/baseband-guard/tracing/Makefile"
+        },
+        {
+          "path": "tracing/kernel_compat.h",
+          "blob_sha": "76b48b9714c21e750f6e385341178567108a4c45",
+          "sha256": "0d1d2d32c2b2d3ed989c4bfb2bbb5b2179b749dec5d870698fe4ade4d3a99b12",
+          "destination": "security/baseband-guard/tracing/kernel_compat.h"
+        },
+        {
+          "path": "tracing/tracing.c",
+          "blob_sha": "95fc2e9572c2c2b7cda17ff4361a10fa0d3d1b81",
+          "sha256": "cdf6810e70686f89608599191f1c1df5faccea899179c50b4b8e865a9c3c8a7e",
+          "destination": "security/baseband-guard/tracing/tracing.c"
+        },
+        {
+          "path": "tracing/tracing.h",
+          "blob_sha": "d4a50f9d5fc570eb70f774487bef7a84b82c17b5",
+          "sha256": "171c535b3a20fa8fd73c57c5d939c583239f558fe36fea95238e772d55af1373",
+          "destination": "security/baseband-guard/tracing/tracing.h"
+        },
+        {
+          "path": "LICENSE",
+          "blob_sha": "9efa6fbc962836e243e20f7f23db062e2c077d28",
+          "sha256": "edaef632cbb643e4e7a221717a6c441a4c1a7c918e6e4d56debc3d8739b233f6",
+          "destination": "security/baseband-guard/LICENSE"
+        }
+      ]
+    },
+    {
+      "name": "nomount",
+      "repository": "https://github.com/maxsteeel/nomount",
+      "commit": "7046c7ad3ee0bf4ae66e80f6b93b1e30db0cb4e3",
+      "patch": "002-nomount.patch",
+      "files": [
+        {
+          "path": "kernel/src/Makefile",
+          "blob_sha": "35710cda171161578e498e809d89be9a673ea2d3",
+          "sha256": "ce9ca3ca442e6e30e3091168dbc1091a93d65dfbe0e93caf92d3a21be148779f",
+          "destination": "fs/nomount/Makefile",
+          "adapted_sha256": "f5dc1b6d8bf884333de3483bc13e9bff5d039569ca6b858ac8f711b275e90cef"
+        },
+        {
+          "path": "kernel/src/Kconfig",
+          "blob_sha": "638b9427ef638f786d288d0a93f731676cf32c62",
+          "sha256": "1df7ad3589a282128f797f7a46b28aee315d080550aae26b681a898f11c7abc7",
+          "destination": "fs/nomount/Kconfig"
+        },
+        {
+          "path": "kernel/src/nomount.c",
+          "blob_sha": "e698b2a93fbd77b5f390613e22237c4c8454c3de",
+          "sha256": "b082476d72ee755e3549b850fd3cf1e233234b6440f3d844b5ea190e392e0c69",
+          "destination": "fs/nomount/nomount.c"
+        },
+        {
+          "path": "kernel/src/nomount.h",
+          "blob_sha": "95deecac12db6b6680df3c8db54b0bb3dbbfbc08",
+          "sha256": "8a805e7fe3bbc6bf8daf2f4fd26c1f00d880a5480ca66dd013485509028146ed",
+          "destination": "fs/nomount/nomount.h"
+        },
+        {
+          "path": "kernel/LICENSE",
+          "blob_sha": "d159169d1050894d3ea3b98e1c965c4058208fe1",
+          "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643",
+          "destination": "fs/nomount/LICENSE"
+        }
+      ]
+    }
+  ],
+  "generated_patches_sha256": {
+    "001-bbg.patch": "b61d26be2ea1f272966335863e51093925934ab9e52218a8a6e5a155a936da15",
+    "002-nomount.patch": "b161795835c75aeaf98a7df222231d2b9c384fdc21b1358cade6b610903df38c"
+  },
+  "guards": {
+    "production_enabled": false,
+    "run_full_build": false,
+    "release_allowed": false,
+    "flash_allowed": false,
+    "lkm_allowed": false
+  },
+  "credit_checkpoint": {
+    "below_percent": 8,
+    "automatic_credit_readout_available": false,
+    "trigger": "Only an actual visible quota reading or owner notice; do not infer a percentage from elapsed time or tokens."
+  },
+  "integrated_kernel_tree": "b5db2f3ccc53539083461caa5cb7d1ddb5cd9e81",
+  "configuration": {
+    "fragment": "configs/ksun-susfs-6.1-features.config",
+    "sha256": "792f1fa18bd85696c94918a5b3175e0baf54a336f66af0c41e1dbc9bb133d1c9",
+    "target": "gki_defconfig",
+    "merge": "scripts/kconfig/merge_config.sh -m",
+    "resolve": "olddefconfig",
+    "fresh_output_required": true,
+    "shared_features_config_imported": false,
+    "ntsync_excluded": true,
+    "droidspaces_patch_excluded": true,
+    "required": {
+      "CONFIG_KSU": "y",
+      "CONFIG_KSU_SUSFS": "y",
+      "CONFIG_THREAD_INFO_IN_TASK": "y",
+      "CONFIG_KPROBES": "y",
+      "CONFIG_BBG": "y",
+      "CONFIG_NOMOUNT": "y",
+      "CONFIG_KEYS": "y",
+      "CONFIG_LTO_CLANG_FULL": "y",
+      "CONFIG_CFI_CLANG": "y"
+    },
+    "forbidden": [
+      "CONFIG_NTSYNC",
+      "CONFIG_LTO_CLANG_THIN",
+      "CONFIG_LTO_NONE",
+      "CONFIG_BBG_BLOCK_BOOT",
+      "CONFIG_BBG_BLOCK_RECOVERY"
+    ]
+  },
+  "toolchain": {
+    "release": "06092026",
+    "asset_id": 546798216,
+    "url": "https://github.com/Neutron-Toolchains/clang-build-catalogue/releases/download/06092026/neutron-clang-06092026.tar.zst",
+    "archive_sha256": "531083928c8e37f6b31e324dbfd0b5a8323f989b1c57ff2c1368b889b5b1bd30",
+    "llvm_commit": "f42c87ba2c70219b1f4ad1f031a5b6a1ea6603fb",
+    "archive_verified": true,
+    "regular_extracted_files_verified": 316
+  }
+}

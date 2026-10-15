@@ -1,6 +1,6 @@
 # KSUN + SUSFS 6.1 — Work handoff checkpoint (2026-10-15)
 
-**Status: V2 CORE SOURCE INTEGRATED; NOT READY FOR COMPILATION, RELEASE OR FLASH.**
+**Status: OWNER STOPPED at 2026-10-15 14:41 WIB. V2 CORE + BBG/NOMOUNT SOURCE STAGED. NOT READY FOR COMPILATION, RELEASE OR FLASH.**
 Resume with **Lanjutkan**. Repository `cogan17/Cogan`, branch `dev`. Built-in
 **KernelSU Next + kernel-patched SUSFS** only. Production KSUN and both
 KSUN+SUSFS guards remain unchanged. No Actions dispatch or new PR this session.
@@ -16,11 +16,25 @@ KSUN+SUSFS guards remain unchanged. No Actions dispatch or new PR this session.
 
 Concurrent commit `7dcdef0` was incorporated without overwriting it. The original ZIP preparation interface and its ten tests remain available. Use **--locked-worktrees** for this recorded source stage. The archive lock `configs/ksun-susfs-6.1-candidate-v2.json` and worktree lock `configs/ksun-susfs-6.1-v2.lock.json` have distinct roles for the same selected source set.
 
+## Latest stop checkpoint — 2026-10-15 14:41 WIB
+
+Owner explicitly requested stopping here. No further configuration, compilation, test, download retry or Actions was started after that request. The checkpoint threshold is now **credit below 8%**, replacing the former 10% threshold. There is no automatic credit-percentage readout; only a real indicator or owner notice can trigger it. This stop is the owner's instruction, not a claimed quota measurement.
+
+- Remote concurrent core work was saved as `3ccaea594f54d2e0ca9b8d2ee8b7946254f588c6` and reused. Its resolved merge and successful core replay were not repeated.
+- New feature continuation is `/workspace/scratch/466d29bc15a5/candidate-feature`, with `kernel` and `ksun` worktrees. Core input kernel tree `7e2b5164757d23fe0fbe3cd81ebec264769a0542`, KSUN tree `2fd43a2d0ef0e1750102348869dd1152d306afb1` were independently matched to the recorded tree/diff evidence before reuse. Frozen core snapshot commits and reconstruction identities are in `ksun-susfs-6.1-features-stage.json`.
+- BBG `a54e0dc6cf0aff4dd87fec49644a02d2eb612905` and NoMount `7046c7ad3ee0bf4ae66e80f6b93b1e30db0cb4e3`: 17 source files checked against pinned Git blobs and SHA256; installers were reviewed, never executed. Candidate Makefiles use fixed offline metadata instead of Git fetching/queries. Two new feature patches passed full-series disposable-index preflight and strict actual replay once. Feature kernel tree is `b5db2f3ccc53539083461caa5cb7d1ddb5cd9e81`.
+- Feature lock: `configs/ksun-susfs-6.1-features.lock.json`; helper: `scripts/prepare_ksun_susfs_features.py`; emitted patches and replay manifest: `kernel-patches/susfs/6.1-v2/features/`. This extends the recorded core; do not apply those patches again to the current staged tree.
+- Exact compiler archive downloaded once: release `06092026`, SHA256 `531083928c8e37f6b31e324dbfd0b5a8323f989b1c57ff2c1368b889b5b1bd30`, LLVM `f42c87ba2c70219b1f4ad1f031a5b6a1ea6603fb`. URL and asset identity are locked. All 316 extracted regular-file contents and symlink targets were compared with the archive after ownership-only tar warnings. Clang/LLD identity commands succeeded. Local compiler root: `/workspace/scratch/466d29bc15a5/toolchains/neutron-06092026`.
+- Nine Ubuntu host-tool/library packages were SHA256 verified and unpacked under `/workspace/scratch/466d29bc15a5/host-tools/root`; bc/bison/flex/pkgconf version commands succeeded. No system package installation. `pahole` remains missing: its first package download failed with a proxy CONNECT timeout. Exact pending package URL/SHA256 and dependencies are recorded; no retry after owner stop.
+- `configs/ksun-susfs-6.1-features.config` is an **unresolved fragment** selecting KSUN/SUSFS/BBG/NoMount, Full LTO/CFI, KEYS and the BBG LSM token, excluding NTSync. No output `.config` was generated, no kernel object/Image was compiled, and no new feature-helper unit tests were run before the stop. DroidSpaces/SUSFS LKM remain excluded. Shared `configs/features.config` still requests NTSync and must not be imported.
+
 ## Exact continuation
-1. Read `docs/validation/ksun-susfs-6.1-v2-integration.json` for actual tree/diff hashes, replay order, local logs and remaining gates. New lock: `configs/ksun-susfs-6.1-v2.lock.json`.
-2. Current disposable workspace is `/workspace/scratch/d5d3c6fbcebc/candidate-v2`; kernel and KSUN subdirectories are intentionally patched/staged and recorded. If available, reuse them; do not replay patches or run historical preflight against them. If absent, reconstruct once using `scripts/prepare_ksun_susfs_candidate.py --locked-worktrees` and the exact clean pinned inputs; see the integration plan. The ordered manifests and four emitted patches are preserved in `kernel-patches/susfs/6.1-v2/replay/`.
-3. Next unfinished work: inspect and pin NoMount for the requested bundle; lock compiler archive URL and verify downloaded bytes; generate and record a new resolved `.config`, commands and hashes. Core fragment `configs/ksun-susfs-6.1-v2.config` has Full LTO/CFI and NTSync disabled, but is not a final resolved config or final bundle. Shared `configs/features.config` still requests NTSync and must not be imported. BBG is outside the core replay.
-4. Only after those preparation gates pass, consider one selective isolated compile/full Image attempt. Check offline version flags in its first compiler output. Stop on the first failure, preserve logs, diagnose before rerun. Full Image, final linking, manager compatibility, ABI/KMI and runtime are unverified for v2.
+
+1. Read `docs/validation/ksun-susfs-6.1-features-stage.json` and this latest section first. Reuse the actual staged feature worktrees and compiler when present. Preserve the clean original source inputs and earlier core stage at `/workspace/scratch/d5d3c6fbcebc`; do not reset them, clone again, rerun green checks, or replay the core/features onto patched worktrees.
+2. Finish only the pending `pahole` retrieval and host dependency preparation, using the recorded exact package metadata. Diagnose the prior proxy CONNECT failure before one justified retry. Do not use apt installation or floating installers.
+3. Generate a new config in the **fresh** `/workspace/scratch/466d29bc15a5/candidate-feature/out` directory. Pin environment/commands for `gki_defconfig`, merge the locked feature fragment, then `olddefconfig`. Record final `.config` SHA256 and check required flags, Full LTO/CFI, BBG LSM, KEYS, NoMount and exclusions. Never reuse the historical config or ThinLTO cache. Local bison requires its extracted data path; record host PATH/library/pkgconf paths as well.
+4. Selectively verify newly changed helpers and complete compilation preflight. Only when source, toolchain, host and resolved-config gates pass, tell the owner that an isolated compilation can start. Production KSUN+SUSFS remains blocked; Image/link/KCFI/ABI/KMI, manager and runtime remain unverified.
+5. If transient workspaces are missing, reconstruct once from the committed core replay and feature patches plus the recorded deterministic frozen-core commit metadata. The executable feature manifest expects that frozen core HEAD. Do not confuse it with the old evidence inventory JSON.
 
 ## Preserved evidence and rules
 - Historical lock: `configs/ksun-susfs-6.1.lock.json`; partial build: `ksun-susfs-6.1-partial-build.json`; old evidence inventory: `ksun-susfs-6.1-replay-manifest.json`. None certifies the new v2 build.

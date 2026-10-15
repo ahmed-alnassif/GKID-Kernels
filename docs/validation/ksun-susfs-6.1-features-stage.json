@@ -1,0 +1,178 @@
+{
+  "schema_version": 1,
+  "status": "owner_stopped_source_stage_preserved_not_compilation_ready",
+  "stopped_at": "2026-10-15T14:41:09+07:00",
+  "stop_reason": "Owner explicitly requested stop and checkpoint; not a measured credit threshold",
+  "credit_checkpoint": {
+    "below_percent": 8,
+    "automatic_percentage_readout_available": false
+  },
+  "cogan_base_commit": "3ccaea594f54d2e0ca9b8d2ee8b7946254f588c6",
+  "core_reused_without_replay": true,
+  "reused_core": {
+    "kernel": {
+      "upstream_commit": "a7ba124af5a535078d3f83b3e145f9cc8ec651b8",
+      "core_tree": "7e2b5164757d23fe0fbe3cd81ebec264769a0542",
+      "snapshot_commit": "3f08838cbc5a94bf877df6a462dabb9118095314",
+      "path": "/workspace/scratch/466d29bc15a5/candidate-feature/kernel"
+    },
+    "ksun": {
+      "upstream_commit": "2f858cb292265795dee2807759cec2eb8a7d79b1",
+      "core_tree": "2fd43a2d0ef0e1750102348869dd1152d306afb1",
+      "snapshot_commit": "ce13bc5d783ad2b79409423f1c3343321cf0e304",
+      "path": "/workspace/scratch/466d29bc15a5/candidate-feature/ksun"
+    }
+  },
+  "core_snapshot_creation": {
+    "author_name": "Cogan source staging",
+    "author_email": "source-staging@example.invalid",
+    "committer_name": "Cogan source staging",
+    "committer_email": "source-staging@example.invalid",
+    "author_date": "2026-10-15T07:28:22+00:00",
+    "committer_date": "2026-10-15T07:28:22+00:00",
+    "message": "Freeze verified KSUN SUSFS core v2 source for isolated feature staging\n",
+    "operation": "git commit-tree <core_tree> -p <upstream_commit>; no branch movement or core patch replay"
+  },
+  "features_lock": "configs/ksun-susfs-6.1-features.lock.json",
+  "feature_replay_manifest": "kernel-patches/susfs/6.1-v2/features/kernel-replay.json",
+  "feature_replay_log": "Verified 2 patch checksums and clean kernel checkout.\nEntire patch series passed isolated index preflight.\nApplied 1/2: 001-bbg.patch\nApplied 2/2: 002-nomount.patch\nPATCH REPLAY COMPLETE; full Image and runtime remain unverified.\n",
+  "kernel_feature_tree": "b5db2f3ccc53539083461caa5cb7d1ddb5cd9e81",
+  "source_diffs": {
+    "kernel": {
+      "head": "3f08838cbc5a94bf877df6a462dabb9118095314",
+      "index_tree": "b5db2f3ccc53539083461caa5cb7d1ddb5cd9e81",
+      "diff_sha256": "c06e6132e8a665b7db9a3a9be52fca22d23405fa2d99b546842d232a3c39f54f",
+      "status": "M  fs/Kconfig\nM  fs/Makefile\nA  fs/nomount/Kconfig\nA  fs/nomount/LICENSE\nA  fs/nomount/Makefile\nA  fs/nomount/nomount.c\nA  fs/nomount/nomount.h\nM  security/Kconfig\nM  security/Makefile\nA  security/baseband-guard/Kconfig\nA  security/baseband-guard/LICENSE\nA  security/baseband-guard/Makefile\nA  security/baseband-guard/baseband_guard.c\nA  security/baseband-guard/baseband_guard.h\nA  security/baseband-guard/blkdev_helper.c\nA  security/baseband-guard/blkdev_helper.h\nA  security/baseband-guard/kernel_compat.h\nA  security/baseband-guard/tracing/Makefile\nA  security/baseband-guard/tracing/kernel_compat.h\nA  security/baseband-guard/tracing/tracing.c\nA  security/baseband-guard/tracing/tracing.h\n"
+    },
+    "ksun": {
+      "head": "ce13bc5d783ad2b79409423f1c3343321cf0e304",
+      "index_tree": "2fd43a2d0ef0e1750102348869dd1152d306afb1",
+      "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": ""
+    }
+  },
+  "toolchain": {
+    "release": "06092026",
+    "asset_id": 546798216,
+    "url": "https://github.com/Neutron-Toolchains/clang-build-catalogue/releases/download/06092026/neutron-clang-06092026.tar.zst",
+    "archive_sha256": "531083928c8e37f6b31e324dbfd0b5a8323f989b1c57ff2c1368b889b5b1bd30",
+    "llvm_commit": "f42c87ba2c70219b1f4ad1f031a5b6a1ea6603fb",
+    "archive_verified": true,
+    "regular_extracted_files_verified": 316
+  },
+  "toolchain_local_root": "/workspace/scratch/466d29bc15a5/toolchains/neutron-06092026",
+  "configuration": {
+    "fragment": "configs/ksun-susfs-6.1-features.config",
+    "fragment_sha256": "792f1fa18bd85696c94918a5b3175e0baf54a336f66af0c41e1dbc9bb133d1c9",
+    "resolved": false,
+    "config_generation_started": false,
+    "kernel_compilation_started": false,
+    "fresh_output_path": "/workspace/scratch/466d29bc15a5/candidate-feature/out",
+    "fragment_is_not_final_config": true
+  },
+  "host_tools": {
+    "root": "/workspace/scratch/466d29bc15a5/host-tools/root",
+    "verified_packages": {
+      "bc": {
+        "Package": "bc",
+        "Version": "1.07.1-3ubuntu4",
+        "Filename": "pool/main/b/bc/bc_1.07.1-3ubuntu4_amd64.deb",
+        "SHA256": "cb85d5929476088533b3c5e1db2de5ab4593a69fa54243710f762197dbaea60d",
+        "Depends": "libc6 (>= 2.38), libreadline8t64 (>= 6.0)"
+      },
+      "bison": {
+        "Package": "bison",
+        "Version": "2:3.8.2+dfsg-1build2",
+        "Filename": "pool/main/b/bison/bison_3.8.2+dfsg-1build2_amd64.deb",
+        "SHA256": "18f487c400da3e968a44ecb3783a443641bcd14e2b080ed9ed1167f4aa2c1612",
+        "Depends": "m4, libc6 (>= 2.38)"
+      },
+      "flex": {
+        "Package": "flex",
+        "Version": "2.6.4-8.2build1",
+        "Filename": "pool/main/f/flex/flex_2.6.4-8.2build1_amd64.deb",
+        "SHA256": "c5604f55827b50e3f568b4731b7799f86b147454c867be02bc141d9d8ce561ff",
+        "Depends": "libc6 (>= 2.38), m4"
+      },
+      "libbpf1": {
+        "Package": "libbpf1",
+        "Version": "1:1.3.0-2build2",
+        "Filename": "pool/main/libb/libbpf/libbpf1_1.3.0-2build2_amd64.deb",
+        "SHA256": "5654cbb145c2b299472cd208dd06c7dc09bf06cad4c4663fc42a865a51a0d96f",
+        "Depends": "libc6 (>= 2.38), libelf1t64 (>= 0.144), zlib1g (>= 1:1.2.3.3)"
+      },
+      "libdw1t64": {
+        "Package": "libdw1t64",
+        "Version": "0.190-1.1build4",
+        "Filename": "pool/main/e/elfutils/libdw1t64_0.190-1.1build4_amd64.deb",
+        "SHA256": "cdf86260db73ae9f61915fdb898d74a74654ff4b84deeac1c9fe9e5ab2ad83c6",
+        "Depends": "libbz2-1.0, libc6 (>= 2.38), libelf1t64 (= 0.190-1.1build4), liblzma5 (>= 5.1.1alpha+20120614), libzstd1 (>= 1.5.5), zlib1g (>= 1:1.2.2.3)"
+      },
+      "libelf-dev": {
+        "Package": "libelf-dev",
+        "Version": "0.190-1.1build4",
+        "Filename": "pool/main/e/elfutils/libelf-dev_0.190-1.1build4_amd64.deb",
+        "SHA256": "540ef7d433b642c9333374e9580dd3cc21b1ef9532787d994998b5131ef82ea4",
+        "Depends": "libelf1t64 (= 0.190-1.1build4), zlib1g-dev, libzstd-dev"
+      },
+      "libelf1t64": {
+        "Package": "libelf1t64",
+        "Version": "0.190-1.1build4",
+        "Filename": "pool/main/e/elfutils/libelf1t64_0.190-1.1build4_amd64.deb",
+        "SHA256": "b277e52769302778bd052376ac6687b52954b6605dd5f781bff8631e3504d58f",
+        "Depends": "libc6 (>= 2.38), libzstd1 (>= 1.5.5), zlib1g (>= 1:1.1.4)"
+      },
+      "pkgconf-bin": {
+        "Package": "pkgconf-bin",
+        "Version": "1.8.1-2build1",
+        "Filename": "pool/main/p/pkgconf/pkgconf-bin_1.8.1-2build1_amd64.deb",
+        "SHA256": "7a812f05ee1610154b433e2ad54f6e4163fcbb306b9fb31afe959afb2e5e1545",
+        "Depends": "libc6 (>= 2.34), libpkgconf3 (>= 1.8.0)"
+      },
+      "libpkgconf3": {
+        "Package": "libpkgconf3",
+        "Version": "1.8.1-2build1",
+        "Filename": "pool/main/p/pkgconf/libpkgconf3_1.8.1-2build1_amd64.deb",
+        "SHA256": "fc3a57e8f931ec06cb7c51acc56878f1fec247ff02a7adcab26905c2faeb2792",
+        "Depends": "libc6 (>= 2.38)"
+      }
+    },
+    "tested_tools": [
+      "bc 1.07.1",
+      "bison 3.8.2",
+      "flex 2.6.4",
+      "pkgconf 1.8.1"
+    ],
+    "pahole_available": false,
+    "pahole_download_attempts": 1,
+    "pahole_download_error": "curl (28) Proxy CONNECT aborted due to timeout; owner stopped before any retry",
+    "apt_note": "APT update in task-local directories failed because setgroups/setuid were unavailable; package bytes were fetched from Ubuntu HTTPS indexes, SHA256 verified, and unpacked locally without installation",
+    "pending_pahole_package": {
+      "Package": "pahole",
+      "Version": "1.25-0ubuntu3",
+      "Filename": "pool/universe/d/dwarves/pahole_1.25-0ubuntu3_amd64.deb",
+      "SHA256": "c352a439c4c792397d36c26545d954940370a1147cd91d5a251fff82413a8b70",
+      "Depends": "libbpf1 (>= 1:1.0.0), libc6 (>= 2.38), libdw1t64 (>= 0.157), libelf1t64 (>= 0.142), zlib1g (>= 1:1.1.4)",
+      "url": "https://archive.ubuntu.com/ubuntu/pool/universe/d/dwarves/pahole_1.25-0ubuntu3_amd64.deb"
+    }
+  },
+  "validation": {
+    "feature_whole_series_preflight": "PASS",
+    "strict_feature_replay": "PASS",
+    "reviewed_feature_source_files": 17,
+    "new_feature_unit_tests_run": false,
+    "reason_tests_not_run": "Owner stop requested; actual source replay already succeeded",
+    "core_successful_checks_repeated": false,
+    "actions_started": 0,
+    "pull_requests_created": 0,
+    "full_image_verified": false,
+    "runtime_verified": false
+  },
+  "remaining_work": [
+    "Resume missing pahole download from the recorded exact package metadata and verify before using it",
+    "Generate a new resolved config in fresh O= output using the pinned compiler and feature fragment; do not import shared features.config which enables NTSync",
+    "Record config generation environment, exact commands and .config SHA256; verify Full LTO/CFI, KSUN/SUSFS/BBG/NoMount, KEYS, LSM and exclusions",
+    "Validate complete compilation preparation including host dependencies and any newly changed helper; run only targeted new checks",
+    "Only then report isolated compilation ready and consider one justified manual compile; production guards stay enabled"
+  ]
+}
