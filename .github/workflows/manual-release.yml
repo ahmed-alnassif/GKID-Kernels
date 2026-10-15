@@ -50,7 +50,7 @@ jobs:
           set -euo pipefail
           mkdir -p release-files
           gh api --paginate "repos/$REPO/actions/runs/$SOURCE_RUN/jobs?per_page=100" --jq '.jobs[] | select(.name | startswith("build (")) | [.name, .conclusion] | @tsv' > build-jobs.tsv
-          gh api --paginate "repos/$REPO/actions/runs/$SOURCE_RUN/artifacts?per_page=100" --jq '.artifacts[] | select(.expired == false and (.name | startswith("build-"))) | .name' > artifact-names.txt
+          gh api --paginate "repos/$REPO/actions/runs/$SOURCE_RUN/artifacts?per_page=100" --jq '.artifacts[] | select(.expired == false and (.name | startswith("build-") and (startswith("build-env-") | not))) | .name' > artifact-names.txt
           python3 - <<'PY'
           from pathlib import Path
           jobs = [line.split("\t") for line in Path("build-jobs.tsv").read_text().splitlines() if line.strip()]
