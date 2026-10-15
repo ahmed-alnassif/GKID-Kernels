@@ -19,6 +19,7 @@ import hashlib
 import re
 import subprocess
 import sys
+import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -26,6 +27,8 @@ LOCK = ROOT / "configs/upstream.lock"
 SHA = re.compile(r"[0-9a-f]{40}")
 STABLE_TAG = re.compile(r"v(\d+)\.(\d+)\.(\d+)")
 LINE = re.compile(r"([A-Z][A-Z0-9_]*)=(v\d+\.\d+\.\d+|[0-9a-f]{40})")
+SUBLEVEL_KEY = re.compile(r"KERNEL_COMMIT_6_1_(\d+)")
+KERNEL_RAW = "https://raw.githubusercontent.com/ahmed-alnassif/GKI-Duchamp-6.1/{commit}/Makefile"
 
 SUSFS = "https://gitlab.com/simonpunk/susfs4ksu.git"
 # key -> (group, label, repository, ref). A ref of "latest-stable-tag" means
@@ -62,12 +65,20 @@ def read_lock(text):
     missing = [key for key in [*PINS, "KSUN_REF"] if key not in values]
     if missing:
         raise ValueError("Lock is missing " + ", ".join(missing))
+    unknown = [key for key in values
+               if key not in PINS and key != "KSUN_REF" and not SUBLEVEL_KEY.fullmatch(key)]
+    if unknown:
+        raise ValueError("Unknown lock keys: " + ", ".join(unknown))
     return values
 
 
 def write_lock(text, updates):
-    """Replace values of existing keys only, preserving comments and order."""
-    out, seen = [], set()
+    """Replace existing values, preserving comments and order.
+
+    A new KERNEL_COMMIT_6_1_<sublevel> key is inserted after the last sublevel
+    line; any other key absent from the lock is an error.
+    """
+    out, seen, last_sublevel = [], set(), None
     for raw in text.splitlines():
         match = LINE.fullmatch(raw)
         if match and match.group(1) in updates:
@@ -76,9 +87,16 @@ def write_lock(text, updates):
             seen.add(key)
         else:
             out.append(raw)
-    unknown = set(updates) - seen
+        if match and SUBLEVEL_KEY.fullmatch(match.group(1)):
+            last_sublevel = len(out)
+    added = sorted(set(updates) - seen, key=lambda key: (len(key), key))
+    unknown = [key for key in added if not SUBLEVEL_KEY.fullmatch(key)]
     if unknown:
-        raise ValueError("Cannot update keys absent from lock: " + ", ".join(sorted(unknown)))
+        raise ValueError("Cannot update keys absent from lock: " + ", ".join(unknown))
+    if added:
+        if last_sublevel is None:
+            raise ValueError("Lock has no KERNEL_COMMIT_6_1_<sublevel> entries")
+        out[last_sublevel:last_sublevel] = [f"{key}={updates[key]}" for key in added]
     result = "\n".join(out) + "\n"
     read_lock(result)
     return result
@@ -130,6 +148,20 @@ def resolve(url, ref, lister=ls_remote):
         return None, None, type(exc).__name__
 
 
+def fetch_url(url, timeout=40):
+    with urllib.request.urlopen(url, timeout=timeout) as response:
+        return response.read().decode("utf-8", "replace")
+
+
+def kernel_sublevel(commit, fetch=fetch_url):
+    """Return N for a GKID 6.1.N commit, read from its top-level Makefile."""
+    head = fetch(KERNEL_RAW.format(commit=commit))[:2000]
+    fields = dict(re.findall(r"^(VERSION|PATCHLEVEL|SUBLEVEL) = (\d+)$", head, re.MULTILINE))
+    if fields.get("VERSION") != "6" or fields.get("PATCHLEVEL") != "1" or "SUBLEVEL" not in fields:
+        raise ValueError("Not a 6.1 kernel Makefile")
+    return int(fields["SUBLEVEL"])
+
+
 def select(components):
     wanted = {part.strip() for part in components.split(",") if part.strip()}
     if not wanted or "all" in wanted:
@@ -140,15 +172,30 @@ def select(components):
     return wanted
 
 
-def plan(lock, groups, lister=ls_remote):
+def current_sublevel(lock):
+    """Sublevel whose lock entry equals the Auto pin (KERNEL_COMMIT_6_1)."""
+    matches = [int(SUBLEVEL_KEY.fullmatch(key).group(1)) for key, value in lock.items()
+               if SUBLEVEL_KEY.fullmatch(key) and value == lock["KERNEL_COMMIT_6_1"]]
+    return max(matches) if matches else None
+
+
+def plan(lock, groups, lister=ls_remote, sublevel_of=kernel_sublevel):
     """Compare pins with upstream. Returns (rows, updates) without side effects."""
     rows, updates = [], {}
     for key, (group, label, url, ref) in PINS.items():
         current = lock[key]
         commit, tag, error = resolve(url, ref, lister)
+        new_sublevel = None
+        if key == "KERNEL_COMMIT_6_1" and not error and commit != current:
+            try:
+                new_sublevel = sublevel_of(commit)
+            except (OSError, ValueError) as exc:
+                error = "Sublevel unreadable (" + type(exc).__name__ + ")"
         shown_ref = tag or ref.replace("refs/heads/", "")
         if key == "KSUN_COMMIT":
             current_label = f"{lock['KSUN_REF']} {current[:12]}"
+        elif key == "KERNEL_COMMIT_6_1" and current_sublevel(lock) is not None:
+            current_label = f"6.1.{current_sublevel(lock)} {current[:12]}"
         else:
             current_label = current[:12]
         if error:
@@ -161,7 +208,11 @@ def plan(lock, groups, lister=ls_remote):
                 updates[key] = commit
                 if tag:
                     updates["KSUN_REF"] = tag
+                if new_sublevel is not None:
+                    updates[f"KERNEL_COMMIT_6_1_{new_sublevel}"] = commit
         latest = f"{tag} {commit[:12]}" if tag and commit else (commit or "-")[:12]
+        if new_sublevel is not None:
+            latest = f"6.1.{new_sublevel} {latest}"
         rows.append((label, group, shown_ref, current_label, latest, status))
     return rows, updates
 
@@ -182,6 +233,13 @@ def report(rows, fingerprints, mode, groups, updates):
     lines += ["", "### Cogan local fingerprints", "", "| Component | SHA256 (12) |", "|---|---|"]
     lines += ["| " + " | ".join(row) + " |" for row in fingerprints]
     lines.append("")
+    added = sorted(int(SUBLEVEL_KEY.fullmatch(key).group(1)) for key in updates
+                   if SUBLEVEL_KEY.fullmatch(key))
+    if added:
+        lines.append(f"Kernel Sublevel: 6.1.{added[-1]} becomes **Auto**. The build form dropdown is a "
+                     "workflow file that this token cannot edit; add the number to "
+                     "`.github/workflows/build.yml` (options and prepare check) to select it explicitly.")
+        lines.append("")
     if mode == "update":
         if updates:
             lines.append("**Proposed pin changes** (pull request to `dev`; review, merge, then run a build):")

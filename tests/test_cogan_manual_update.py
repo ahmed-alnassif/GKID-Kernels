@@ -38,7 +38,13 @@ def fake_lister(overrides=None, tags=None):
 class LockTests(unittest.TestCase):
     def test_real_lock_parses_and_has_every_pin(self):
         lock = mu.read_lock(REAL_LOCK)
-        self.assertEqual(set(mu.PINS) | {"KSUN_REF"}, set(lock))
+        sublevels = {key for key in lock if mu.SUBLEVEL_KEY.fullmatch(key)}
+        self.assertEqual(set(mu.PINS) | {"KSUN_REF"}, set(lock) - sublevels)
+        self.assertEqual(sorted(int(key.rsplit("_", 1)[1]) for key in sublevels), list(range(161, 178)))
+
+    def test_unknown_key_rejected(self):
+        with self.assertRaisesRegex(ValueError, "Unknown lock keys: KSU_COMMMIT"):
+            mu.read_lock(REAL_LOCK + "KSU_COMMMIT=" + "a" * 40 + "\n")
 
     def test_malformed_duplicate_and_missing_lines_rejected(self):
         with self.assertRaisesRegex(ValueError, "Malformed"):
@@ -98,6 +104,37 @@ class PlanTests(unittest.TestCase):
         self.assertEqual(updates, {})
         self.assertTrue(all(row[-1].startswith("UNAVAILABLE") for row in rows))
 
+    def test_kernel_advance_moves_auto_and_adds_the_new_sublevel(self):
+        lister = fake_lister({"KERNEL_COMMIT_6_1": NEW})
+        rows, updates = mu.plan(self.lock, {"kernel-6.1"}, lister, sublevel_of=lambda commit: 178)
+        self.assertEqual(updates, {"KERNEL_COMMIT_6_1": NEW, "KERNEL_COMMIT_6_1_178": NEW})
+        row = next(row for row in rows if row[0] == "Kernel GKID 6.1")
+        self.assertTrue(row[3].startswith("6.1.177 ") and row[4].startswith("6.1.178 "), row)
+        updated = mu.read_lock(mu.write_lock(REAL_LOCK, updates))
+        self.assertEqual(updated["KERNEL_COMMIT_6_1_177"], self.lock["KERNEL_COMMIT_6_1"])
+        self.assertEqual(updated["KERNEL_COMMIT_6_1_178"], NEW)
+        self.assertEqual(mu.current_sublevel(updated), 178)
+
+    def test_new_commit_on_same_sublevel_replaces_that_entry(self):
+        lister = fake_lister({"KERNEL_COMMIT_6_1": NEW})
+        _, updates = mu.plan(self.lock, {"kernel-6.1"}, lister, sublevel_of=lambda commit: 177)
+        self.assertEqual(updates, {"KERNEL_COMMIT_6_1": NEW, "KERNEL_COMMIT_6_1_177": NEW})
+
+    def test_unreadable_sublevel_blocks_the_kernel_update(self):
+        def unreadable(commit):
+            raise OSError("offline")
+        rows, updates = mu.plan(self.lock, {"kernel-6.1"}, fake_lister({"KERNEL_COMMIT_6_1": NEW}),
+                                sublevel_of=unreadable)
+        self.assertEqual(updates, {})
+        row = next(row for row in rows if row[0] == "Kernel GKID 6.1")
+        self.assertTrue(row[-1].startswith("UNAVAILABLE: Sublevel unreadable"), row)
+
+    def test_sublevel_parsed_from_makefile_head(self):
+        makefile = "# SPDX\nVERSION = 6\nPATCHLEVEL = 1\nSUBLEVEL = 178\nEXTRAVERSION =\n"
+        self.assertEqual(mu.kernel_sublevel(NEW, fetch=lambda url: makefile), 178)
+        with self.assertRaises(ValueError):
+            mu.kernel_sublevel(NEW, fetch=lambda url: makefile.replace("PATCHLEVEL = 1", "PATCHLEVEL = 6"))
+
     def test_unknown_component_rejected(self):
         with self.assertRaises(ValueError):
             mu.select("susfs,kernel-9.9")
@@ -136,6 +173,19 @@ class ShellLockTests(unittest.TestCase):
         self.assertNotIn("refs/heads/dev/kernel/setup.sh", build)
         self.assertNotIn('install_ksu "tiann/KernelSU" "main"', build)
         self.assertNotIn('install_ksu "Baka-SU/BakaSU" "main"', build)
+        self.assertIn('SUBLEVEL_PIN_VAR="PIN_KERNEL_COMMIT_6_1_${KERNEL_SUBLEVEL}"', build)
+        self.assertNotIn('161) KERNEL_BRANCH=', build)
+
+    def test_every_dropdown_sublevel_has_a_pin(self):
+        import yaml
+        workflow = yaml.safe_load((ROOT / ".github/workflows/build.yml").read_text())
+        options = workflow[True]["workflow_dispatch"]["inputs"]["KERNEL_SUBLEVEL"]["options"]
+        lock = mu.read_lock(REAL_LOCK)
+        for option in options:
+            if option != "Auto":
+                self.assertIn("KERNEL_COMMIT_6_1_" + option, lock, option)
+        self.assertEqual(lock["KERNEL_COMMIT_6_1_" + str(mu.current_sublevel(lock))],
+                         lock["KERNEL_COMMIT_6_1"])
 
 
 if __name__ == "__main__":

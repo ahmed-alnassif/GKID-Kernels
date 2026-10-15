@@ -5,12 +5,13 @@ name: Cogan Manual Update
 # in configs/upstream.lock.
 # The kernel build workflow only compiles those exact commits.
 #   check  : report pinned vs latest upstream (no changes)
-#   update : bump the selected pins and open a pull request to dev for review
+#   update : bump the selected pins and commit them straight to dev, so the next
+#            build run uses them (a pull request is opened only if the push is refused)
 on:
   workflow_dispatch:
     inputs:
       MODE:
-        description: "check = laporan saja / report only; update = PR pin baru ke dev"
+        description: "check = laporan saja / report only; update = terapkan pin baru langsung ke dev"
         type: choice
         default: "check"
         options:
@@ -57,7 +58,7 @@ jobs:
           python3 scripts/cogan_manual_update.py --mode "$MODE" --components "$COMPONENTS" \
             --summary "$GITHUB_STEP_SUMMARY" --changes "$RUNNER_TEMP/changes.txt"
 
-      - name: Open pull request with the new pins
+      - name: Apply the new pins to dev
         if: github.event.inputs.MODE == 'update'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -66,33 +67,35 @@ jobs:
         run: |
           set -euo pipefail
           if [ ! -s "$RUNNER_TEMP/changes.txt" ]; then
-            echo "No pin changes for '$COMPONENTS'; nothing to propose."
+            echo "No pin changes for '$COMPONENTS'; dev already uses the latest pins." | tee -a "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          branch="manual-update/run-${GITHUB_RUN_NUMBER}"
+          title="chore: Cogan Manual Update ($COMPONENTS), run ${GITHUB_RUN_NUMBER}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git switch -c "$branch"
           git add configs/upstream.lock
-          git commit -q -m "chore: Cogan Manual Update ($COMPONENTS), run ${GITHUB_RUN_NUMBER}" \
-            -m "$(cat "$RUNNER_TEMP/changes.txt")"
+          git commit -q -m "$title" -m "$(cat "$RUNNER_TEMP/changes.txt")" -m "Run: $RUN_URL"
+          if git push -q origin HEAD:dev; then
+            echo "**Applied to dev** ($(git rev-parse --short HEAD)). The next Cogan Kernel Builder run uses these pins." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "::warning::Direct push to dev was refused (branch rules or a newer dev); opening a pull request instead."
+          branch="manual-update/run-${GITHUB_RUN_NUMBER}"
+          git switch -q -c "$branch"
           if ! git push -q origin "$branch"; then
-            echo "::error::Push of $branch was refused (branch rules or token permissions). The updated lock is attached as artifact 'upstream-lock'."
+            echo "::error::Push of $branch was refused too. The updated lock is attached as artifact 'upstream-lock'."
             exit 1
           fi
           {
             echo "Pin baru dari **Cogan Manual Update** ($COMPONENTS). Run: $RUN_URL"
             echo
+            echo "Push langsung ke \`dev\` ditolak, jadi dibuat PR ini sebagai cadangan."
+            echo
             echo '```'
             cat "$RUNNER_TEMP/changes.txt"
             echo '```'
-            echo
-            echo "Versi upstream yang lebih baru belum tentu kompatibel: merge, lalu jalankan build (owner) dan uji."
-            echo "PR dari GITHUB_TOKEN tidak memicu Validate otomatis; jalankan Validate manual bila perlu."
           } > "$RUNNER_TEMP/pr-body.md"
-          if ! gh pr create --base dev --head "$branch" \
-              --title "chore: Cogan Manual Update ($COMPONENTS), run ${GITHUB_RUN_NUMBER}" \
-              --body-file "$RUNNER_TEMP/pr-body.md"; then
+          if ! gh pr create --base dev --head "$branch" --title "$title" --body-file "$RUNNER_TEMP/pr-body.md"; then
             echo "::error::Branch $branch was pushed, but creating the pull request failed. Enable 'Allow GitHub Actions to create and approve pull requests' or open it manually."
             exit 1
           fi

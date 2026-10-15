@@ -59,25 +59,16 @@ fi
 # Verified upstream Makefile sublevels; historical commits are not build-tested.
 if [ "$KERNEL_VERSION" = "6.1" ]; then
   case "${KERNEL_SUBLEVEL:-Auto}" in
-    161) KERNEL_BRANCH="61fcbb6cd1dbc15d4af24bce8296367554f70b8b" ;;
-    162) KERNEL_BRANCH="0182cb5b74ee79448adf4f33a137ca34e209eb30" ;;
-    163) KERNEL_BRANCH="8ce36b2849ef65d98b77bcced8cf72333b2d5da0" ;;
-    164) KERNEL_BRANCH="12ef02bd25146e1da089588c5f616a12ad5a4f32" ;;
-    165) KERNEL_BRANCH="2f66dd9cff421f27dbe192f2035ce61b811561b1" ;;
-    166) KERNEL_BRANCH="e094166185ce573ca9c33553c91945b06d2b3641" ;;
-    167) KERNEL_BRANCH="188af7e32c7cbacb6b9fad6222c92645de5dde0d" ;;
-    168) KERNEL_BRANCH="8e8fc038cad5988ede9f323677c28eb9a696026c" ;;
-    169) KERNEL_BRANCH="bbb1b305ef9dcb2f94dbf0504408032a65b47073" ;;
-    170) KERNEL_BRANCH="d7371afb22b1c6589a52e7cea3e2399ae2977412" ;;
-    171) KERNEL_BRANCH="dd093409483f8cd5b495dfe6186cdee6713f8300" ;;
-    172) KERNEL_BRANCH="fec170e6409ce49bc009a879fddb47f9a1ad9f01" ;;
-    173) KERNEL_BRANCH="fca9c61b983f49374d193f67cdfeae3f68ec9af8" ;;
-    174) KERNEL_BRANCH="ae51c26d207ea801c5346f6d2773878bf0d9036d" ;;
-    175) KERNEL_BRANCH="bcff58130b54910112d233064b3b41b3c87d868f" ;;
-    176) KERNEL_BRANCH="f26a1f4f9013533dd2b0de85e6813f948363a4ff" ;;
-    # Current GKID-6.1 (6.1.177) comes from the upstream lock, not the moving branch.
-    Auto|177|"") KERNEL_BRANCH="$PIN_KERNEL_COMMIT_6_1" ;;
-    *) echo "Invalid 6.1 sublevel: $KERNEL_SUBLEVEL" >&2; exit 1 ;;
+    # Every selectable 6.1 commit comes from the upstream lock (Cogan Manual Update).
+    Auto|"") KERNEL_BRANCH="$PIN_KERNEL_COMMIT_6_1" ;;
+    *)
+      SUBLEVEL_PIN=""
+      if [[ "$KERNEL_SUBLEVEL" =~ ^[0-9]+$ ]]; then
+        SUBLEVEL_PIN_VAR="PIN_KERNEL_COMMIT_6_1_${KERNEL_SUBLEVEL}"
+        SUBLEVEL_PIN="${!SUBLEVEL_PIN_VAR:-}"
+      fi
+      [ -n "$SUBLEVEL_PIN" ] || { echo "Invalid 6.1 sublevel: $KERNEL_SUBLEVEL" >&2; exit 1; }
+      KERNEL_BRANCH="$SUBLEVEL_PIN" ;;
   esac
 elif [ "${KERNEL_SUBLEVEL:-Auto}" != "Auto" ]; then
   echo "Specific sublevels require kernel 6.1" >&2; exit 1
