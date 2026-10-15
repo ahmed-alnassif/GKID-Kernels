@@ -119,5 +119,14 @@
     ],
     "candidate_procedure_requirement": "Use independently pinned checkout with exact HEAD assertion and clean source verification, then reproduce only the documented driver symlink/Makefile/Kconfig operations in isolated candidate tree. Check existing contents before mutation and record resulting diff. Do not execute upstream setup.sh as-is.",
     "status": "mechanism_verified_not_executed"
+  },
+  "verified_susfs_file_provenance": {
+    "repository": "https://gitlab.com/simonpunk/susfs4ksu.git",
+    "branch": "gki-android14-6.1",
+    "matching_commit": "92aab7f579e9fb440a43e387c13bff519af13462",
+    "evidence": "Owner's Termux git history SHA256 comparison; all four source patch/companion hashes match manifest",
+    "verification": "reported_local_hash_match_not_independently_downloaded",
+    "scope": "file content provenance only; no candidate integration or build",
+    "prior_source_lock_note": "Original source_locks.susfs a9bb4dd3ed248ada636b480bfdff70af704f1463 not present in fetched Git object set; do not silently replace lock or claim checkout equivalence"
   }
 }
