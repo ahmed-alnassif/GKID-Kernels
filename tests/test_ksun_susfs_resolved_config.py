@@ -106,6 +106,23 @@ class ResolvedConfigTests(unittest.TestCase):
             errors = gate.audit(GOOD.encode(), lock)
         self.assertTrue(any("CONFIG_ARM64" in e for e in errors))
 
+    def test_disabled_fragment_flag_cannot_be_enabled(self):
+        import hashlib
+        from unittest.mock import patch
+        fragment = b"# CONFIG_NTSYNC is not set\n"
+        lock = {"configuration": {**LOCK["configuration"],
+                "fragment": "configs/ksun-susfs-6.1-features.config",
+                "sha256": hashlib.sha256(fragment).hexdigest()}}
+        with patch.object(gate.Path, "read_bytes", return_value=fragment):
+            errors = gate.audit(GOOD.replace("# CONFIG_NTSYNC is not set",
+                                             "CONFIG_NTSYNC=y").encode(), lock)
+        self.assertTrue(any("disabled in locked fragment" in e for e in errors))
+
+    def test_unquoted_lsm_is_rejected(self):
+        errors = self.check(GOOD.replace('CONFIG_LSM="landlock,selinux,baseband_guard"',
+                                         "CONFIG_LSM=landlock,selinux,baseband_guard"))
+        self.assertTrue(any("quoted Kconfig string" in e for e in errors))
+
     def test_repository_lock_and_fragment_integrity(self):
         import hashlib
         import json
