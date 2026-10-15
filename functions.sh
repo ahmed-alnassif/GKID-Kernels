@@ -100,18 +100,6 @@ kernel_version_le() {
   return 0
 }
 
-apply_ntsync_compat_patch() {
-  local branch="$1"
-  local url="https://github.com/WildKernels/kernel_patches/raw/main/common/ntsync/ntsync_compat_${branch}.patch"
-
-  if command curl -LSsf -o /dev/null "$url" 2>/dev/null; then
-    curl -LSs "$url" | patch -p1 --fuzz=3
-    success "NTSync compat patch applied for $branch"
-  else
-    warning "No NTSync compat patch found for $branch"
-  fi
-}
-
 install_ksu() {
   local REPO="$1"
   local REF="$2"
