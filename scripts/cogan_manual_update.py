@@ -258,9 +258,12 @@ def pick_asset(assets, suffix):
     """The single official asset ending in suffix (spoofed/debug builds excluded)."""
     candidates = [asset for asset in assets if asset["name"].lower().endswith(suffix)
                   and not any(word in asset["name"].lower() for word in ASSET_EXCLUDE)]
-    if len(candidates) > 1:
-        preferred = [asset for asset in candidates if "release" in asset["name"].lower()]
-        candidates = preferred or candidates
+    # Narrow step by step: release builds, then the universal APK of per-ABI splits
+    # (BakaSU ships arm64-v8a, armeabi-v7a, x86_64 and universal).
+    for word in ("release", "universal"):
+        if len(candidates) > 1:
+            preferred = [asset for asset in candidates if word in asset["name"].lower()]
+            candidates = preferred or candidates
     if len(candidates) != 1:
         names = ", ".join(asset["name"] for asset in candidates) or "none"
         raise ValueError(f"expected one {suffix} asset, found {len(candidates)} ({names})")

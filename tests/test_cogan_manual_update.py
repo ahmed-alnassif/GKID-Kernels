@@ -199,6 +199,10 @@ class PlanTests(unittest.TestCase):
             "KernelSU_Next_v3.4.2_33355-spoofed-release.apk", "KernelSU_Next_v3.4.2_33355-debug.apk",
             "KernelSU_Next_v3.4.2_33355-release.apk", "KernelSU_Next_v3.4.2_33355.apk", "AnyKernel3-x.zip")]
         self.assertEqual(mu.pick_asset(assets, ".apk")["name"], "KernelSU_Next_v3.4.2_33355-release.apk")
+        # BakaSU v4.2.0-rc3 as published: per-ABI splits plus a universal APK.
+        bakasu = [{"name": f"ReSukiSU_v4.2.0-rc3_35171-{abi}-release.apk", "url": "u", "digest": ""}
+                  for abi in ("arm64-v8a", "armeabi-v7a", "universal", "x86_64")]
+        self.assertEqual(mu.pick_asset(bakasu, ".apk")["name"], "ReSukiSU_v4.2.0-rc3_35171-universal-release.apk")
         with self.assertRaisesRegex(ValueError, "found 2"):
             mu.pick_asset([{"name": "a.apk"}, {"name": "b.apk"}], ".apk")
         with self.assertRaisesRegex(ValueError, "found 0"):
