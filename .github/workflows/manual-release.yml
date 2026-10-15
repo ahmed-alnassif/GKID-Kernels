@@ -1,0 +1,98 @@
+name: Manual Release from Run
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "Successful Cogan build run ID"
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  manual-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify source run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN: ${{ inputs.run_id }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_RUN" =~ ^[0-9]+$ ]] || { echo "::error::Run ID must be numeric"; exit 1; }
+          gh api "repos/$REPO/actions/runs/$SOURCE_RUN" > source-run.json
+          python3 - <<'PY'
+          import json, os
+          data=json.load(open("source-run.json"))
+          if data.get("conclusion") != "success":
+              raise SystemExit("Source run did not succeed; release refused")
+          if data.get("event") != "workflow_dispatch":
+              raise SystemExit("Source run must be a manually dispatched build")
+          if data.get("head_branch") != "dev":
+              raise SystemExit("Source run must originate from dev")
+          if not str(data.get("path","")).endswith(".github/workflows/build.yml"):
+              raise SystemExit("Source run is not the Cogan build workflow")
+          print("Validated build run", data["id"])
+          PY
+
+      - name: Download kernel build artifacts only
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN: ${{ inputs.run_id }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          mkdir -p release-files
+          gh api --paginate "repos/$REPO/actions/runs/$SOURCE_RUN/artifacts?per_page=100" --jq '.artifacts[] | select(.expired == false and (.name | startswith("build-"))) | .name' > artifact-names.txt
+          test -s artifact-names.txt || { echo "::error::No unexpired build artifacts"; exit 1; }
+          while IFS= read -r name; do
+            gh run download "$SOURCE_RUN" --repo "$REPO" --name "$name" --dir "downloads/$name"
+          done < artifact-names.txt
+          find downloads -type f -name '*.zip' -exec cp -n {} release-files/ \;
+          test -n "$(find release-files -maxdepth 1 -name '*.zip' -print -quit)" || { echo "::error::No kernel ZIPs"; exit 1; }
+
+      - name: Validate flash ZIPs and generate checksums
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import zipfile
+          zips=list(Path("release-files").glob("*.zip"))
+          if not zips:
+              raise SystemExit("No ZIP to release")
+          for path in zips:
+              with zipfile.ZipFile(path) as archive:
+                  names=archive.namelist()
+                  if "anykernel.sh" not in names or "Image" not in names:
+                      raise SystemExit(f"{path.name}: invalid AnyKernel root")
+                  if any(n.lower().endswith((".zip",".7z",".rar")) for n in names):
+                      raise SystemExit(f"{path.name}: nested archive detected")
+                  if archive.testzip():
+                      raise SystemExit(f"{path.name}: corrupt archive")
+              print("Validated", path.name)
+          PY
+          cd release-files
+          sha256sum -- *.zip > checksums.txt
+
+      - name: Create draft release for manual approval
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN: ${{ inputs.run_id }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          TAG="cogan-manual-run-$SOURCE_RUN"
+          if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
+            echo "::error::Release for this run already exists"
+            exit 1
+          fi
+          gh release create "$TAG" release-files/*.zip release-files/checksums.txt \
+            --repo "$REPO" --target dev --draft --prerelease \
+            --title "Cogan build run $SOURCE_RUN (UNTESTED)" \
+            --notes "Built from GitHub Actions run $SOURCE_RUN. ZIP structure validated only. Device boot, partition compatibility, and recovery have NOT been verified. Do not publish or flash without device-specific testing."
+          echo "## Manual release" >> "$GITHUB_STEP_SUMMARY"
+          echo "Draft release created for run $SOURCE_RUN. **Not published; not device-tested.**" >> "$GITHUB_STEP_SUMMARY"
