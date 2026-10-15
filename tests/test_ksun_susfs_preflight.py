@@ -25,6 +25,20 @@ class PreflightTests(unittest.TestCase):
         self.assertIn("ksun lock/evidence commit mismatch",
                       preflight.lock_consistency(lock, evidence))
 
+    def test_git_worktree_status_detects_local_changes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            subprocess.run(["git", "init", "-q", str(root)], check=True)
+            tracked = root / "tracked.txt"
+            tracked.write_text("original\\n")
+            subprocess.run(["git", "-C", str(root), "add", "tracked.txt"], check=True)
+            subprocess.run(["git", "-C", str(root), "-c", "user.name=Test",
+                            "-c", "user.email=test@example.invalid", "commit",
+                            "-qm", "init"], check=True)
+            self.assertEqual(preflight.git_worktree_status(root), "")
+            tracked.write_text("modified\\n")
+            self.assertTrue(preflight.git_worktree_status(root))
+
     def test_rejects_plain_directory(self):
         with tempfile.TemporaryDirectory() as tmp:
             with self.assertRaises(ValueError):
