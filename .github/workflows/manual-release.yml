@@ -37,7 +37,7 @@ jobs:
           if not str(data.get("path","")).endswith(".github/workflows/build.yml"):
               raise SystemExit("Source run is not the Cogan build workflow")
           with open(os.environ["GITHUB_ENV"], "a") as env:
-              env.write("SOURCE_SHA=" + data["head_sha"] + "\\n")
+              env.write("SOURCE_SHA=" + data["head_sha"] + "\n")
           print("Validated build run", data["id"], data["head_sha"])
           PY
 
@@ -49,6 +49,12 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p release-files
+          gh api --paginate "repos/$REPO/actions/runs/$SOURCE_RUN/jobs?per_page=100" --jq '.jobs[] | select(.name | startswith("build (")) | [.name, .conclusion] | @tsv' > build-jobs.tsv
+          test -s build-jobs.tsv || { echo "::error::No matrix build jobs found"; exit 1; }
+          if awk -F '\\t' '$2 != "success" { bad=1; print "Unsuccessful build job:", $0 } END { exit !bad }' build-jobs.tsv; then
+            echo "::error::Not all matrix build jobs succeeded"
+            exit 1
+          fi
           gh api --paginate "repos/$REPO/actions/runs/$SOURCE_RUN/artifacts?per_page=100" --jq '.artifacts[] | select(.expired == false and (.name | startswith("build-"))) | .name' > artifact-names.txt
           test -s artifact-names.txt || { echo "::error::No unexpired build artifacts"; exit 1; }
           while IFS= read -r name; do
