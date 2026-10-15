@@ -28,6 +28,11 @@ echo "⚙️ Adding Compatibility GKI Networking and Filesystem configs"
 apply_config "$WORKDIR/configs/compat.config" "$DEFCONFIG"
 
 echo "⚙️ Adding Universal Performance Tuning"
+# Fail closed on unexpected values instead of silently changing networking behavior.
+case "${NETWORKING:-true}" in
+  true|false) ;;
+  *) echo "ERROR: NETWORKING must be true or false" >&2; exit 1 ;;
+esac
 if [ "${NETWORKING:-true}" = "false" ]; then
   # Keep Android/GKI compatibility networking from compat.config intact.
   # Only omit the optional networking extras section in custom.config.
