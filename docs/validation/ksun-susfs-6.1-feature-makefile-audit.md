@@ -45,3 +45,13 @@ The locked BBG patch uses a Makefile text probe for the exact macro `#define DEF
 The pinned BBG patch declares a global `DEFINE_HASHTABLE(allowed_devs, 7)`. `allow_has()` traverses it with `hash_for_each_possible()`, while `allow_add()` calls `allow_has()`, allocates with `GFP_ATOMIC`, and inserts via `hash_add()`. No lock or RCU read-side protection is present around those accesses. Concurrent LSM hook invocations could race with insertion, including duplicate entries. This is a **source-level concurrency hazard**, not a demonstrated runtime failure.
 
 **Decision gate:** before production readiness, prepare and review a separate candidate change that serializes lookups and insertions using a kernel-appropriate non-sleeping synchronization scheme. Do not hold a spinlock across allocation, block-device lookups, logging, or other potentially sleeping work; handle duplicate insertion after reacquiring the lock. Verify that the lookup and insertion paths share the same protection, and test under concurrency with the pinned integrated kernel. Keep the current checksummed BBG patch, production guards, and build/release restrictions unchanged until a reviewed adaptation is ready.
+
+### Proposed minimal synchronization algorithm (not applied)
+
+1. Declare a dedicated `DEFINE_SPINLOCK(allowed_devs_lock)`. Use `spin_lock_irqsave()` / `spin_unlock_irqrestore()` around every `hash_for_each_possible()` traversal and `hash_add()` mutation. Keep the raw hash lookup in a private helper that is called **only while locked**; do not recursively acquire the lock from `allow_add()`.
+2. `allow_has(dev)`: lock, perform the lookup, unlock, return the result. Never expose an internal hash-node pointer after unlocking.
+3. `allow_add(dev)`: first perform a locked lookup; if absent, unlock and allocate a candidate node with `GFP_ATOMIC`. Lock again, repeat the lookup, and insert only if still absent. Unlock before freeing an unused candidate or logging. This second check prevents duplicate entries under simultaneous insertions.
+4. Preserve the existing behavior if allocation fails: the current request can still use the freshly resolved allowlist result, while a later request may retry caching. Never interpret an allocation failure as a newly trusted device.
+5. Do not move `bbg_is_named_device()`, `is_allowed_partition_dev_resolve()`, `kmalloc()`, `kfree()`, or logging into the locked section. Review kernel lockdep and parallel block-device permission/ioctl operations in isolated testing.
+
+**Scope:** design-only; no candidate patch is approved, no checksum/lock change, and no claim of compilation or runtime validation.
