@@ -7,7 +7,8 @@ This is a plan, not a verified replay or build result.
 ## Source locks
 - Kernel: `a7ba124af5a535078d3f83b3e145f9cc8ec651b8`
 - KSUN (pershoot): `2f858cb292265795dee2807759cec2eb8a7d79b1`
-- SUSFS: `a9bb4dd3ed248ada636b480bfdff70af704f1463`
+- SUSFS historical lock (unavailable in owner's fetched Git object set): `a9bb4dd3ed248ada636b480bfdff70af704f1463`
+- **Verified file provenance**: `92aab7f579e9fb440a43e387c13bff519af13462` supplies four matching SHA256 files. This is a source-file provenance finding, not an automatic replacement for the historical lock.
 - Evidence inventory: `docs/validation/ksun-susfs-6.1-replay-manifest.json`
 
 ## Required sequence (not yet executed)
@@ -23,7 +24,7 @@ This is a plan, not a verified replay or build result.
 10. Verify artifacts and device compatibility before any release or flashing. Runtime is a separate gate.
 
 ## Current blockers
-- Complete ordered patch series and historical candidate working-tree diff unavailable.
+- Complete ordered patch series and historical candidate working-tree diff unavailable. Four SUSFS source files have matching hashes, but this does not establish full replay.
 - Exact KSUN+SUSFS integrated source tree not independently verified.
 - BBG executes a floating upstream setup script in `build.sh`; pin and verify its transitive inputs for reproducible candidate builds. NTSync must not be reintroduced.
 - Toolchain and .config provenance not locked.
