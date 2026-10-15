@@ -13,7 +13,7 @@ This is a plan, not a verified replay or build result.
 ## Required sequence (not yet executed)
 1. Create a disposable clean kernel checkout at the exact kernel SHA; assert HEAD.
 2. Obtain the exact KSUN and SUSFS commits; assert HEAD and clean status. Never run a floating `setup.sh` or a pull/stash fallback.
-3. Inventory all prerequisite kernel modifications (NTSync, BBG, NoMount) and their ordered patches. Lock their bytes and SHA256. Existing upstream commit references are provenance, not verified patches.
+3. Inventory remaining prerequisite kernel modifications (BBG, NoMount) and their ordered patches; NTSync is explicitly excluded following its removal from build.sh and functions.sh. Lock their bytes and SHA256. Existing upstream commit references are provenance, not verified patches.
 4. Reproduce KSUN driver integration in the isolated tree only: symlink `drivers/kernelsu` to the pinned KSUN kernel directory, then add the Kbuild and Kconfig entries only if absent. Verify paths and diff.
 5. Verify SUSFS companion file SHA256 before copying to `fs/susfs.c`, `include/linux/susfs.h`, and `include/linux/susfs_def.h`.
 6. Verify the original SUSFS kernel patch and companion adjustment hashes, generate the prepared patch, then check its recorded hash and run strict patch preflight on the exact candidate tree.
@@ -25,7 +25,7 @@ This is a plan, not a verified replay or build result.
 ## Current blockers
 - Complete ordered patch series and historical candidate working-tree diff unavailable.
 - Exact KSUN+SUSFS integrated source tree not independently verified.
-- NTSync downloads floating upstream patch URLs and BBG executes an upstream setup script in `build.sh`; pin and verify both for reproducible candidate builds.
+- BBG executes a floating upstream setup script in `build.sh`; pin and verify its transitive inputs for reproducible candidate builds. NTSync must not be reintroduced.
 - Toolchain and .config provenance not locked.
 
 ## Production safety
