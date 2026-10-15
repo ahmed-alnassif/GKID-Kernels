@@ -139,6 +139,28 @@ class ResolvedConfigTests(unittest.TestCase):
         self.assertIn("CONFIG_KSU_SUSFS_SUS_PATH=y", fragment.decode())
         self.assertIn("# CONFIG_NTSYNC is not set", fragment.decode())
 
+    def test_cli_rejects_enabled_production_guard(self):
+        import json
+        import tempfile
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as tmp:
+            config_path = Path(tmp) / ".config"
+            config_path.write_text(GOOD, encoding="utf-8")
+            lock_path = Path(tmp) / "lock.json"
+            lock_path.write_text(json.dumps({
+                "configuration": {"target": "gki_defconfig", **LOCK["configuration"]},
+                "guards": {
+                    "production_enabled": True,
+                    "run_full_build": False,
+                    "release_allowed": False,
+                    "flash_allowed": False,
+                    "lkm_allowed": False,
+                },
+            }), encoding="utf-8")
+            with patch.object(gate, "LOCK", lock_path), patch.object(
+                    gate.sys, "argv", ["gate", str(config_path)]):
+                self.assertEqual(1, gate.main())
+
     def test_nomount_module_not_builtin(self):
         self.assertTrue(any("CONFIG_NOMOUNT" in error for error in
                             self.check(GOOD.replace("CONFIG_NOMOUNT=y", "CONFIG_NOMOUNT=m"))))
