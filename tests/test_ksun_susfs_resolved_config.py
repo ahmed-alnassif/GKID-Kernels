@@ -68,7 +68,7 @@ class ResolvedConfigTests(unittest.TestCase):
     def test_locked_fragment_subfeature_missing(self):
         import hashlib
         from unittest.mock import patch
-        fragment = b"CONFIG_KSU_SUSFS_SUS_PATH=y\\n"
+        fragment = b"CONFIG_KSU_SUSFS_SUS_PATH=y\n"
         lock = {"configuration": {**LOCK["configuration"],
                 "fragment": "configs/ksun-susfs-6.1-features.config",
                 "sha256": hashlib.sha256(fragment).hexdigest()}}
@@ -88,12 +88,12 @@ class ResolvedConfigTests(unittest.TestCase):
     def test_locked_fragment_subfeature_enabled(self):
         import hashlib
         from unittest.mock import patch
-        fragment = b"CONFIG_KSU_SUSFS_SUS_PATH=y\\n"
+        fragment = b"CONFIG_KSU_SUSFS_SUS_PATH=y\n"
         lock = {"configuration": {**LOCK["configuration"],
                 "fragment": "configs/ksun-susfs-6.1-features.config",
                 "sha256": hashlib.sha256(fragment).hexdigest()}}
         with patch.object(gate.Path, "read_bytes", return_value=fragment):
-            self.assertEqual([], gate.audit((GOOD + "CONFIG_KSU_SUSFS_SUS_PATH=y\\n").encode(), lock))
+            self.assertEqual([], gate.audit((GOOD + "CONFIG_KSU_SUSFS_SUS_PATH=y\n").encode(), lock))
 
     def test_nomount_module_not_builtin(self):
         self.assertTrue(any("CONFIG_NOMOUNT" in error for error in
