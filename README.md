@@ -1,305 +1,123 @@
-# GKID Kernel
+<div align="center">
 
-<p align="center">
-  <img src="docs/banner.png" alt="GKID Kernels Banner">
-</p>
+# Cogan Kernel
 
-[![Build Status](https://github.com/ahmed-alnassif/GKID-Kernels/actions/workflows/build.yml/badge.svg)](https://github.com/ahmed-alnassif/GKID-Kernels/actions/workflows/build.yml)
-[![Latest Release](https://img.shields.io/github/v/release/ahmed-alnassif/GKID-Kernels?label=Latest%20Release&color=00aa00)](https://github.com/ahmed-alnassif/GKID-Kernels/releases)
-[![Downloads](https://img.shields.io/github/downloads/ahmed-alnassif/GKID-Kernels/total?label=Downloads&color=00aa00)](https://github.com/ahmed-alnassif/GKID-Kernels/releases)
-[![Group](https://img.shields.io/badge/Telegram-Group-blue.svg?logo=telegram)](https://t.me/ahmed_alnassif_tg)
-[![GitHub License](https://img.shields.io/github/license/ahmed-alnassif/GKID-Kernels?logo=gnu)](/LICENSE)
-[![SuSFS](https://img.shields.io/badge/SuSFS-4CAF50?&logo=gitlab&logoColor=white)](https://gitlab.com/simonpunk/susfs4ksu)
-[![KernelSU](https://img.shields.io/badge/KernelSU-000000?&logo=github&logoColor=white)](https://github.com/tiann/KernelSU)
-[![BakaSU](https://img.shields.io/badge/BakaSU-E91E63?&logo=github&logoColor=white)](https://github.com/Baka-SU/BakaSU)
-[![Managers](https://img.shields.io/badge/Managers-multiple-success)](https://github.com/ahmed-alnassif/GKID-Kernels/releases)
+**Kernel GKI 6.1 untuk Android dengan KernelSU, KernelSU Next, BakaSU dan SUSFS**
 
-**⚡ Blazing fast GKI kernel for Android** with KernelSU, SuSFS, NetHunter, NTSync, performance optimizations, battery improvements, and advanced security features.
+**🇮🇩 Bahasa Indonesia** · [🇬🇧 English](README.en.md)
 
----
+[![Lisensi: GPL-3.0](https://img.shields.io/badge/lisensi-GPL--3.0-blue.svg)](LICENSE)
+[![GKI android14-6.1](https://img.shields.io/badge/GKI-android14--6.1-3DDC84.svg?logo=android&logoColor=white)](#perangkat-yang-didukung)
+[![Rilis](https://img.shields.io/github/v/release/cogan17/Cogan?include_prereleases&label=rilis)](https://github.com/cogan17/Cogan/releases)
 
-> [!Important]
-> - This is a **GKI** kernel, not a custom kernel. It works on **ANY** device that ships with a matching GKI Linux version.
-> - Supported GKI version: **6.1** (Android 14). Cogan builds kernel 6.1 only; the build form is locked to 6.1.
+</div>
+
+> [!CAUTION]
+> Cogan tidak bertanggung jawab atas perangkat yang rusak (*brick*) atau data yang hilang. Dengan mem-flash, Anda menanggung semua risikonya. Cadangkan data dan siapkan `boot.img` stock **sebelum** flash. Lihat **[Panduan Bootloop](docs/bootloop.md)**.
 
 ---
 
-## ❤️ Support This Project
+## Tentang
 
-**Tron (TRC20):** `TK7s2HGGWoLuefoznbVMZdiCpEwSTvZ1CV`
-
-**Bitcoin (BTC):** `bc1qstka58vn66qutzhgaalxfm7jn4d7xmgkze26sk`
-
-**Ethereum (ERC20):** `0xa13F8baaa24b563896a8ddAA3089317d43344C55`
-
-**ShamCash:** `a7da9b01b8faf8e3b3839f1b9f2b8d04`
-
-Your donations keep this project alive! I spend countless hours maintaining kernel builds for 5 different versions, fixing bugs, adding features, and supporting users. **Every donation matters!** 🙏
+Kernel generik yang dibangun dari sumber GKI 6.1 ([GKI-Duchamp-6.1](https://github.com/ahmed-alnassif/GKI-Duchamp-6.1)) dengan root berbasis kernel dan SUSFS untuk menyembunyikan root. Dibuat agar cocok dengan banyak perangkat GKI `android14-6.1`, tetapi tidak dijamin berjalan di semua perangkat.
 
 ---
 
-## ✨ ReSuSFS 
+## Fitur
 
-**[ReSuSFS](https://github.com/ahmed-alnassif/ReSuSFS)** – Root hiding made simple, powerful when you need it. A [KernelSU](https://kernelsu.org) module and WebUI that turns SuSFS into clean config files and toggle switches for everyday use, with **strong hiding applied out of the box** via built-in spoofing and hiding scripts for one-tap protection, plus a script manager for power users who want more, all without leaving the WebUI.
-
----
-
-## ⚡ Quick Start
-
-1. **Check** your kernel version in Settings → About Phone
-2. **Download** matching variant from [Releases](https://github.com/ahmed-alnassif/GKID-Kernels/releases)
-3. **Flash** using KernelSU app or custom recovery
-4. **Manage** SuSFS with [ReSuSFS](https://github.com/ahmed-alnassif/ReSuSFS)
-
----
-
-## 📱 Supported GKI Kernel Versions
-
-| Linux | Android |
-|-------|---------|
-| 6.1   | 14      |
+- **KernelSU / KernelSU Next / BakaSU**: root berbasis kernel
+- **SUSFS**: menyembunyikan root (sus path, sus mount, sus kstat, sus map, spoof uname dan cmdline, open redirect, sembunyikan simbol)
+- **NoMount**: metamodul mount, selalu ikut
+- **Baseband Guard (BBG)**: melindungi partisi penting dari penulisan tanpa izin (bisa dimatikan)
+- **Networking**: TCP BBRv3 (default), Westwood+, FQ, IP Set, NAT IPv6 (bisa dimatikan)
+- **Performa**: timer 300 Hz, MGLRU, zRAM LZ4 + writeback, mq-deadline, kompresi F2FS, NTSync
+- **TMPFS**: xattr dan POSIX ACL
+- **Toolchain**: Neutron Clang (versi dikunci) dengan pilihan Full LTO, Thin LTO, atau tanpa LTO
+- **Komponen terkunci**: kernel, root manager, SUSFS, NoMount, BBG, AnyKernel3 dan toolchain dipin ke commit tertentu, dan hanya diperbarui lewat **Cogan Manual Update**
 
 ---
 
-## 🔧 Build Variants
+## Perangkat yang didukung
 
-| Variant | Root | SuSFS | LTO | Compat |
-|---------|------|-------|-----|--------|
-| Vanilla | ❌ | ❌ | Full | ❌ |
-| Vanilla+NoLTO | ❌ | ❌ | ❌ | ❌ |
-| KernelSU | ✅ | ❌ | Full | ❌ |
-| KernelSU+SuSFS | ✅ | ✅ | Full | ❌ |
-| KSU+SuSFS+MM | ✅ | ✅ | Full | ❌ |
-| BakaSU+SuSFS | ✅ | ✅ | Full | ❌ |
-| Compat+KSU+SuSFS | ✅ | ✅ | ❌ | ✅ |
-| Compat+BakaSU+SuSFS | ✅ | ✅ | ❌ | ✅ |
-
-**Optional features** (enable on any variant):
-- 🐳 DroidSpaces - Linux userspace support
-- 🐉 NetHunter - Wireless penetration testing
-- 🥷 NoMount - NoMount integration
+- Perangkat dengan kernel stock **GKI `6.1.x-android14`**. Cek di *Setelan → Tentang ponsel → Spesifikasi lengkap → Versi kernel*.
+- Sublevel tersedia **6.1.160 ke atas**; `lts` = sublevel terbaru. Pilih sublevel yang **sama atau lebih baru** dari kernel stock Anda.
+- Bootloader harus sudah terbuka.
 
 ---
 
-## Performance
+## Varian
 
-| Feature | Description |
-|---------|-------------|
-| **300Hz Timer** | Reduced input latency for snappier UI response |
-| **MGLRU** | Multi-generational LRU for smoother multitasking |
-| **zRAM** | LZ4 compression with writeback for memory efficiency |
-| **CPU Governors** | schedutil + ondemand for smart power scaling |
-| **I/O Scheduler** | mq-deadline optimized for UFS 4.0 storage |
-| **F2FS Tuning** | 50ms GC sleep for buttery smooth I/O |
-| **Memory Optimizations** | 50% faster memcpy/memset/memcmp operations |
-| **ext4 Tuning** | Extended commit age reducing unnecessary writes |
-| **NTSync Driver** | Faster Windows games/apps on Winlator/GameHub |
-
-**What this means for you:**
-- Apps launch faster
-- UI feels more responsive
-- Gaming has less stutter
-- Multitasking is smoother
-- Better framerates in games
+| Pilihan di form | Nama varian (ZIP) | Root | SUSFS | Catatan |
+|---|---|---|---|---|
+| KernelSU | `KernelSU` | KernelSU | ❌ | |
+| KernelSU + SUSFS | `KernelSU+SuSFS` | KernelSU | ✅ | |
+| KernelSU Next | `KernelSU-Next` | KernelSU Next | ❌ | |
+| KernelSU Next + SUSFS (uji) | `KernelSU-Next+SuSFS+Test` | KernelSU Next (fork pershoot) | ✅ | **Khusus uji**: hanya 6.1.177 (`lts`), Full LTO, BBG aktif |
+| BakaSU + SUSFS | `BakaSU+SuSFS` | BakaSU | ✅ | |
+| Vanilla | `Vanilla` | ❌ | ❌ | Tanpa root |
+| All variants (advanced) | Semua varian standar + `Vanilla+NoLTO` + `Compat+…` | | | `Compat` tanpa LTO, untuk perangkat yang tidak mau boot dengan varian standar |
 
 ---
 
-## 🔋 Battery Life
+## Unduh & pasang
 
-| Feature | Description |
-|---------|-------------|
-| **Wakelock Cap** | 500ms cap prevents excessive battery drain |
-| **Freeze Timeout** | 20s → 1s for faster deadlock detection |
-| **F2FS Optimization** | Reduced GC overhead saves CPU cycles |
-| **Alarm Wakeups** | Minimized to reduce standby battery drain |
-| **ext4 Commit Age** | 30s commit age reduces write operations |
-| **Power Management** | Improved suspend/resume for better idle drain |
-
-**What this means for you:**
-- Better standby time
-- Less battery drain during use
-- Overnight battery lasts longer
-- Gaming doesn't kill battery as fast
-- All-day battery life
+1. Pastikan kernel stock Anda `6.1.x-android14` dan bootloader sudah terbuka.
+2. **Siapkan `boot.img` stock** yang sama persis dengan versi ROM Anda ([caranya](docs/bootloop.md#1-siapkan-bootimg-stock-sebelum-flash)).
+3. Unduh ZIP dari **[Releases](https://github.com/cogan17/Cogan/releases)**, lalu cocokkan SHA256-nya dengan `checksums.txt`.
+4. Flash ZIP AnyKernel3 dengan aplikasi flasher kernel di perangkat yang sudah root, misalnya [Kernel Flasher](https://github.com/capntrips/KernelFlasher) atau [Horizon Kernel Flasher](https://github.com/libxzr/HorizonKernelFlasher), atau lewat custom recovery. ZIP ini **tidak** bisa di-flash lewat `fastboot`.
+5. Pasang aplikasi manager yang sesuai dari rilis resminya: [KernelSU](https://github.com/tiann/KernelSU/releases), [KernelSU Next](https://github.com/KernelSU-Next/KernelSU-Next/releases) atau [BakaSU](https://github.com/Baka-SU/BakaSU/releases).
+6. Reboot. Kalau macet di logo atau terus restart, buka **[Panduan Bootloop](docs/bootloop.md)**.
 
 ---
 
-## 🌐 Networking
+## Bootloop?
 
-| Feature | Description |
-|---------|-------------|
-| **TCP BBRv3** | Default congestion control for maximum speed |
-| **Westwood+** | Alternative congestion control for WiFi |
-| **FQ CoDel** | Fair queuing with controlled delay |
-| **IP Set** | Efficient IP/network address management |
-| **IPv4/IPv6 NAT** | Full NAT support for tethering |
-| **IPsec/ESP** | VPN and secure tunneling support |
-| **Netfilter** | Advanced firewall and packet filtering |
-
-**What this means for you:**
-- Faster WiFi and mobile data
-- Better VPN performance
-- Improved tethering speeds
-- Lower gaming latency
-- Smoother streaming
+Jangan panik dan **jangan factory reset**. Biasanya cukup mem-flash kembali `boot.img` stock lewat fastboot. Langkah lengkap, termasuk bagian khusus **Xiaomi 14T Pro (rothko)**, ada di **[Panduan Bootloop](docs/bootloop.md)**.
 
 ---
 
-## 🛡️ Security
+## Build sendiri
 
-| Feature | Description |
-|---------|-------------|
-| **SuSFS** | Advanced filesystem and process hiding |
-| **Baseband Guard** | Blocks unauthorized partition writes |
-| **Kernel LSM** | SELinux + Baseband Guard integration |
-| **Symbol Hiding** | Kernel symbol protection from detection |
-| **uname Spoofing** | System information hiding |
-| **Open Redirect** | Protected file operations |
-| **SUS MAP/PATH/MOUNT** | Complete filesystem hiding |
+Buka **Actions → Cogan Kernel Builder → Run workflow** di repositori Anda.
 
-**What this means for you:**
-- Stronger root hiding
-- Better banking app compatibility
-- Improved security against detection
-- Safe from unauthorized system modifications
+| Isian | Keterangan |
+|---|---|
+| Root Manager | Varian yang dibangun (lihat tabel Varian) |
+| Build Mode | `Standard Build` |
+| LTO Package | Full LTO (default), Thin LTO, atau tanpa LTO; NoMount selalu ikut |
+| Kernel Version | Dikunci `6.1` |
+| Build Revision | Opsional, format `r` + angka (mis. `r9`), ditambahkan ke nama rilis |
+| Kernel Sublevel | `lts` = terbaru, atau angka saja (mis. `177`, bukan `6.1.177`); tersedia 6.1.160 ke atas |
+| Build Time | `N` = waktu build asli, atau waktu tetap seperti `Thu Jan 1 00:00:00 UTC 2026` |
+| Networking | BBRv3 dan paket jaringan tambahan (default aktif) |
+| BBG | Baseband Guard (default aktif) |
 
----
+**Memperbarui komponen:** buka **Actions → Cogan Manual Update**.
+- `check` hanya menampilkan laporan versi.
+- `update` langsung menerapkan versi baru ke `dev`.
 
-## 🔑 Root Management
-
-| Feature | Description |
-|---------|-------------|
-| **KernelSU** | Stable kernel-based root with excellent hiding |
-| **BakaSU** | BakaSU kernel integration |
-| **Multiple Managers** | Run multiple KernelSU managers simultaneously |
-| **Vanilla** | No root for banking and corporate apps |
-
-**What this means for you:**
-- Reliable root access
-- Apps don't detect root
-- Pass SafetyNet/Play Integrity
-- Choose your root implementation
+Run workflow build hanya meng-compile dan tidak pernah memperbarui komponen sendiri.
 
 ---
 
-## 🎮 NTSync
+## Terima kasih
 
-Linux NTSYNC interface for Windows gaming:
-- Winlator
-- GameHub
-- ExaGear
-- Other Windows emulation
+- **GKID Kernels dan GKI-Duchamp-6.1**: [Ahmed Al-Nassif](https://github.com/ahmed-alnassif) (proyek dasar dan sumber kernel)
+- **KernelSU**: [tiann](https://github.com/tiann/KernelSU)
+- **KernelSU Next**: [KernelSU-Next](https://github.com/KernelSU-Next/KernelSU-Next)
+- **KernelSU Next fork SUSFS**: [pershoot](https://github.com/pershoot/KernelSU-Next)
+- **BakaSU**: [Baka-SU](https://github.com/Baka-SU/BakaSU)
+- **SUSFS**: [simonpunk](https://gitlab.com/simonpunk/susfs4ksu)
+- **NoMount**: [maxsteeel](https://github.com/maxsteeel/nomount)
+- **Baseband Guard (BBG)**: [vc-teahouse](https://github.com/vc-teahouse/Baseband-guard)
+- **AnyKernel3**: [osm0sis](https://github.com/osm0sis/AnyKernel3) (lewat [AK3-GKID](https://github.com/ahmed-alnassif/AK3-GKID))
+- **Neutron Clang**: [Neutron-Toolchains](https://github.com/Neutron-Toolchains/clang-build-catalogue)
+- Tampilan README terinspirasi [Wild Kernels](https://github.com/WildKernels/GKI_KernelSU_SUSFS)
 
-**What this means for you:**
-- Better Windows game performance
-- Lower latency in emulators
-- GKI compatibility patches included
-
----
-
-## 🐳 DroidSpaces
-
-Complete Linux userspace support:
-- System V IPC and POSIX message queues
-- IPC and PID namespaces
-- devtmpfs with xattrs
-- POSIX ACLs
-- Netfilter and IP Set
-- UFW and Fail2ban requirements
-
-**What this means for you:**
-- Run Linux apps on Android
-- Better container support
-- Chroot and proot work better
+Menemukan bug? Buka [Issue](https://github.com/cogan17/Cogan/issues) dan lampirkan log. Caranya ada di [Panduan Bootloop](docs/bootloop.md#4-setelah-berhasil-boot-ambil-log).
 
 ---
 
-## 🐉 NetHunter
+## Lisensi
 
-Wireless penetration testing features:
-- cfg80211, mac80211, RFKILL
-- Realtek rtw88, R8188EU drivers
-- Atheros, MediaTek, Ralink, Zydas
-- Bluetooth HCI and USB networking
-- Monitor mode and packet injection
-
-**What this means for you:**
-- Kali NetHunter works perfectly
-- External WiFi adapters supported
-- Wireless auditing capabilities
-- Monitor mode for packet capture
-
----
-
-## 📦 WirelessKSU
-
-Separate KernelSU module containing wireless drivers and firmware when built as modules. Flash alongside the main kernel for full NetHunter support.
-
----
-
-## 🔥 LTO Options
-
-| Option | Description | Best For |
-|--------|-------------|----------|
-| **FullLTO** | Maximum performance, slower build | Gaming, performance |
-| **ThinLTO** | Faster build, good performance | Balanced |
-| **NoLTO** | Build compatibility | Problem devices |
-
----
-
-## 🔄 Compatibility
-
-**Use Compat if:**
-- You experience boot issues
-- Standard variants don't boot
-
----
-
-## 📥 Downloads
-
-**All releases:** [GitHub Releases](https://github.com/ahmed-alnassif/GKID-Kernels/releases)
-
-**Each release includes:**
-- 📦 AnyKernel3 flashable packages
-- 📦 WirelessKSU modules (when applicable)
-- 🔐 SHA256 and MD5 checksums
-- 📝 Build information and changelogs
-
----
-
-## 📡 TCP Congestion Control
-
-Switch congestion control algorithms (temporary, resets on reboot):
-
-```bash
-# Westwood+ - better for WiFi and mobile data
-su -c "sysctl -w net.ipv4.tcp_congestion_control=westwood"
-
-# BBRv3 - default, best for speed
-su -c "sysctl -w net.ipv4.tcp_congestion_control=bbr"
-```
-
-**Make permanent:** Create a script in `/data/adb/service.d/` with the sysctl command or use ReSuSFS.
-
----
-
-## Other Ways to Help
-
-- **Star the Repository** ⭐ - Helps others discover this project
-- **Share** 📢 - Spread the word in your community or forums
-- **Report Issues** 🐛 - Found a bug? Open an issue with detailed logs
-- **Contribute** 🔧 - Pull requests, suggestions, and feedback are always welcome
-
----
-
-## 💬 Community
-
-- **Telegram:** [@ahmed_alnassif_tg](https://t.me/ahmed_alnassif_tg)
-- **Discussions:** [GitHub Discussions](https://github.com/ahmed-alnassif/GKID-Kernels/discussions)
-- **Issues:** [GitHub Issues](https://github.com/ahmed-alnassif/GKID-Kernels/issues)
-
----
-
-## 📄 License
-
-See [LICENSE](LICENSE).
+[GPL-3.0](LICENSE)

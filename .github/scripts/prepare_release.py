@@ -150,15 +150,9 @@ def build_release_body():
 
 	body = f"""{warning}### {release_name}
 
-## ❤️ Support This Project
-
-**[Donations](https://github.com/ahmed-alnassif#-support-my-work)**
-
-Your donations keep this project alive! I spend countless hours maintaining kernel builds for 5 different versions, fixing bugs, adding features, and supporting users. **Every donation matters!** 🙏
-
-- **[ReSuSFS](https://github.com/ahmed-alnassif/ReSuSFS)** – Root hiding made simple, powerful when you need it. A [KernelSU](https://kernelsu.org) module and WebUI that turns SuSFS into clean config files and toggle switches for everyday use, with **strong hiding applied out of the box** via built-in spoofing and hiding scripts for one-tap protection, plus a script manager for power users who want more, all without leaving the WebUI.
-
-- **Community:** join the discussion and get support on [Telegram](https://t.me/ahmed_alnassif_tg).
+> [!CAUTION]
+> 🇮🇩 Flash dengan risiko sendiri. Simpan `boot.img` stock **sebelum** flash: [Panduan Bootloop](https://github.com/{repo}/blob/HEAD/docs/bootloop.md).
+> 🇬🇧 Flash at your own risk. Keep your stock `boot.img` **before** flashing: [Bootloop Guide](https://github.com/{repo}/blob/HEAD/docs/bootloop.en.md).
 
 **Run settings:**
 - LTO optimizations: {cap_first(inputs['lto']) or 'Unknown'}
@@ -166,22 +160,22 @@ Your donations keep this project alive! I spend countless hours maintaining kern
 - NoMount: {status_map.get(inputs['nm'], 'Disabled')}
 
 > [!Important]
-> These are **GKI** kernels, not custom kernels. Each line below supports **all** devices that shipped with the matching Linux version and Android release (stock or AOSP).
+> 🇮🇩 Kernel **GKI 6.1**: untuk perangkat dengan kernel stock `6.1.x-android14`. Pilih sublevel yang sama atau lebih baru dari kernel stock.
+> 🇬🇧 **GKI 6.1** kernel: for devices whose stock kernel is `6.1.x-android14`. Pick the same or a newer sublevel than your stock kernel.
 
-## 🧭 Which variant should I flash?
+## 🧭 Varian / Variants
 
-| Variant | Root | SuSFS | LTO | Compat |
-|---------|------|-------|-----|--------|
-| Vanilla | ❌ | ❌ | Full | ❌ |
-| Vanilla+NoLTO | ❌ | ❌ | ❌ | ❌ |
-| KernelSU | ✅ | ❌ | Full | ❌ |
-| KernelSU+SuSFS | ✅ | ✅ | Full | ❌ |
-| KSU+SuSFS+MM | ✅ | ✅ | Full | ❌ |
-| BakaSU+SuSFS | ✅ | ✅ | Full | ❌ |
-| Compat+KSU+SuSFS | ✅ | ✅ | ❌ | ✅ |
-| Compat+BakaSU+SuSFS | ✅ | ✅ | ❌ | ✅ |
+| Variant | Root | SuSFS | Notes |
+|---------|------|-------|-------|
+| KernelSU | KernelSU | ❌ | |
+| KernelSU+SuSFS | KernelSU | ✅ | |
+| KernelSU-Next | KernelSU Next | ❌ | |
+| KernelSU-Next+SuSFS+Test | KernelSU Next (pershoot fork) | ✅ | uji / test build only |
+| BakaSU+SuSFS | BakaSU | ✅ | |
+| Vanilla | ❌ | ❌ | tanpa root / no root |
+| Compat+… | (as named) | ✅ | tanpa LTO / no LTO |
 
-**Not sure? Use a `Compat` variant first**: it fixes most boot issues. Full feature breakdown, LTO explanation, and troubleshooting live in the [README](https://github.com/ahmed-alnassif/GKID-Kernels#-build-variants).
+Selengkapnya / More: [README (ID)](https://github.com/{repo}#readme) · [README (EN)](https://github.com/{repo}/blob/HEAD/README.en.md)
 
 ## Contents
 {toc_block}
@@ -193,60 +187,17 @@ Your donations keep this project alive! I spend countless hours maintaining kern
 ---
 
 >[!Note]
->- **Bootloop?** Flash a **Compat** variant first.
->- **Issues?** Check [Discussions](https://github.com/ahmed-alnassif/GKID-Kernels/discussions) before opening an issue.
+>- 🇮🇩 **Bootloop?** Flash kembali `boot.img` stock lewat fastboot: [Panduan Bootloop](https://github.com/{repo}/blob/HEAD/docs/bootloop.md).
+>- 🇬🇧 **Bootloop?** Flash your stock `boot.img` back with fastboot: [Bootloop Guide](https://github.com/{repo}/blob/HEAD/docs/bootloop.en.md).
+>- 🐛 Bug: [Issues](https://github.com/{repo}/issues) (lampirkan bugreport / attach a bug report).
 
 ---
 
-### Community & Support
-- **Have questions?** Start a [Discussion](https://github.com/ahmed-alnassif/GKID-Kernels/discussions)
-- **Found a bug?** Open an [Issue](https://github.com/ahmed-alnassif/GKID-Kernels/issues) with logs
-- **Enjoying the kernel?** Star the [repo](https://github.com/ahmed-alnassif/GKID-Kernels)
-
----
-
-**Performance & battery optimizations**
-Engineered for smoother UI, better multitasking, and gaming on Poco X6 Pro:
-
-**Performance**
-- 300Hz timer -> lower input lag, snappier feel
-- MGLRU -> better multitasking & battery life
-- Faster memory ops -> up to 50% faster string/memory handling
-- mq-deadline I/O -> low-latency on UFS 4.0 storage
-- CPU governors: schedutil + ondemand -> efficient & responsive
-- NTSync driver -> faster Windows games/apps on Winlator/GameHub
-
-**Network**
-- TCP BBRv3 + Westwood+ -> better WiFi/mobile data speeds
-- IPv6 NAT + IP Set -> better tethering & VPN
-
-**Battery life**
-- Wakelock cap: 500ms -> prevents battery drain
-- Freeze timeout: 20s -> 1s -> faster deadlock detection
-- ext4 commit age: 30s -> fewer disk writes
-- Minimized alarm wakeups -> less standby drain
-
-**Storage & filesystem**
-- F2FS tuning: reduced GC sleep (50ms) -> smoother I/O
-- ext4 optimization -> extended commit age
-
-**Security**
-- Baseband Guard (BBG) -> blocks unauthorized writes to critical partitions
-
----
-
-### Recommended companion modules
-Enhance your Poco X6 Pro with these modules designed for GKID kernels:
-
-| Module | Description | ROM |
-|--------|-------------|-----|
-| [**GPU Unlocker**](https://github.com/ahmed-alnassif/GPU-Unlocker) | Unlock Mali-G615 MC6 from 701MHz to 1.4GHz (100% boost) | HyperOS |
-| [**Thermal Manager**](https://github.com/ahmed-alnassif/Thermal-Manager) | Fix thermal mode reset. Force-persist Balanced, Battery Saver, Performance, or Gaming. Includes WebUI. | AOSP |
-| [**DSP AudioFix**](https://github.com/ahmed-alnassif/DSP-AudioFix) | Fix distorted audio on devices with Awinic smart amps | AOSP |
-
-> [!Tip]
-> HyperOS users: GPU Unlocker gives a large gaming performance boost.
-> AOSP users: Thermal Manager fixes a stock bug that resets your thermal mode.
+**Features**
+- KernelSU / KernelSU Next / BakaSU with SUSFS root hiding
+- NoMount, Baseband Guard (BBG)
+- TCP BBRv3 (default) + Westwood+, FQ, IP Set, IPv6 NAT
+- 300Hz timer, MGLRU, zRAM LZ4 + writeback, mq-deadline, F2FS compression, NTSync
 
 ---
 
