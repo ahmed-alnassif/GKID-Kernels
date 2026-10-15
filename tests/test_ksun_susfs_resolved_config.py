@@ -95,6 +95,22 @@ class ResolvedConfigTests(unittest.TestCase):
         with patch.object(gate.Path, "read_bytes", return_value=fragment):
             self.assertEqual([], gate.audit((GOOD + "CONFIG_KSU_SUSFS_SUS_PATH=y\n").encode(), lock))
 
+    def test_repository_lock_and_fragment_integrity(self):
+        import hashlib
+        import json
+        lock_path = ROOT / "configs/ksun-susfs-6.1-features.lock.json"
+        lock = json.loads(lock_path.read_text(encoding="utf-8"))
+        config = lock["configuration"]
+        fragment = (ROOT / config["fragment"]).read_bytes()
+        self.assertEqual(hashlib.sha256(fragment).hexdigest(), config["sha256"])
+        self.assertEqual(config["target"], "gki_defconfig")
+        self.assertTrue(config["fresh_output_required"])
+        for guard in ("production_enabled", "run_full_build",
+                      "release_allowed", "flash_allowed", "lkm_allowed"):
+            self.assertIs(lock["guards"][guard], False)
+        self.assertIn("CONFIG_KSU_SUSFS_SUS_PATH=y", fragment.decode())
+        self.assertIn("# CONFIG_NTSYNC is not set", fragment.decode())
+
     def test_nomount_module_not_builtin(self):
         self.assertTrue(any("CONFIG_NOMOUNT" in error for error in
                             self.check(GOOD.replace("CONFIG_NOMOUNT=y", "CONFIG_NOMOUNT=m"))))
