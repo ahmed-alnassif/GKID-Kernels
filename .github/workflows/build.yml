@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       ROOT_MANAGER:
-        description: "Root manager (choose one, or all variants)"
+        description: "Root Manager"
         type: choice
         default: "KernelSU"
         options:
@@ -26,7 +26,7 @@ on:
           - "Standard Build"
 
       LTO:
-        description: "LTO Build Package (NoMount + Clean LTO included)"
+        description: "LTO Package"
         default: "fullLTO + NoMount + Clean LTO"
         type: choice
         options:
@@ -35,7 +35,7 @@ on:
           - "fullLTO + NoMount + Clean LTO"
 
       KERNEL_VERSION:
-        description: "GKI LTS kernel line to build"
+        description: "Kernel Version"
         default: "6.1"
         type: choice
         options:
@@ -47,12 +47,12 @@ on:
           - "6.12"
 
       BUILD_REVISION:
-        description: "Revision (optional, e.g. r9; blank = automatic run number)"
+        description: "Build Revision"
         type: string
         default: ""
 
       KERNEL_SUBLEVEL:
-        description: "Kernel 6.1 sublevel (source selected automatically)"
+        description: "Kernel Sublevel"
         type: choice
         default: "Auto"
         options:
@@ -76,7 +76,7 @@ on:
           - "177"
 
       BUILD_TIME:
-        description: "N = current UTC; or Sat Oct 10 19:10:00 UTC 2026"
+        description: "Build Time"
         type: string
         default: "N"
 
