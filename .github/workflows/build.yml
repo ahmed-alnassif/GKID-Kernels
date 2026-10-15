@@ -80,6 +80,11 @@ on:
         type: string
         default: "N"
 
+      NETWORKING:
+        description: "Networking"
+        type: boolean
+        default: true
+
 # Legacy workflow (Edo Tensei): former TODO and TEST inputs are retired.
 # Standard Build is the sole supported mode: TODO=kernel, TEST=no.
 # LTO package labels map to legacy LTO values; NM=true and CLEAN_LTO_CACHE=true stay fixed.
