@@ -28,7 +28,14 @@ echo "⚙️ Adding Compatibility GKI Networking and Filesystem configs"
 apply_config "$WORKDIR/configs/compat.config" "$DEFCONFIG"
 
 echo "⚙️ Adding Universal Performance Tuning"
-apply_config "$WORKDIR/configs/custom.config" "$DEFCONFIG"
+if [ "${NETWORKING:-true}" = "false" ]; then
+  # Keep Android/GKI compatibility networking from compat.config intact.
+  # Only omit the optional networking extras section in custom.config.
+  echo "ℹ️ Networking extras disabled; preserving base Android networking"
+  sed '/^# Networking extras$/,$d' "$WORKDIR/configs/custom.config" >> "$DEFCONFIG"
+else
+  apply_config "$WORKDIR/configs/custom.config" "$DEFCONFIG"
+fi
 
 if [ "$C_LTO" != "true" ]; then
   if [ "$KSU_COMPAT" = "true" ] || [ "$KSU" = "vnlto" ]; then
