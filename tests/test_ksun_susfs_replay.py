@@ -74,7 +74,7 @@ class ReplayTests(unittest.TestCase):
         self.manifest.write_text(json.dumps(data))
         result = self.run_replay("--apply")
         self.assertNotEqual(result.returncode, 0)
-        self.assertEqual((self.kernel / "sample.txt").read_text(), "before\\n")
+        self.assertEqual((self.kernel / "sample.txt").read_text(), "before\n")
 
     def test_nonapplicable_patch_blocks(self):
         self.patch.write_text(self.patch.read_text().replace("-before", "-absent"))
