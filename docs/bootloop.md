@@ -74,6 +74,8 @@ Bootloop karena kernel **tidak** perlu `fastboot -w`, `fastboot erase` atau fact
 | Kernel stock | GKI `android14-6.1` (contoh `6.1.138-android14-11`) |
 | ROM | HyperOS (contoh `OS3.0.301.0.WNNIDXM`) |
 
+**Flash `boot` atau `init_boot`?** Flash **`boot`** saja. HP ini dirilis dengan Android 14, jadi kernel ada di partisi `boot`; `init_boot` hanya berisi ramdisk, dan ZIP Cogan tidak pernah mengubahnya. `init_boot.img` stock hanya perlu di-flash juga jika Anda pernah mem-patch `init_boot` sendiri (Magisk atau KernelSU mode LKM).
+
 **Masuk fastboot:** tahan **Volume Bawah + Power** sampai muncul tulisan **FASTBOOT**. Saat bootloop, cukup tahan kedua tombol sampai layar fastboot muncul.
 
 **Langkah:**

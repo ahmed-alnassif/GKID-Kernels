@@ -74,6 +74,8 @@ A kernel bootloop does **not** need `fastboot -w`, `fastboot erase` or a factory
 | Stock kernel | GKI `android14-6.1` (e.g. `6.1.138-android14-11`) |
 | ROM | HyperOS (e.g. `OS3.0.301.0.WNNIDXM`) |
 
+**Flash `boot` or `init_boot`?** Flash **`boot`** only. This phone launched with Android 14, so the kernel lives in the `boot` partition; `init_boot` only holds the ramdisk, and the Cogan ZIP never changes it. Flash the stock `init_boot.img` too only if you patched `init_boot` yourself (Magisk or KernelSU LKM mode).
+
 **Enter fastboot:** hold **Volume Down + Power** until **FASTBOOT** appears. During a bootloop, keep holding both keys until the fastboot screen shows.
 
 **Steps:**
