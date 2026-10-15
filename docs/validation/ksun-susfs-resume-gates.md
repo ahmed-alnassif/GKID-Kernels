@@ -44,3 +44,9 @@ Before scheduling a candidate-only manual Actions run, require a reviewable, ord
 If the historical workspace and patch provenance cannot be recovered, mark the candidate **not reproducible** and build a newly versioned candidate from independently pinned inputs. A green source-only Validate workflow does not waive these requirements. Keep production `build.yml` and `build.sh` KSUN+SUSFS guards intact.
 
 Verified upstream provenance (GitHub API, 2026-10-15): `source_context.prerequisite_commits.ntsync` (`41ae18b...`) belongs to `WildKernels/kernel_patches`, **not** `ahmed-alnassif/GKI-Duchamp-6.1`; `bbg` (`a54e0dc...`) belongs to `vc-teahouse/Baseband-guard`; `nomount` (`7046c7a...`) belongs to `maxsteeel/nomount`. These are upstream commit references, **not proof** of an applied patch sequence or complete source replay.
+
+## Gate E — SUSFS patch application isolation
+
+Current `functions.sh` `apply_susfs_patches()` copies SUSFS files and uses `patch -p1 --fuzz=3`; its main patch failure can fall through except for a 5.15-specific fallback. This is **not an acceptable fail-closed replay mechanism** for the pinned KSUN+SUSFS 6.1 candidate. Do not modify this shared helper as a shortcut: other root-manager variants use it.
+
+For a future **isolated** candidate replay, apply only checksum-verified patches in recorded order using `git apply --check` followed by `git apply` with no fuzz; stop on the first failure, preserve the exact rejection/log, and compare the resulting tracked changes and `.config` with recorded evidence. No production workflow change or build authorization is implied.
