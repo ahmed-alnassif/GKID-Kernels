@@ -40,7 +40,7 @@ class LockTests(unittest.TestCase):
         lock = mu.read_lock(REAL_LOCK)
         sublevels = {key for key in lock if mu.SUBLEVEL_KEY.fullmatch(key)}
         self.assertEqual(set(mu.PINS) | {"KSUN_REF"}, set(lock) - sublevels)
-        self.assertEqual(sorted(int(key.rsplit("_", 1)[1]) for key in sublevels), list(range(161, 178)))
+        self.assertEqual(sorted(int(key.rsplit("_", 1)[1]) for key in sublevels), list(range(160, 178)))
 
     def test_unknown_key_rejected(self):
         with self.assertRaisesRegex(ValueError, "Unknown lock keys: KSU_COMMMIT"):
@@ -176,17 +176,30 @@ class ShellLockTests(unittest.TestCase):
         self.assertIn('SUBLEVEL_PIN_VAR="PIN_KERNEL_COMMIT_6_1_${KERNEL_SUBLEVEL}"', build)
         self.assertNotIn('161) KERNEL_BRANCH=', build)
 
-    def test_every_dropdown_sublevel_has_a_pin(self):
+    def test_sublevel_is_free_text_checked_against_the_lock(self):
         import yaml
         workflow = yaml.safe_load((ROOT / ".github/workflows/build.yml").read_text())
-        options = workflow[True]["workflow_dispatch"]["inputs"]["KERNEL_SUBLEVEL"]["options"]
+        sublevel = workflow[True]["workflow_dispatch"]["inputs"]["KERNEL_SUBLEVEL"]
+        self.assertEqual((sublevel["type"], sublevel["default"]), ("string", "Auto"))
+        self.assertIn("6.1.160", sublevel["description"])
         lock = mu.read_lock(REAL_LOCK)
-        for option in options:
-            if option != "Auto":
-                self.assertIn("KERNEL_COMMIT_6_1_" + option, lock, option)
+        self.assertEqual(min(int(k.rsplit("_", 1)[1]) for k in lock if mu.SUBLEVEL_KEY.fullmatch(k)), 160)
         self.assertEqual(lock["KERNEL_COMMIT_6_1_" + str(mu.current_sublevel(lock))],
                          lock["KERNEL_COMMIT_6_1"])
+        preflight = next(step["run"] for step in workflow["jobs"]["prepare"]["steps"]
+                         if step["name"] == "Validate sublevel, build time and optional features")
 
+        def run(version, value):
+            env = {**os.environ, "ROOT_MANAGER_INPUT": "KernelSU", "KERNEL_VERSION_INPUT": version,
+                   "KERNEL_SUBLEVEL_INPUT": value, "BUILD_TIME_INPUT": "N"}
+            return subprocess.run(["bash", "-c", preflight], cwd=ROOT, env=env,
+                                  capture_output=True, text=True)
+        for value in ("Auto", "160", "177"):
+            self.assertEqual(run("6.1", value).returncode, 0, value)
+        for version, value in (("6.1", "159"), ("6.1", "178"), ("6.1", "6.1.177"),
+                               ("6.1", "abc"), ("6.1", "0177"), ("6.6", "177")):
+            self.assertNotEqual(run(version, value).returncode, 0, (version, value))
+        self.assertIn("Available: 160 161", run("6.1", "159").stdout)
 
 if __name__ == "__main__":
     unittest.main()

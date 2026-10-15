@@ -217,7 +217,7 @@ def plan(lock, groups, lister=ls_remote, sublevel_of=kernel_sublevel):
     return rows, updates
 
 
-def report(rows, fingerprints, mode, groups, updates):
+def report(rows, fingerprints, mode, groups, updates, lock_keys=()):
     lines = [
         f"## Cogan Manual Update — mode `{mode}`",
         "",
@@ -236,9 +236,12 @@ def report(rows, fingerprints, mode, groups, updates):
     added = sorted(int(SUBLEVEL_KEY.fullmatch(key).group(1)) for key in updates
                    if SUBLEVEL_KEY.fullmatch(key))
     if added:
-        lines.append(f"Kernel Sublevel: 6.1.{added[-1]} becomes **Auto**. The build form dropdown is a "
-                     "workflow file that this token cannot edit; add the number to "
-                     "`.github/workflows/build.yml` (options and prepare check) to select it explicitly.")
+        lines.append(f"Kernel Sublevel: 6.1.{added[-1]} becomes **Auto** and can also be typed as "
+                     f"`{added[-1]}` in the build form; older sublevels stay available.")
+        lines.append("")
+    pinned = sorted(int(SUBLEVEL_KEY.fullmatch(key).group(1)) for key in lock_keys if SUBLEVEL_KEY.fullmatch(key))
+    if pinned:
+        lines.append(f"Available Kernel Sublevel values: Auto, {pinned[0]}–{pinned[-1]}.")
         lines.append("")
     if mode == "update":
         if updates:
@@ -278,7 +281,8 @@ def main(argv=None):
     lock = read_lock(text)
     groups = select(args.components)
     rows, updates = plan(lock, groups)
-    output = report(rows, collect_fingerprints(), args.mode, groups, updates)
+    output = report(rows, collect_fingerprints(), args.mode, groups, updates,
+                    lock_keys=[*lock, *updates])
     if args.summary:
         with open(args.summary, "a", encoding="utf-8") as handle:
             handle.write(output)

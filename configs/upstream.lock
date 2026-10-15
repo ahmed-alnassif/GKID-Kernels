@@ -19,6 +19,7 @@ ANYKERNEL_COMMIT=82e7a449fd66de3886ba68d96503e90de2df2c2e
 KERNEL_COMMIT_6_1=a7ba124af5a535078d3f83b3e145f9cc8ec651b8
 # GKID 6.1 commit per selectable sublevel (Kernel Sublevel input). Auto uses
 # KERNEL_COMMIT_6_1; Manual Update adds the new sublevel when GKID-6.1 advances.
+KERNEL_COMMIT_6_1_160=dd19784753c116a110f3d8fc4f1e553b1a14ac4a
 KERNEL_COMMIT_6_1_161=61fcbb6cd1dbc15d4af24bce8296367554f70b8b
 KERNEL_COMMIT_6_1_162=0182cb5b74ee79448adf4f33a137ca34e209eb30
 KERNEL_COMMIT_6_1_163=8ce36b2849ef65d98b77bcced8cf72333b2d5da0

@@ -53,28 +53,9 @@ on:
         default: ""
 
       KERNEL_SUBLEVEL:
-        description: "Kernel Sublevel"
-        type: choice
+        description: "Kernel Sublevel: Auto = terbaru, atau angka saja (mis. 177, bukan 6.1.177). Tersedia 6.1.160 ke atas"
+        type: string
         default: "Auto"
-        options:
-          - "Auto"
-          - "161"
-          - "162"
-          - "163"
-          - "164"
-          - "165"
-          - "166"
-          - "167"
-          - "168"
-          - "169"
-          - "170"
-          - "171"
-          - "172"
-          - "173"
-          - "174"
-          - "175"
-          - "176"
-          - "177"
 
       BUILD_TIME:
         description: "Build Time"
@@ -142,7 +123,11 @@ jobs:
             exit 1
           fi
           if [[ "$KERNEL_SUBLEVEL_INPUT" != "Auto" ]]; then
-            [[ "$KERNEL_VERSION_INPUT" == "6.1" && "$KERNEL_SUBLEVEL_INPUT" =~ ^(16[1-9]|17[0-7])$ ]] || { echo "::error::Sublevel 161-177 requires kernel 6.1"; exit 1; }
+            [[ "$KERNEL_VERSION_INPUT" == "6.1" ]] || { echo "::error::A specific sublevel requires kernel 6.1"; exit 1; }
+            [[ "$KERNEL_SUBLEVEL_INPUT" =~ ^[0-9]+$ ]] || { echo "::error::Sublevel must be Auto or a number such as 177 (not 6.1.177)"; exit 1; }
+            # Available sublevels are the pinned ones in configs/upstream.lock.
+            available="$(sed -n 's/^KERNEL_COMMIT_6_1_\([0-9][0-9]*\)=.*/\1/p' configs/upstream.lock | sort -n | tr '\n' ' ')"
+            grep -q "^KERNEL_COMMIT_6_1_${KERNEL_SUBLEVEL_INPUT}=" configs/upstream.lock || { echo "::error::Sublevel 6.1.${KERNEL_SUBLEVEL_INPUT} is not available. Available: ${available}"; exit 1; }
           fi
           if [[ "$BUILD_TIME_INPUT" != "N" ]]; then
             [[ "$BUILD_TIME_INPUT" =~ ^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)[[:space:]](Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[[:space:]][0-9]{1,2}[[:space:]][0-9]{2}:[0-9]{2}:[0-9]{2}[[:space:]]UTC[[:space:]][0-9]{4}$ ]] || { echo "::error::Invalid BUILD_TIME format"; exit 1; }
