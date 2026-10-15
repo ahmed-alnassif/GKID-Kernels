@@ -41,3 +41,4 @@ jobs:
           python3 -m unittest discover -s tests -p 'test_ksun_susfs_preflight.py'
           python3 -m unittest discover -s tests -p 'test_ksun_susfs_replay.py'
           python3 -m unittest discover -s tests -p 'test_prepare_susfs_kernel_patch.py'
+          python3 -m unittest discover -s tests -p 'test_prepare_susfs_synthetic.py'
