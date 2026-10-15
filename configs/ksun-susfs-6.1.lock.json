@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "status": "source_only",
+  "status": "partial_build_verified",
   "build_enabled": false,
   "implementation": "pershoot_builtin",
   "target": {
@@ -39,5 +39,17 @@
     "kernel_patches/fs/susfs.c": "976f6d47a45260bcb0bb17d8ffe8beddeda398f8aba9bba54517ece9daf9e253",
     "kernel_patches/include/linux/susfs.h": "fafff787b8856bd37a6736c2f0bbc5a57fd1f36232be267936f892fb57bc5120",
     "kernel_patches/include/linux/susfs_def.h": "db7f98dcf8119a4eb5c45c05205b6c1065766047d6f803b0e86f3d14b1a251f0"
+  },
+  "validation": {
+    "report": "docs/validation/ksun-susfs-6.1-partial-build.json",
+    "scope": "built-in driver, SUSFS core and namespace helper partial link",
+    "full_image_verified": false,
+    "runtime_verified": false
+  },
+  "toolchain": {
+    "release": "06092026",
+    "repository": "https://github.com/Neutron-Toolchains/clang-build-catalogue",
+    "archive_sha256": "531083928c8e37f6b31e324dbfd0b5a8323f989b1c57ff2c1368b889b5b1bd30",
+    "llvm_commit": "f42c87ba2c70219b1f4ad1f031a5b6a1ea6603fb"
   }
 }

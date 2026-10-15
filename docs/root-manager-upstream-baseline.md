@@ -46,7 +46,7 @@ Do not upgrade root manager revisions automatically, remove existing build choic
 
 ## Active handoff — built-in candidate, 2026-10-15 (WIB)
 
-**HOLD: source pairing identified; no verified Image, boot, Manager, SUSFS or vendor ABI/KMI result for the current bundle.**
+**PARTIAL BUILD VERIFIED / FULL IMAGE AND RUNTIME HOLD:** the built-in KSUN driver, SUSFS core and namespace helper objects compile and pass a bounded relocatable link. Full Image, boot, matching Manager/root, SUSFS behavior and vendor ABI/KMI remain unverified.
 
 The selected research candidate is the **pershoot built-in integration**, separate from the ordinary official KSUN `v3.4.2` baseline. It does not substitute `susfs_guard_lkm.ko` for Simonpunk's kernel hooks. Its immutable sources and payload hashes are saved in [`configs/ksun-susfs-6.1.lock.json`](../configs/ksun-susfs-6.1.lock.json). This is a source-pair lock, not a complete production build lock or permission to enable the variant.
 
@@ -77,11 +77,23 @@ The earlier Image attempt stopped first at a host libelf include-path problem; t
 
 That older source composition enabled DroidSpaces, omitted NoMount, and used ThinLTO with a portable Clang 18 toolchain. The current owner bundle fixes **NoMount + Clean LTO**, disables **DroidSpaces**, and defaults to **fullLTO**. Its additional source/config/link interaction and production toolchain have not been validated by the older result. A read-only inspection observed NoMount `master` at `7046c7ad3ee0bf4ae66e80f6b93b1e30db0cb4e3`; this observation is not a compatibility result or a change to the normal build's NoMount selection.
 
+### Latest verified work — KSUN+SUSFS only
+
+The owner's latest direction is **KSUN+SUSFS only**. NoMount object testing was stopped after preparation reported a missing host `bc`; it was not resumed. The existing repository feature defaults are context for the resolved configuration, not a separate development or runtime-validation claim.
+
+- Full pinned source was composed with the saved SUSFS delta. The existing config script evaluated successfully with the repository's current fullLTO/CFI defaults. `.config` SHA-256: `5f47f9c03db802fadc24e396305bebd575f975f3ede9a181fe082e1cf2f7da67`.
+- Neutron release `06092026`, Clang/LLD 24, LLVM `f42c87ba2c70219b1f4ad1f031a5b6a1ea6603fb` was verified against the release archive SHA-256. Compile commands confirm `-flto` and `-fsanitize=kcfi`.
+- **36 built-in KSUN driver objects**, `fs/susfs.o` and `fs/namespace.o` compiled successfully. The verified `v3.4.2` base tag resolves to `4c706b5938665866ebe16944a481a7b91e3396af`; the candidate stays at `2f858cb292265795dee2807759cec2eb8a7d79b1`. Build output reports KSUN version `33365`, base tag `v3.4.2`, and SUSFS `v2.3.0`.
+- A relocatable AArch64 link of the driver archive, SUSFS core and namespace object succeeded. It resolves 19 driver-to-core imports, three core-to-driver imports and the two namespace helper providers. No undefined symbol with the `ksu_` or `susfs_` prefix remains within this partial result.
+- This is a **partial link**: 302 other kernel symbols remain external. It is not a `vmlinux`/Image link, BTF generation, device compatibility or runtime pass. No new full Image build, Actions kernel compilation, PR or flash was performed.
+
+The exact scope, input identities, object/link hashes and diagnosed preparation errors are recorded in [`docs/validation/ksun-susfs-6.1-partial-build.json`](validation/ksun-susfs-6.1-partial-build.json). The source-pair lock remains `build_enabled: false`.
+
 ### Resume from here
 
-1. Recover a final result/log from the earlier build if it becomes available; keep an unavailable result marked unknown. Reuse the existing source evidence and saved delta.
-2. Address only the changed current bundle: locked NoMount source/install procedure, DroidSpaces off, the selected LTO mode, production toolchain and real resolved config. Keep networking behavior unchanged; do not revive separate TCP/BBR development.
-3. Only after a reviewable source/config composition exists, assess whether one explicitly justified targeted build is needed. Diagnose any failure first; no speculative reruns, broad matrix, or repeated green Actions.
-4. Boot, matching Manager/root, SUSFS, ordinary Wi-Fi and vendor ABI/KMI/runtime still require evidence before readiness. Keep the existing workflow choice and fail-closed guard; do not enable the variant from metadata alone.
+1. Reuse `/workspace/scratch/a01fce1f8f50/candidate-stage/kernel`, `candidate-stage/out` and `candidate-stage/evidence` when available. The final scope-specific object log is `ksun-susfs-tag-and-namespace.log`; linkage proof is `ksun-susfs-namespace-linkage.json`. Do not repeat completed object, config or metadata checks.
+2. The next unclosed gate is one justified full Image/link build for **KSUN+SUSFS**, using the pinned sources and verified Neutron release. This is a changed compiler/config composition from the unavailable older build, not a replay based only on a session change. Check BTF/host prerequisites and use existing successful objects. Diagnose the first failure before any rerun; no broad matrix or speculative retries.
+3. Verify the resulting artifact, matching Manager/root, boot, SUSFS behavior, ordinary Wi-Fi and vendor ABI/KMI/runtime before readiness. A successful partial or full compile alone does not open the production guard.
+4. Keep work confined to KSUN+SUSFS. Do not expand into NoMount/LTO feature development, other managers or TCP/BBR work. The older full Image result remains unknown unless its final log/artifact is recovered.
 
 The workflow guard now stops in `prepare`, before cache/dependency jobs; direct invocations stop at script entry, before source downloads, installers or host changes. Regression checks cover both guards' lack of side effects and the dedicated dropdown mapping. Continue on this one `dev` branch; update this handoff instead of creating duplicate PRs or checkpoints.

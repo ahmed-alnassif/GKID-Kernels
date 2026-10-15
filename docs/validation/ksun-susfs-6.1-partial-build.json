@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "status": "partial_build_verified",
+  "scope": "KSUN built-in driver, SUSFS core and its two VFS namespace helper providers only",
+  "tested_cogan_commit": "931b739802603c0a4659677903a1ad1b5bd74e0c",
+  "sources": {
+    "kernel": "a7ba124af5a535078d3f83b3e145f9cc8ec651b8",
+    "ksun": "2f858cb292265795dee2807759cec2eb8a7d79b1",
+    "susfs": "a9bb4dd3ed248ada636b480bfdff70af704f1463"
+  },
+  "source_context": {
+    "kernel_archive_sha256": "6cdf8d5795d13d08b5304073ae686e4c1670e6d9afe423531868a0f73909b12c",
+    "prerequisite_commits": {
+      "ntsync": "41ae18b35d20e0c6ac04116785a4a1089528ae94",
+      "bbg": "a54e0dc6cf0aff4dd87fec49644a02d2eb612905",
+      "nomount": "7046c7ad3ee0bf4ae66e80f6b93b1e30db0cb4e3"
+    },
+    "configuration_file_blobs": {
+      "configs/gki_defconfig.sh": "0719eb31be961fa1f5010d8345d04593922e50d9",
+      "configs/features.config": "13e4b2b4b7a3d5eccb139348f0ce3778e7836ef6",
+      "configs/compat.config": "025164e23ef17c1d1b82c54cb4f88b71067970e8",
+      "configs/custom.config": "9c78dc54c9f9a64ab780a7d596ccf5be3f8a3d94",
+      "configs/susfs.config": "8461b43a5cc29f7108b122f3ef9add9214d4c582"
+    }
+  },
+  "toolchain": {
+    "release": "06092026",
+    "clang": "Neutron clang 24.0.0git",
+    "lld": "Neutron LLD 24.0.0",
+    "llvm_commit": "f42c87ba2c70219b1f4ad1f031a5b6a1ea6603fb",
+    "archive_sha256": "531083928c8e37f6b31e324dbfd0b5a8323f989b1c57ff2c1368b889b5b1bd30"
+  },
+  "configuration": {
+    "make_target": "gki_defconfig",
+    "exit": 0,
+    "sha256": "5f47f9c03db802fadc24e396305bebd575f975f3ede9a181fe082e1cf2f7da67",
+    "resolved": {
+      "CONFIG_CC_VERSION_TEXT": "\"Neutron clang version 24.0.0git (https://github.com/llvm/llvm-project.git f42c87ba2c70219b1f4ad1f031a5b6a1ea6603fb)\"",
+      "CONFIG_ARM64": "y",
+      "CONFIG_LTO_CLANG_FULL": "y",
+      "CONFIG_CFI_CLANG": "y",
+      "CONFIG_KSU": "y",
+      "CONFIG_KSU_SUSFS": "y",
+      "CONFIG_KSU_SUSFS_SUS_PATH": "y",
+      "CONFIG_KSU_SUSFS_SUS_MOUNT": "y",
+      "CONFIG_KSU_SUSFS_SUS_KSTAT": "y",
+      "CONFIG_KSU_SUSFS_SPOOF_UNAME": "y",
+      "CONFIG_KSU_SUSFS_ENABLE_LOG": "y",
+      "CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS": "y",
+      "CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG": "y",
+      "CONFIG_KSU_SUSFS_OPEN_REDIRECT": "y",
+      "CONFIG_KSU_SUSFS_SUS_MAP": "y"
+    }
+  },
+  "driver_identity": {
+    "base_tag": "v3.4.2",
+    "base_tag_commit": "4c706b5938665866ebe16944a481a7b91e3396af",
+    "observed_kernel_su_version": 33365,
+    "susfs_version": "v2.3.0"
+  },
+  "objects": {
+    "driver_target": "drivers/kernelsu/",
+    "driver_object_count": 36,
+    "susfs_target": "fs/susfs.o",
+    "namespace_target": "fs/namespace.o",
+    "successful_final_make_exit": 0,
+    "compiler_flags": [
+      "-flto",
+      "-fsanitize=kcfi",
+      "-fsanitize=array-bounds",
+      "-fsanitize=local-bounds"
+    ],
+    "core_susfs_sha256": "047a9f7b697312455788b0830d7a49f6ac7dbad50ccc8dcbf21b83c96f13f679",
+    "namespace_sha256": "48557cd1d8b67da4aa8dce04c66a454d865c4691bd129196fdaa3194e0c21e42",
+    "driver_archive_member_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+  },
+  "partial_link": {
+    "command": [
+      "ld.lld",
+      "-r",
+      "-m",
+      "aarch64elf",
+      "--whole-archive",
+      "drivers/kernelsu/built-in.a",
+      "--no-whole-archive",
+      "fs/susfs.o",
+      "fs/namespace.o",
+      "-o",
+      "ksun-susfs-namespace-reloc.o"
+    ],
+    "exit": 0,
+    "format": "ELF64 AArch64 relocatable",
+    "sha256": "9b717a34fc18b72cdb4a52a00610ad89b06ee7dbe637a4598c05569b91e565f2",
+    "driver_imports_resolved_by_core_count": 19,
+    "core_imports_resolved_by_driver": [
+      "ksu_cred",
+      "setup_selinux",
+      "susfs_is_current_ksu_domain"
+    ],
+    "namespace_helpers": [
+      "susfs_get_non_sus_mnt_id_from_mnt",
+      "susfs_get_non_sus_vfsmnt_from_vfsmnt"
+    ],
+    "unresolved_ksu_or_susfs_prefix_symbols": [],
+    "other_undefined_kernel_symbols": 302
+  },
+  "diagnosed_setup_and_target_errors": [
+    "The abandoned NoMount preparation stopped on missing host bc. bc was extracted locally; no NoMount object test was resumed.",
+    "The top-level make target does not expose SELinux .h generation. The already-built upstream genheaders helper generated the two headers.",
+    "Built-in KSUN is flattened into built-in.a, so the unsupported kernelsu.o aggregate target was replaced with drivers/kernelsu/. The successful SUSFS object from the first invocation was reused.",
+    "The immutable v3.4.2 base tag was fetched and verified after the first driver pass; only the driver was rebuilt for corrected version metadata, along with the newly required namespace helper object."
+  ],
+  "limits": {
+    "new_full_image_build_started": false,
+    "previous_full_image_result": "unknown",
+    "vmlinux_link_verified": false,
+    "btf_generation_verified": false,
+    "manager_apk_compatibility_verified": false,
+    "boot_root_susfs_wifi_runtime_verified": false,
+    "vendor_abi_kmi_verified": false,
+    "nomount_object_test_continued": false
+  },
+  "resume": {
+    "workspace": "/workspace/scratch/a01fce1f8f50",
+    "evidence_directory": "candidate-stage/evidence",
+    "kernel_source": "candidate-stage/kernel",
+    "output_directory": "candidate-stage/out",
+    "scope": "KSUN+SUSFS only",
+    "next_gate": "One justified targeted full Image/link build; preserve successful objects and logs. Then artifact and device/runtime validation. Do not rerun completed object or metadata checks."
+  }
+}
