@@ -95,6 +95,17 @@ class ResolvedConfigTests(unittest.TestCase):
         with patch.object(gate.Path, "read_bytes", return_value=fragment):
             self.assertEqual([], gate.audit((GOOD + "CONFIG_KSU_SUSFS_SUS_PATH=y\n").encode(), lock))
 
+    def test_locked_arm64_must_resolve_enabled(self):
+        import hashlib
+        from unittest.mock import patch
+        fragment = b"CONFIG_ARM64=y\n"
+        lock = {"configuration": {**LOCK["configuration"],
+                "fragment": "configs/ksun-susfs-6.1-features.config",
+                "sha256": hashlib.sha256(fragment).hexdigest()}}
+        with patch.object(gate.Path, "read_bytes", return_value=fragment):
+            errors = gate.audit(GOOD.encode(), lock)
+        self.assertTrue(any("CONFIG_ARM64" in e for e in errors))
+
     def test_repository_lock_and_fragment_integrity(self):
         import hashlib
         import json
