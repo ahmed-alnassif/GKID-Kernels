@@ -19,3 +19,11 @@ Scope: source-only review of pinned feature patches on branch `dev`. This is **n
 6. Only after these checks pass report readiness for isolated compilation. Do not enable production guards, dispatch Actions, release or flash.
 
 No source patch, lock, CI, or production guard was modified by this audit.
+
+## Offline resolved-config validator unit-test result
+
+On 2026-10-15, the GitHub connector supplied the source of `scripts/check_ksun_susfs_resolved_config.py` and `tests/test_ksun_susfs_resolved_config.py` from branch `dev`. Their content was reproduced in a temporary local test directory (the full repository could not be cloned because DNS resolution for github.com failed), then executed with `python3 -m unittest discover -s tests -p 'test_ksun_susfs_resolved_config.py' -v`.
+
+Result: **10 tests run, 10 passed, 0 failures, 0 errors** (0.021 s). This is a copied-source offline unit test, not a verified checkout-based CI run. It does not establish that a kernel `.config` has been generated or resolved, that the full toolchain is ready, or that kernel compilation succeeds.
+
+Next gate: restore the pinned integrated kernel tree, generate fresh `gki_defconfig` plus locked fragment via `olddefconfig`, and run the read-only validator on the resulting `.config`. Preserve the existing production, Actions, release, and flash restrictions.
