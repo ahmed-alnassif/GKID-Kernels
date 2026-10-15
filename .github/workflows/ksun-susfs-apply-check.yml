@@ -1,0 +1,50 @@
+name: KSUN SUSFS Patch Apply Check
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  apply-check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout project dev
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+          persist-credentials: false
+
+      - name: Fetch pinned SUSFS source archive
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p "$RUNNER_TEMP/susfs"
+          curl --fail --location --retry 2 --connect-timeout 20 \
+            'https://gitlab.com/pershoot/susfs4ksu/-/archive/a9bb4dd3ed248ada636b480bfdff70af704f1463/susfs4ksu-a9bb4dd3ed248ada636b480bfdff70af704f1463.tar.gz' \
+            -o "$RUNNER_TEMP/susfs.tar.gz"
+          tar -xzf "$RUNNER_TEMP/susfs.tar.gz" -C "$RUNNER_TEMP/susfs" --strip-components=1
+
+      - name: Prepare locked SUSFS patch
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 scripts/prepare_susfs_kernel_patch.py \
+            "$RUNNER_TEMP/susfs/kernel_patches/50_add_susfs_in_gki-android14-6.1.patch" \
+            "$RUNNER_TEMP/prepared-susfs.patch"
+
+      - name: Fetch locked kernel and check patch
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git clone --filter=blob:none --no-checkout \
+            https://github.com/ahmed-alnassif/GKI-Duchamp-6.1.git \
+            "$RUNNER_TEMP/kernel"
+          cd "$RUNNER_TEMP/kernel"
+          git fetch --filter=blob:none origin a7ba124af5a535078d3f83b3e145f9cc8ec651b8
+          git checkout --detach a7ba124af5a535078d3f83b3e145f9cc8ec651b8
+          test "$(git rev-parse HEAD)" = a7ba124af5a535078d3f83b3e145f9cc8ec651b8
+          test -z "$(git status --porcelain)"
+          git apply --check --verbose "$RUNNER_TEMP/prepared-susfs.patch"
+          echo 'PASS: git apply --check'
