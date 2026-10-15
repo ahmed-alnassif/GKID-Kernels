@@ -1,4 +1,4 @@
-name: Cogan Smart Auto-Update
+name: Cogan Manual Update
 
 on:
   workflow_dispatch:
@@ -63,9 +63,9 @@ jobs:
               rows.append((label, "Cogan local", digest.hexdigest()[:12] if files else "-", "Local fingerprint; no automatic upstream update"))
 
           output = [
-              "## Cogan Smart Auto-Update — Check Only",
+              "## Cogan Manual Update — Check Only",
               "",
-              "Owner-triggered read-only inspection. No commits, PRs, releases or builds.",
+              "Owner-triggered manual check. No schedule, commits, PRs, releases, builds, or automatic updates.",
               "",
               "| Component | Reference | Revision / fingerprint | Status |",
               "|---|---|---|---|",
