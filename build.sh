@@ -558,9 +558,9 @@ set -eo pipefail
 echo "::group::[*] Building kernel"
 make ${MAKE_ARGS[@]} CC="ccache clang" CXX="ccache clang++"
 echo "::endgroup::"
-set +eo pipefail
+set -eo pipefail
 
-cd $WORKDIR
+cd "$WORKDIR"
 
 log "Cloning anykernel from $(simplify_gh_url "$ANYKERNEL_REPO")"
 git clone -q --depth=1 $ANYKERNEL_REPO anykernel
@@ -604,5 +604,5 @@ PY
 cd "$OLDPWD"
 
 echo "BASE_NAME=$KERNEL_NAME-$VARIANT" >> $GITHUB_ENV
-mkdir -p $RELEASE_DIR
-mv $WORKDIR/*.zip $RELEASE_DIR
+mkdir -p "$RELEASE_DIR"
+mv -- "$WORKDIR/$AK3_ZIP_NAME" "$RELEASE_DIR/"
