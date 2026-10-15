@@ -89,11 +89,6 @@ on:
         type: string
         default: "N"
 
-      DROIDSPACES:
-        description: "Enable droidspaces-oss support (off by default)"
-        type: boolean
-        default: false
-
 env:
   MAN_DISABLE: true
   DEBIAN_FRONTEND: noninteractive
@@ -198,7 +193,7 @@ jobs:
           TEST: ${{ inputs.TEST }}
           LTO: ${{ inputs.LTO }}
           CLEAN_LTO_CACHE: 'true'
-          DROIDSPACES: ${{ inputs.DROIDSPACES }}
+          DROIDSPACES: 'false'
           NM: 'true'
           KERNEL_SUBLEVEL: ${{ inputs.KERNEL_SUBLEVEL }}
           BUILD_TIME: ${{ inputs.BUILD_TIME }}
@@ -318,7 +313,7 @@ jobs:
       - name: Load environment from builds and prepare release body
         env:
           TEST_INPUT: ${{ inputs.TEST }}
-          DROIDSPACES_INPUT: ${{ inputs.DROIDSPACES }}
+          DROIDSPACES_INPUT: 'false'
           NM_INPUT: 'true'
           LTO_INPUT: ${{ inputs.LTO }}
         run: python3 .github/scripts/prepare_release.py
