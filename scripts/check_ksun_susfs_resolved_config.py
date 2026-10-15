@@ -88,7 +88,7 @@ def main():
             for error in errors:
                 print("BLOCKED: " + error, file=sys.stderr)
             return 1
-        print("PASS: locked required/forbidden flags and BBG LSM token")
+        print("PASS: locked fragment flags, required/forbidden options, and complete CONFIG_LSM")
         print("NOTE: this does not prove compiler, link, runtime or production readiness")
         return 0
     except (OSError, ValueError, KeyError, UnicodeError, json.JSONDecodeError) as exc:
