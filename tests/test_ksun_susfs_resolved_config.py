@@ -174,6 +174,13 @@ class ResolvedConfigTests(unittest.TestCase):
                     gate.sys, "argv", ["gate", str(config_path)]):
                 self.assertEqual(1, gate.main())
 
+    def test_bbg_recovery_partition_protection_forbidden(self):
+        lock = {"configuration": {**LOCK["configuration"],
+                "forbidden": [*LOCK["configuration"]["forbidden"],
+                              "CONFIG_BBG_BLOCK_RECOVERY"]}}
+        errors = gate.audit((GOOD + "CONFIG_BBG_BLOCK_RECOVERY=y\\n").encode(), lock)
+        self.assertTrue(any("CONFIG_BBG_BLOCK_RECOVERY" in e for e in errors))
+
     def test_nomount_module_not_builtin(self):
         self.assertTrue(any("CONFIG_NOMOUNT" in error for error in
                             self.check(GOOD.replace("CONFIG_NOMOUNT=y", "CONFIG_NOMOUNT=m"))))
