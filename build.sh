@@ -47,6 +47,32 @@ else
   IFS='|' read -r KERNEL_REPO KERNEL_BRANCH KERNEL_KMI <<< "$(resolve_kernel_source "$KERNEL_VERSION")"
 fi
 
+# Verified upstream Makefile sublevels; historical commits are not build-tested.
+if [ "$KERNEL_VERSION" = "6.1" ]; then
+  case "${KERNEL_SUBLEVEL:-Auto}" in
+    161) KERNEL_BRANCH="61fcbb6cd1dbc15d4af24bce8296367554f70b8b" ;;
+    162) KERNEL_BRANCH="0182cb5b74ee79448adf4f33a137ca34e209eb30" ;;
+    163) KERNEL_BRANCH="8ce36b2849ef65d98b77bcced8cf72333b2d5da0" ;;
+    164) KERNEL_BRANCH="12ef02bd25146e1da089588c5f616a12ad5a4f32" ;;
+    165) KERNEL_BRANCH="2f66dd9cff421f27dbe192f2035ce61b811561b1" ;;
+    166) KERNEL_BRANCH="e094166185ce573ca9c33553c91945b06d2b3641" ;;
+    167) KERNEL_BRANCH="188af7e32c7cbacb6b9fad6222c92645de5dde0d" ;;
+    168) KERNEL_BRANCH="8e8fc038cad5988ede9f323677c28eb9a696026c" ;;
+    169) KERNEL_BRANCH="bbb1b305ef9dcb2f94dbf0504408032a65b47073" ;;
+    170) KERNEL_BRANCH="d7371afb22b1c6589a52e7cea3e2399ae2977412" ;;
+    171) KERNEL_BRANCH="dd093409483f8cd5b495dfe6186cdee6713f8300" ;;
+    172) KERNEL_BRANCH="fec170e6409ce49bc009a879fddb47f9a1ad9f01" ;;
+    173) KERNEL_BRANCH="fca9c61b983f49374d193f67cdfeae3f68ec9af8" ;;
+    174) KERNEL_BRANCH="ae51c26d207ea801c5346f6d2773878bf0d9036d" ;;
+    175) KERNEL_BRANCH="bcff58130b54910112d233064b3b41b3c87d868f" ;;
+    176) KERNEL_BRANCH="f26a1f4f9013533dd2b0de85e6813f948363a4ff" ;;
+    Auto|177|"") ;;
+    *) echo "Invalid 6.1 sublevel: $KERNEL_SUBLEVEL" >&2; exit 1 ;;
+  esac
+elif [ "${KERNEL_SUBLEVEL:-Auto}" != "Auto" ]; then
+  echo "Specific sublevels require kernel 6.1" >&2; exit 1
+fi
+
 ANDROID_RELEASE="$(android_release_for_version "$KERNEL_VERSION")"
 echo "KERNEL_VERSION=$KERNEL_VERSION" >> $GITHUB_ENV
 echo "ANDROID_RELEASE=$ANDROID_RELEASE" >> $GITHUB_ENV
@@ -67,14 +93,25 @@ trap 'echo "[-] Received SIGTERM at $(date) - possible GitHub kill" >> "$BUILD_L
 trap 'echo "[-] Received SIGINT at $(date)" >> "$BUILD_LOGS"' INT
 
 log "Cloning kernel source from $(simplify_gh_url "$KERNEL_REPO")"
-if kernel_version_eq "$KERNEL_VERSION" "6.1"; then
-  git clone -q --depth=1 --recurse-submodules "$KERNEL_REPO" -b "$KERNEL_BRANCH" "$KSRC"
+if kernel_version_eq "$KERNEL_VERSION" "6.1" && [[ "$KERNEL_BRANCH" =~ ^[0-9a-f]{40}$ ]]; then
+  mkdir -p "$KSRC" || exit 1
+  git -C "$KSRC" init -q || exit 1
+  git -C "$KSRC" remote add origin "$KERNEL_REPO" || exit 1
+  git -C "$KSRC" fetch -q --depth=1 origin "$KERNEL_BRANCH" || { echo "Historical source fetch failed" >&2; exit 1; }
+  git -C "$KSRC" checkout -q --detach FETCH_HEAD || exit 1
+  git -C "$KSRC" submodule update --init --recursive --depth=1 || exit 1
+elif kernel_version_eq "$KERNEL_VERSION" "6.1"; then
+  git clone -q --depth=1 --recurse-submodules "$KERNEL_REPO" -b "$KERNEL_BRANCH" "$KSRC" || exit 1
 else
-  git clone -q --depth=1 "$KERNEL_REPO" -b "$KERNEL_BRANCH" "$KSRC"
+  git clone -q --depth=1 "$KERNEL_REPO" -b "$KERNEL_BRANCH" "$KSRC" || exit 1
 fi
 
-cd $KSRC
-LINUX_VERSION=$(make kernelversion)
+cd "$KSRC" || exit 1
+LINUX_VERSION=$(make kernelversion) || exit 1
+if [ "${KERNEL_SUBLEVEL:-Auto}" != "Auto" ] && [ "$LINUX_VERSION" != "6.1.$KERNEL_SUBLEVEL" ]; then
+  echo "Kernel source version $LINUX_VERSION does not match requested 6.1.$KERNEL_SUBLEVEL" >&2
+  exit 1
+fi
 LINUX_VERSION_CODE=${LINUX_VERSION//./}
 DEFCONFIG_FILE=$(find ./arch/arm64/configs -name "$KERNEL_DEFCONFIG")
 echo "LINUX_VERSION=$LINUX_VERSION" >> $GITHUB_ENV
@@ -310,7 +347,17 @@ fi
 
 export KBUILD_BUILD_USER="$USER"
 export KBUILD_BUILD_HOST="$HOST"
-export KBUILD_BUILD_TIMESTAMP=$(git -C $KSRC log -1 --format=%cd --date=format-local:'%a %b %d %T %z %Y')
+if [ "${BUILD_TIME:-N}" = "N" ]; then
+  export KBUILD_BUILD_TIMESTAMP="$(LC_ALL=C date -u '+%a %b %d %H:%M:%S UTC %Y')"
+else
+  if [[ ! "$BUILD_TIME" =~ ^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)[[:space:]](Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[[:space:]][0-9]{1,2}[[:space:]][0-9]{2}:[0-9]{2}:[0-9]{2}[[:space:]]UTC[[:space:]][0-9]{4}$ ]]; then
+    echo "Invalid BUILD_TIME format" >&2; exit 1
+  fi
+  date -u -d "$BUILD_TIME" >/dev/null || { echo "Invalid BUILD_TIME date" >&2; exit 1; }
+  actual_day="$(LC_ALL=C date -u -d "$BUILD_TIME" +%a)"
+  [ "${BUILD_TIME%% *}" = "$actual_day" ] || { echo "BUILD_TIME weekday mismatch" >&2; exit 1; }
+  export KBUILD_BUILD_TIMESTAMP="$(LC_ALL=C date -u -d "$BUILD_TIME" '+%a %b %d %H:%M:%S UTC %Y')"
+fi
 export KCFLAGS="-w"
 
 LINK_CACHE_PATH="/dev/shm/thinlto-cache"
