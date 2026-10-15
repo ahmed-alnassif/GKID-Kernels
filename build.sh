@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
 
-# Reject the unsupported pairing before downloads, installers, or host changes.
-# The source-only candidate lock does not grant build/runtime approval.
+# KSUN + SUSFS builds only the validated isolated candidate as a test build (Issue #19).
+# Reject other combinations before downloads, installers, or host changes.
+KSUN_SUSFS_CANDIDATE=false
 if [[ "${KSU:-}" == "KSUN" && "${KSU_SUSFS:-false}" == "true" ]]; then
-  echo "KSUN+SUSFS is not enabled until compatibility is validated" >&2
-  echo "See docs/root-manager-upstream-baseline.md for the pinned built-in candidate and remaining gates." >&2
-  exit 1
+  candidate_sublevel="${KERNEL_SUBLEVEL:-lts}"
+  if [[ "${KERNEL_VERSION:-6.1}" != "6.1" || "${KSU_COMPAT:-false}" == "true" || "${LTO:-fullLTO}" != "fullLTO" \
+        || "${BBG:-true}" != "true" || ! "${candidate_sublevel,,}" =~ ^(lts|auto|177)$ ]]; then
+    echo "KSUN+SUSFS test build supports only kernel 6.1.177 (lts), fullLTO, BBG enabled and no Compat variant" >&2
+    exit 1
+  fi
+  KSUN_SUSFS_CANDIDATE=true
 fi
 
 WORKDIR="$(pwd)"
@@ -79,6 +84,12 @@ elif [ "${KERNEL_SUBLEVEL:-Auto}" != "Auto" ]; then
   echo "Specific sublevels require kernel 6.1" >&2; exit 1
 fi
 
+# The candidate is tied to the kernel commit of its replay manifest (6.1.177).
+if [ "$KSUN_SUSFS_CANDIDATE" = "true" ]; then
+  KERNEL_BRANCH="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["kernel_commit"])' \
+    "$KERNEL_PATCHES/susfs/6.1-v2/replay/kernel-replay.json")" || exit 1
+fi
+
 ANDROID_RELEASE="$(android_release_for_version "$KERNEL_VERSION")"
 echo "KERNEL_VERSION=$KERNEL_VERSION" >> $GITHUB_ENV
 echo "ANDROID_RELEASE=$ANDROID_RELEASE" >> $GITHUB_ENV
@@ -112,6 +123,11 @@ else
   git clone -q --depth=1 "$KERNEL_REPO" -b "$KERNEL_BRANCH" "$KSRC" || exit 1
 fi
 
+if [ "$KSUN_SUSFS_CANDIDATE" = "true" ]; then
+  log "Staging the validated KSUN + SUSFS candidate (replay + frozen core + features)"
+  python3 "$WORKDIR/scripts/stage_ksun_susfs_candidate.py" "$KSRC" "$WORKDIR/ksun" || exit 1
+fi
+
 cd "$KSRC" || exit 1
 LINUX_VERSION=$(make kernelversion) || exit 1
 if [ "${KERNEL_SUBLEVEL:-Auto}" != "Auto" ] && [ "$LINUX_VERSION" != "6.1.$KERNEL_SUBLEVEL" ]; then
@@ -135,6 +151,7 @@ case "$KSU" in
 esac
 
 susfs_included && VARIANT+="+SuSFS"
+[ "$KSUN_SUSFS_CANDIDATE" = "true" ] && VARIANT+="+Test"
 SUSFS_URL="https://gitlab.com/simonpunk/susfs4ksu"
 SUSFS_DIR="$WORKDIR/susfs"
 SUSFS_PATCHES="${SUSFS_DIR}/kernel_patches"
@@ -166,11 +183,9 @@ generate_gh_changelog "Baka-SU/BakaSU" "$PIN_BSU_COMMIT" 5 "$RELEASE_DIR/BakaSU_
 
 echo "::group::[*] Downloading Clang"
 CLANG_BIN="$WORKDIR/neutron-clang/bin"
-mkdir -p "$WORKDIR/neutron-clang"
-cd "$WORKDIR/neutron-clang"
-bash <(curl -s "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman") -S
-cd $OLDPWD
-if [ ! -d "$CLANG_BIN" ]; then
+# Pinned release from configs/upstream.lock (antman -S always fetched the newest).
+install_pinned_neutron "$WORKDIR/neutron-clang" || exit 1
+if [ ! -x "$CLANG_BIN/clang" ]; then
     error "Clang not found in ${CLANG_BIN}."
     exit 1
 fi
@@ -211,7 +226,9 @@ if ! kernel_version_eq "$KERNEL_VERSION" "6.1"; then
 fi
 
 
-if [ "${NETWORKING:-true}" = "true" ]; then
+if [ "$KSUN_SUSFS_CANDIDATE" = "true" ]; then
+  log "KSUN+SUSFS test build: validated candidate only; BBRv3 networking extras not applied"
+elif [ "${NETWORKING:-true}" = "true" ]; then
   log "Applying BBRv3 patch (Networking enabled)"
   apply_patch_file "$KERNEL_PATCHES/bbrv3/bbrv3.patch"
 else
@@ -219,7 +236,9 @@ else
 fi
 
 
-if [ "${BBG:-true}" = "true" ]; then
+if [ "$KSUN_SUSFS_CANDIDATE" = "true" ]; then
+  log "KSUN+SUSFS test build: BBG comes from candidate feature patches 001 and 003"
+elif [ "${BBG:-true}" = "true" ]; then
   log "BBG included (Baseband Guard, pinned)"
   # setup.sh cannot clone a commit directly, so clone at the pin and let it reuse the checkout.
   git clone -q "https://github.com/vc-teahouse/Baseband-guard" Baseband-guard
@@ -272,7 +291,14 @@ if susfs_included && [ "$KSU" = "BSU" ]; then
 
 fi
 
-if [ "$KSU" = "KSUN" ]; then
+if [ "$KSUN_SUSFS_CANDIDATE" = "true" ]; then
+  log "KernelSU Next + SUSFS from the staged candidate (KSUN fork, built-in SUSFS)"
+  {
+    echo "ROOT_MANAGER_REPO=pershoot/KernelSU-Next"
+    echo "ROOT_MANAGER_REF=candidate-v2"
+    echo "ROOT_MANAGER_SHA=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["kernel_commit"])' "$KERNEL_PATCHES/susfs/6.1-v2/replay/ksun-replay.json")"
+  } >> "${GITHUB_ENV:-/dev/null}"
+elif [ "$KSU" = "KSUN" ]; then
   log "KernelSU Next included (experimental)"
   # Use the tag observed in the successful KSUN GKI 6.1 baseline, not the absent 'next' ref.
   KSUN_REF="$PIN_KSUN_REF"
@@ -350,7 +376,11 @@ fi
 
 echo "VARIANT=$VARIANT" >> $GITHUB_ENV
 
-if [ "$NM" = "true" ]; then
+if [ "$KSUN_SUSFS_CANDIDATE" = "true" ]; then
+  log "KSUN+SUSFS test build: NoMount comes from candidate feature patch 002"
+  # SUSFS here is the locked v2 source of the candidate, not the changelog clone above.
+  echo "SUSFS_SHA=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["susfs_provenance"]["owner_reported_commit"])' "$WORKDIR/configs/ksun-susfs-6.1-v2.lock.json")" >> "${GITHUB_ENV:-/dev/null}"
+elif [ "$NM" = "true" ]; then
   log "Applying NoMount"
   NOMOUNT_SETUP="$(mktemp)" || { error "Unable to allocate NoMount setup file"; exit 1; }
   if ! curl -fsSL "https://raw.githubusercontent.com/maxsteeel/nomount/$PIN_NOMOUNT_SETUP_COMMIT/kernel/setup.sh" -o "$NOMOUNT_SETUP"; then
@@ -373,7 +403,11 @@ AK3_ZIP_NAME=${AK3_ZIP_NAME//KVER/$LINUX_VERSION}
 AK3_ZIP_NAME=${AK3_ZIP_NAME//VARIANT/$VARIANT}
 
 log "Applying configs..."
-source "$WORKDIR/configs/gki_defconfig.sh"
+if [ "$KSUN_SUSFS_CANDIDATE" = "true" ]; then
+  log "KSUN+SUSFS test build: config = gki_defconfig + locked candidate fragment (see Generating config)"
+else
+  source "$WORKDIR/configs/gki_defconfig.sh"
+fi
 
 if [ "${TODO:-kernel}" = "kernel" ]; then
   LATEST_COMMIT_HASH=$(git rev-parse --short HEAD)
@@ -433,6 +467,12 @@ KMI_CHECK="$WORKDIR/py/kmi-check-6.x.py"
 
 echo "::group::[*] Generating config"
 make ${MAKE_ARGS[@]} "$KERNEL_DEFCONFIG"
+if [ "$KSUN_SUSFS_CANDIDATE" = "true" ]; then
+  # Same method as the validated record: merge only the locked fragment, then olddefconfig.
+  scripts/kconfig/merge_config.sh -m -O "$OUTDIR" "$OUTDIR/.config" "$WORKDIR/configs/ksun-susfs-6.1-features.config" || exit 1
+  make ${MAKE_ARGS[@]} olddefconfig || exit 1
+  python3 "$WORKDIR/scripts/check_ksun_susfs_resolved_config.py" "$OUTDIR/.config" || exit 1
+fi
 echo "::endgroup::"
 
 # Report the resolved kernel configuration, not merely the requested fragments.
@@ -450,9 +490,11 @@ done
 
 if susfs_included; then
 
-  log "DEBUG: Checking defconfig for SUSFS"
-  grep -i susfs ./arch/arm64/configs/gki_defconfig || error "SUSFS NOT FOUND in defconfig!"
-  echo ""
+  if [ "$KSUN_SUSFS_CANDIDATE" != "true" ]; then
+    log "DEBUG: Checking defconfig for SUSFS"
+    grep -i susfs ./arch/arm64/configs/gki_defconfig || error "SUSFS NOT FOUND in defconfig!"
+    echo ""
+  fi
 
   log "DEBUG: Checking .config for SUSFS"
   if ! grep -qx 'CONFIG_KSU_SUSFS=y' "$OUTDIR/.config"; then

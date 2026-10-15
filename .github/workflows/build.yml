@@ -13,7 +13,7 @@ on:
         options:
           - "KernelSU"
           - "KernelSU Next"
-          - "KernelSU Next + SUSFS (terkunci)"
+          - "KernelSU Next + SUSFS (uji)"
           - "KernelSU + SUSFS"
           - "BakaSU + SUSFS"
           - "Vanilla"
@@ -121,11 +121,18 @@ jobs:
           KERNEL_VERSION_INPUT: ${{ inputs.KERNEL_VERSION }}
           KERNEL_SUBLEVEL_INPUT: ${{ inputs.KERNEL_SUBLEVEL }}
           BUILD_TIME_INPUT: ${{ inputs.BUILD_TIME }}
+          LTO_INPUT: ${{ inputs.LTO }}
+          BBG_INPUT: ${{ inputs.BBG }}
         run: |
           set -euo pipefail
-          if [[ "$ROOT_MANAGER_INPUT" == "KernelSU Next + SUSFS (terkunci)" ]]; then
-            echo "::error::KSUN+SUSFS is not enabled until compatibility is validated" >&2
-            exit 1
+          if [[ "$ROOT_MANAGER_INPUT" == "KernelSU Next + SUSFS (uji)" ]]; then
+            # Test build of the validated isolated candidate only (Issue #19); never a release.
+            [[ "$KERNEL_VERSION_INPUT" == "6.1" && "${LTO_INPUT:-}" == fullLTO* && "${BBG_INPUT:-true}" == "true" ]] \
+              || { echo "::error::KSUN+SUSFS (uji) needs kernel 6.1, a fullLTO package and BBG enabled" >&2; exit 1; }
+            case "$(echo "${KERNEL_SUBLEVEL_INPUT:-}" | tr '[:upper:]' '[:lower:]')" in
+              lts|auto|""|177) ;;
+              *) echo "::error::KSUN+SUSFS (uji) is only available for 6.1.177 (lts)" >&2; exit 1 ;;
+            esac
           fi
           # "lts" (any case), "Auto" or empty mean the latest pinned sublevel.
           SUBLEVEL="${KERNEL_SUBLEVEL_INPUT:-}"
@@ -164,8 +171,8 @@ jobs:
             if [[ "${VALIDATION_OUTCOME}" != "success" ]]; then
               echo ""
               echo "**Persiapan gagal; kompilasi tidak dijalankan.**"
-              if [[ "${ROOT_MANAGER_INPUT}" == "KernelSU Next + SUSFS (terkunci)" ]]; then
-                echo "KSUN + SUSFS masih dikunci hingga uji kompatibilitas selesai. Jalankan workflow **KSUN SUSFS Patch Apply Check** secara terpisah."
+              if [[ "${ROOT_MANAGER_INPUT}" == "KernelSU Next + SUSFS (uji)" ]]; then
+                echo "KSUN + SUSFS (uji) hanya untuk kernel 6.1.177 (lts), paket fullLTO dan BBG aktif."
               else
                 echo "Periksa pesan error pertama pada langkah **Validate sublevel, build time and optional features**."
               fi
@@ -185,8 +192,8 @@ jobs:
             if [[ "${VALIDATION_OUTCOME}" != "success" ]]; then
               echo ""
               echo "**Preparation failed; no kernel compilation ran.**"
-              if [[ "${ROOT_MANAGER_INPUT}" == "KernelSU Next + SUSFS (terkunci)" ]]; then
-                echo "KSUN + SUSFS remains locked pending compatibility validation. Use the separate **KSUN SUSFS Patch Apply Check** workflow."
+              if [[ "${ROOT_MANAGER_INPUT}" == "KernelSU Next + SUSFS (uji)" ]]; then
+                echo "KSUN + SUSFS (uji) is only available for kernel 6.1.177 (lts), a fullLTO package and BBG enabled."
               else
                 echo "Inspect the first error in **Validate sublevel, build time and optional features**."
               fi
@@ -222,7 +229,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libdw-dev ccache gh bc bison flex libssl-dev libelf-dev dwarves cpio
+          sudo apt-get install -y libdw-dev ccache gh bc bison flex libssl-dev libelf-dev dwarves cpio zstd
           pip install lxml
 
       - name: Restore ccache from release

@@ -101,3 +101,15 @@ Record: `docs/validation/ksun-susfs-6.1-local-image.json`. Built in the session 
 - The production build also applies 003 on top of pinned BBG `a54e0dc6`.
 - Next: owner device test of this Image (boot, root, SUSFS, BBG), then wire the v2 candidate into `build.sh` and unlock the dropdown (W11).
 
+## Checkpoint 2026-10-15 — candidate wired into the build workflow (latest)
+
+- Dropdown option `KernelSU Next + SUSFS (uji)` builds exactly the validated candidate:
+  - kernel `a7ba124a`, core replay, KSUN fork `2f858cb`;
+  - frozen snapshots `3f08838c`/`ce13bc5d` (metadata now in `configs/ksun-susfs-6.1-features.lock.json` → `frozen_core`);
+  - feature replay 001–003, which must give tree `1246bd4c`;
+  - `gki_defconfig` + locked fragment + `olddefconfig`, then the resolved-config gate, then compile and an AnyKernel3 ZIP named `…+SuSFS+Test`.
+- Production-only steps are skipped in this mode: BBRv3 networking, BBG/NoMount/KSUN `setup.sh` (provided by the feature patches) and `gki_defconfig.sh` fragments.
+- Accepted only for 6.1.177 (lts), a fullLTO package, BBG enabled and no Compat variant; `build.sh` and `prepare` both reject anything else before any tool runs.
+- The Neutron toolchain is now pinned for every build (`06092026`, SHA256 checked).
+- Next: the owner runs the workflow once, then tests on a device (boot, root, SUSFS, BBG); then rename the option back to `KernelSU Next + SUSFS`.
+

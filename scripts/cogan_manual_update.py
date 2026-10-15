@@ -11,7 +11,7 @@ The only writer of configs/upstream.lock. Owner-triggered via the
 
 Usage:
   python3 scripts/cogan_manual_update.py --mode check|update \
-      [--components all|root-managers|susfs|nomount|bbg|anykernel|kernel-6.1] \
+      [--components all|root-managers|susfs|nomount|bbg|anykernel|kernel-6.1|toolchain] \
       [--summary FILE] [--changes FILE]
 """
 import argparse
@@ -26,9 +26,13 @@ ROOT = Path(__file__).resolve().parents[1]
 LOCK = ROOT / "configs/upstream.lock"
 SHA = re.compile(r"[0-9a-f]{40}")
 STABLE_TAG = re.compile(r"v(\d+)\.(\d+)\.(\d+)")
-LINE = re.compile(r"([A-Z][A-Z0-9_]*)=(v\d+\.\d+\.\d+|[0-9a-f]{40})")
+LINE = re.compile(r"([A-Z][A-Z0-9_]*)=(v\d+\.\d+\.\d+|[0-9a-f]{40}|[0-9a-f]{64}|\d{8})")
 SUBLEVEL_KEY = re.compile(r"KERNEL_COMMIT_6_1_(\d+)")
 KERNEL_RAW = "https://raw.githubusercontent.com/ahmed-alnassif/GKI-Duchamp-6.1/{commit}/Makefile"
+NEUTRON_REPO = "https://github.com/Neutron-Toolchains/clang-build-catalogue.git"
+NEUTRON_ASSET = ("https://github.com/Neutron-Toolchains/clang-build-catalogue/releases/download/"
+                 "{tag}/neutron-clang-{tag}.tar.zst")
+NEUTRON_TAG = re.compile(r"(\d{2})(\d{2})(\d{4})")  # DDMMYYYY
 
 SUSFS = "https://gitlab.com/simonpunk/susfs4ksu.git"
 # key -> (group, label, repository, ref). A ref of "latest-stable-tag" means
@@ -44,7 +48,8 @@ PINS = {
     "KERNEL_COMMIT_6_1": ("kernel-6.1", "Kernel GKID 6.1", "https://github.com/ahmed-alnassif/GKI-Duchamp-6.1.git", "refs/heads/GKID-6.1"),
     "SUSFS_COMMIT_6_1": ("susfs", "SUSFS 6.1", SUSFS, "refs/heads/gki-android14-6.1"),
 }
-GROUPS = sorted({group for group, *_ in PINS.values()})
+GROUPS = sorted({group for group, *_ in PINS.values()} | {"toolchain"})
+REQUIRED = [*PINS, "KSUN_REF", "NEUTRON_RELEASE", "NEUTRON_SHA256"]
 LOCAL_FINGERPRINTS = [
     ("Networking / BBRv3", ["kernel-patches/bbrv3/bbrv3.patch", "configs/custom.config"]),
     ("Clean LTO", ["configs/gki_defconfig.sh", "build.sh"]),
@@ -63,11 +68,11 @@ def read_lock(text):
         if key in values:
             raise ValueError(f"Duplicate lock key: {key}")
         values[key] = value
-    missing = [key for key in [*PINS, "KSUN_REF"] if key not in values]
+    missing = [key for key in REQUIRED if key not in values]
     if missing:
         raise ValueError("Lock is missing " + ", ".join(missing))
     unknown = [key for key in values
-               if key not in PINS and key != "KSUN_REF" and not SUBLEVEL_KEY.fullmatch(key)]
+               if key not in REQUIRED and not SUBLEVEL_KEY.fullmatch(key)]
     if unknown:
         raise ValueError("Unknown lock keys: " + ", ".join(unknown))
     return values
@@ -163,6 +168,28 @@ def kernel_sublevel(commit, fetch=fetch_url):
     return int(fields["SUBLEVEL"])
 
 
+def latest_neutron(refs):
+    """Newest DDMMYYYY release tag, compared by date."""
+    best = None
+    for name in refs:
+        if name.startswith("refs/tags/") and not name.endswith("^{}"):
+            match = NEUTRON_TAG.fullmatch(name[len("refs/tags/"):])
+            if match:
+                day, month, year = match.groups()
+                key = (year, month, day)
+                if best is None or key > best[0]:
+                    best = (key, day + month + year)
+    return best[1] if best else None
+
+
+def archive_sha256(tag, opener=urllib.request.urlopen):
+    digest = hashlib.sha256()
+    with opener(NEUTRON_ASSET.format(tag=tag), timeout=300) as response:
+        for chunk in iter(lambda: response.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def select(components):
     wanted = {part.strip() for part in components.split(",") if part.strip()}
     if not wanted or "all" in wanted:
@@ -180,7 +207,7 @@ def current_sublevel(lock):
     return max(matches) if matches else None
 
 
-def plan(lock, groups, lister=ls_remote, sublevel_of=kernel_sublevel):
+def plan(lock, groups, lister=ls_remote, sublevel_of=kernel_sublevel, sha256_of=archive_sha256):
     """Compare pins with upstream. Returns (rows, updates) without side effects."""
     rows, updates = [], {}
     for key, (group, label, url, ref) in PINS.items():
@@ -215,7 +242,31 @@ def plan(lock, groups, lister=ls_remote, sublevel_of=kernel_sublevel):
         if new_sublevel is not None:
             latest = f"6.1.{new_sublevel} {latest}"
         rows.append((label, group, shown_ref, current_label, latest, status))
+    rows.append(plan_toolchain(lock, groups, updates, lister, sha256_of))
     return rows, updates
+
+
+def plan_toolchain(lock, groups, updates, lister, sha256_of):
+    current = lock["NEUTRON_RELEASE"]
+    try:
+        latest = latest_neutron(lister(NEUTRON_REPO, options=("--tags",)))
+        error = None if latest else "No DDMMYYYY release tag"
+    except (OSError, ValueError, subprocess.SubprocessError) as exc:
+        latest, error = None, type(exc).__name__
+    if not error and latest != current and "toolchain" in groups:
+        try:
+            digest = sha256_of(latest)
+            if not re.fullmatch(r"[0-9a-f]{64}", digest):
+                raise ValueError("bad digest")
+            updates["NEUTRON_RELEASE"] = latest
+            updates["NEUTRON_SHA256"] = digest
+        except (OSError, ValueError) as exc:
+            error = "Archive unreadable (" + type(exc).__name__ + ")"
+    if error:
+        status = "UNAVAILABLE: " + error
+    else:
+        status = "UP TO DATE" if latest == current else "UPDATE AVAILABLE"
+    return ("Neutron clang", "toolchain", "release", current, latest or "-", status)
 
 
 def report(rows, fingerprints, mode, groups, updates, lock_keys=()):

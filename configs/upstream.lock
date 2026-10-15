@@ -4,11 +4,14 @@
 # a pull request to dev. The kernel build workflow only compiles: it installs
 # exactly these commits and fails if an installed checkout differs.
 #
-# Format: KEY=VALUE, one per line; values are 40-hex commits or a vX.Y.Z tag.
+# Format: KEY=VALUE, one per line; values are 40-hex commits, a vX.Y.Z tag,
+# an 8-digit Neutron release (DDMMYYYY) or a 64-hex SHA256.
 # Scope: kernel 6.1 only (owner decision). Other kernel versions are not managed here.
 # Baseline 2026-10-15: upstream tips in use by run 38735686355 (KernelSU + SUSFS,
 # 6.1, success). KSU_COMMIT is b94e0916 because 200818ca appeared at 12:41 UTC,
 # after that build started; the build log line "Root manager checkout" confirms it.
+NEUTRON_RELEASE=06092026
+NEUTRON_SHA256=531083928c8e37f6b31e324dbfd0b5a8323f989b1c57ff2c1368b889b5b1bd30
 KSU_COMMIT=b94e0916bf6394cb75b03f50b0e8f5a90de3471c
 BSU_COMMIT=d7260ca1e5c128061122924d0d48754e361e135c
 KSUN_REF=v3.4.2

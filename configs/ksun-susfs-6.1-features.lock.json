@@ -196,5 +196,16 @@
       "reason": "Serialize allowed_devs hashtable readers and insertion (IRQ-safe spinlock, double-checked insert)"
     }
   ],
-  "integrated_kernel_tree_before_reviewed_patches": "b5db2f3ccc53539083461caa5cb7d1ddb5cd9e81"
+  "integrated_kernel_tree_before_reviewed_patches": "b5db2f3ccc53539083461caa5cb7d1ddb5cd9e81",
+  "frozen_core": {
+    "author_name": "Cogan source staging",
+    "author_email": "source-staging@example.invalid",
+    "committer_name": "Cogan source staging",
+    "committer_email": "source-staging@example.invalid",
+    "author_date": "2026-10-15T07:28:22+00:00",
+    "committer_date": "2026-10-15T07:28:22+00:00",
+    "message": "Freeze verified KSUN SUSFS core v2 source for isolated feature staging\n",
+    "kernel_snapshot": "3f08838cbc5a94bf877df6a462dabb9118095314",
+    "ksun_snapshot": "ce13bc5d783ad2b79409423f1c3343321cf0e304"
+  }
 }

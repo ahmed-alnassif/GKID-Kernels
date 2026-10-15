@@ -33,6 +33,7 @@ declare -A GKI_SUSFS_BRANCH=(
 # Upstream pins live in configs/upstream.lock (changed only by Cogan Manual Update).
 # Scope is kernel 6.1; other versions keep their previous unpinned SUSFS branch tip.
 UPSTREAM_LOCK_REQUIRED=(
+  NEUTRON_RELEASE NEUTRON_SHA256
   KSU_COMMIT BSU_COMMIT KSUN_REF KSUN_COMMIT NOMOUNT_SETUP_COMMIT NOMOUNT_COMMIT
   ANYKERNEL_COMMIT BBG_COMMIT KERNEL_COMMIT_6_1 SUSFS_COMMIT_6_1
 )
@@ -47,7 +48,7 @@ load_upstream_lock() {
   fi
   while IFS= read -r line || [ -n "$line" ]; do
     case "$line" in ''|'#'*) continue ;; esac
-    if [[ ! "$line" =~ ^([A-Z][A-Z0-9_]*)=(v[0-9]+\.[0-9]+\.[0-9]+|[0-9a-f]{40})$ ]]; then
+    if [[ ! "$line" =~ ^([A-Z][A-Z0-9_]*)=(v[0-9]+\.[0-9]+\.[0-9]+|[0-9a-f]{40}|[0-9a-f]{64}|[0-9]{8})$ ]]; then
       error "Malformed upstream lock line: $line"
       return 1
     fi
@@ -67,6 +68,28 @@ load_upstream_lock() {
       return 1
     fi
   done
+}
+
+# Install the pinned Neutron clang release into $1 after checking the archive SHA256.
+install_pinned_neutron() {
+  local dest="$1" archive
+  local url="https://github.com/Neutron-Toolchains/clang-build-catalogue/releases/download/${PIN_NEUTRON_RELEASE}/neutron-clang-${PIN_NEUTRON_RELEASE}.tar.zst"
+  archive="$(mktemp)" || return 1
+  log "Downloading pinned Neutron clang ${PIN_NEUTRON_RELEASE}"
+  if ! curl -fsSL --retry 2 "$url" -o "$archive"; then
+    rm -f "$archive"
+    error "Neutron clang download failed: $url"
+    return 1
+  fi
+  if ! echo "${PIN_NEUTRON_SHA256}  ${archive}" | sha256sum -c --quiet -; then
+    rm -f "$archive"
+    error "Neutron clang archive SHA256 mismatch (pins change only via Cogan Manual Update)"
+    return 1
+  fi
+  mkdir -p "$dest" && zstd -dc "$archive" | tar -x -C "$dest"
+  local status=$?
+  rm -f "$archive"
+  return "$status"
 }
 
 # Fail closed when an installer or clone ends on a different commit than pinned.

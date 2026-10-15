@@ -13,7 +13,7 @@ REAL_LOCK = (ROOT / "configs/upstream.lock").read_text()
 NEW = "c" * 40
 
 
-def fake_lister(overrides=None, tags=None):
+def fake_lister(overrides=None, tags=None, neutron=None):
     """Upstream equal to the lock, except for explicit overrides."""
     lock = mu.read_lock(REAL_LOCK)
     by_ref = {}
@@ -22,6 +22,9 @@ def fake_lister(overrides=None, tags=None):
             by_ref[(url, ref)] = (overrides or {}).get(key, lock[key])
 
     def lister(url, *patterns, options=()):
+        if url == mu.NEUTRON_REPO:
+            return neutron if neutron is not None else {
+                "refs/tags/30072026": "a" * 40, "refs/tags/" + lock["NEUTRON_RELEASE"]: "b" * 40}
         if "--tags" in options:
             return tags if tags is not None else {
                 "refs/tags/v3.4.0-legacy": "d" * 40,
@@ -39,7 +42,7 @@ class LockTests(unittest.TestCase):
     def test_real_lock_parses_and_has_every_pin(self):
         lock = mu.read_lock(REAL_LOCK)
         sublevels = {key for key in lock if mu.SUBLEVEL_KEY.fullmatch(key)}
-        self.assertEqual(set(mu.PINS) | {"KSUN_REF"}, set(lock) - sublevels)
+        self.assertEqual(set(mu.REQUIRED), set(lock) - sublevels)
         self.assertEqual(sorted(int(key.rsplit("_", 1)[1]) for key in sublevels), list(range(160, 178)))
 
     def test_unknown_key_rejected(self):
@@ -135,6 +138,25 @@ class PlanTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             mu.kernel_sublevel(NEW, fetch=lambda url: makefile.replace("PATCHLEVEL = 1", "PATCHLEVEL = 6"))
 
+    def test_toolchain_moves_to_newest_dated_release_with_its_sha256(self):
+        tags = {"refs/tags/06092026": "a" * 40, "refs/tags/01102026": "b" * 40,
+                "refs/tags/31122025": "c" * 40, "refs/tags/latest": "d" * 40}
+        digest = "e" * 64
+        rows, updates = mu.plan(self.lock, {"toolchain"}, fake_lister(neutron=tags),
+                                sha256_of=lambda tag: digest)
+        self.assertEqual(updates, {"NEUTRON_RELEASE": "01102026", "NEUTRON_SHA256": digest})
+        self.assertEqual(mu.read_lock(mu.write_lock(REAL_LOCK, updates))["NEUTRON_RELEASE"], "01102026")
+        _, updates = mu.plan(self.lock, {"susfs"}, fake_lister(neutron=tags), sha256_of=lambda tag: digest)
+        self.assertEqual(updates, {})  # reported only when toolchain is not selected
+
+    def test_unreadable_toolchain_archive_blocks_the_update(self):
+        def broken(tag):
+            raise OSError("offline")
+        rows, updates = mu.plan(self.lock, {"toolchain"},
+                                fake_lister(neutron={"refs/tags/01102026": "b" * 40}), sha256_of=broken)
+        self.assertEqual(updates, {})
+        self.assertTrue(rows[-1][-1].startswith("UNAVAILABLE: Archive unreadable"), rows[-1])
+
     def test_unknown_component_rejected(self):
         with self.assertRaises(ValueError):
             mu.select("susfs,kernel-9.9")
@@ -172,6 +194,11 @@ class ShellLockTests(unittest.TestCase):
             self.assertIn("$" + name, build, name)
         self.assertNotIn("refs/heads/dev/kernel/setup.sh", build)
         self.assertNotIn("Baseband-guard/raw/main/setup.sh", build)
+        self.assertIn('install_pinned_neutron "$WORKDIR/neutron-clang" || exit 1', build)
+        self.assertNotIn("antman/main/antman", build)
+        functions = (ROOT / "functions.sh").read_text()
+        self.assertIn("${PIN_NEUTRON_RELEASE}", functions)
+        self.assertIn("${PIN_NEUTRON_SHA256}", functions)
         self.assertIn('if [ "${BBG:-true}" = "true" ]; then', build)
         self.assertIn("features/003-bbg-allow-cache-spinlock.patch", build)
         self.assertNotIn('install_ksu "tiann/KernelSU" "main"', build)
