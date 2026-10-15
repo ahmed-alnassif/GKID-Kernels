@@ -180,6 +180,7 @@ jobs:
           variant: ${{ matrix.name }}
 
       - name: Run Build Script
+        id: kernel-build
         env:
           GH_TOKEN: ${{ github.token }}
           KERNEL_REPO: https://github.com/ahmed-alnassif/GKI-Duchamp-6.1
@@ -206,6 +207,31 @@ jobs:
           export GIT_CLONE_PROTECTION_ACTIVE=false
           chmod +x *.sh py/*.py
           ./build.sh
+
+      - name: Build result summary
+        if: always()
+        env:
+          BUILD_OUTCOME: ${{ steps.kernel-build.outcome }}
+          NETWORKING_INPUT: ${{ inputs.NETWORKING }}
+          ROOT_MANAGER_INPUT: ${{ inputs.ROOT_MANAGER }}
+        run: |
+          {
+            echo "## Cogan Kernel — Build Summary"
+            echo ""
+            echo "- Root manager: ${ROOT_MANAGER_INPUT}"
+            echo "- Networking: ${NETWORKING_INPUT}"
+            echo "- Build script: ${BUILD_OUTCOME}"
+            echo "- Release: manual approval required; no automatic publishing"
+            echo ""
+            if [ "${BUILD_OUTCOME}" != "success" ]; then
+              echo "### Build gagal / Failed"
+              echo "Periksa langkah **Run Build Script** untuk pesan error pertama."
+              echo "Tidak ada paket yang boleh dianggap siap flash dari run gagal."
+            else
+              echo "### Build script selesai"
+              echo "Hasil tetap harus melewati pemeriksaan ZIP dan validasi perangkat."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: ccache stats
         if: always()
