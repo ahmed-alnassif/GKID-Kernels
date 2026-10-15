@@ -36,7 +36,7 @@ jobs:
               raise SystemExit("Source run must originate from dev")
           if not str(data.get("path","")).endswith(".github/workflows/build.yml"):
               raise SystemExit("Source run is not the Cogan build workflow")
-          print("Validated build run", data["id"])
+          with open(os.environ["GITHUB_ENV"], "a") as env:\n              env.write("SOURCE_SHA=" + data["head_sha"] + "\\n")\n          print("Validated build run", data["id"], data["head_sha"])
           PY
 
       - name: Download kernel build artifacts only
