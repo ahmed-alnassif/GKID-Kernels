@@ -34,14 +34,14 @@ def audit(config_bytes, lock):
     for key in spec["forbidden"]:
         if values.get(key, "n") != "n":
             errors.append(f"{key}: forbidden value {values[key]}")
-    # Validate all enabled SUSFS subfeatures against the pinned fragment.
+    # Validate every explicitly enabled candidate flag, including ARM64.
     if "fragment" in spec:
         fragment_path = ROOT / spec["fragment"]
         fragment_raw = fragment_path.read_bytes()
         if hashlib.sha256(fragment_raw).hexdigest() != spec["sha256"]:
             raise ValueError("Locked candidate fragment SHA256 mismatch")
         for line in fragment_raw.decode("utf-8").splitlines():
-            if line.startswith("CONFIG_KSU_SUSFS_") and line.endswith("=y"):
+            if line.startswith("CONFIG_") and line.endswith("=y"):
                 key = line.split("=", 1)[0]
                 if values.get(key, "n") != "y":
                     errors.append(f"{key}: enabled in locked fragment but not resolved y")
@@ -67,6 +67,10 @@ def main():
         lock = json.loads(LOCK.read_text(encoding="utf-8"))
         if lock["configuration"]["target"] != "gki_defconfig":
             raise ValueError("Unexpected locked config target")
+        for guard in ("production_enabled", "run_full_build", "release_allowed",
+                      "flash_allowed", "lkm_allowed"):
+            if lock["guards"].get(guard) is not False:
+                raise ValueError("Production guard must remain false: " + guard)
         errors = audit(raw, lock)
         print("resolved_config_sha256=" + hashlib.sha256(raw).hexdigest())
         if errors:
