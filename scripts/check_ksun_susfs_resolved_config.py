@@ -45,7 +45,14 @@ def audit(config_bytes, lock):
                 key = line.split("=", 1)[0]
                 if values.get(key, "n") != "y":
                     errors.append(f"{key}: enabled in locked fragment but not resolved y")
-    lsm = values.get("CONFIG_LSM", "").strip('"').split(",")
+            elif line.startswith("# CONFIG_") and line.endswith(" is not set"):
+                key = line[2:-11]
+                if values.get(key, "n") != "n":
+                    errors.append(f"{key}: disabled in locked fragment but resolved {values[key]}")
+    lsm_raw = values.get("CONFIG_LSM", "")
+    if not (lsm_raw.startswith('"') and lsm_raw.endswith('"')):
+        errors.append("CONFIG_LSM: expected quoted Kconfig string")
+    lsm = lsm_raw[1:-1].split(",") if lsm_raw.startswith('"') and lsm_raw.endswith('"') else []
     if "baseband_guard" not in lsm:
         errors.append("CONFIG_LSM: baseband_guard token absent")
     if values.get("CONFIG_KSU_SUSFS", "n") == "y" and values.get("CONFIG_KSU", "n") != "y":
