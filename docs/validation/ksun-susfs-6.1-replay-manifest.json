@@ -57,5 +57,28 @@
     "run_full_build": false,
     "release_or_flash_allowed": false
   },
-  "notes": "This file is an evidence inventory, NOT compatible with scripts/ksun_susfs_replay.py. Never pass it to replay.py; that script expects a complete kernel_commit + patches array with local patch files."
+  "notes": "This file is an evidence inventory, NOT compatible with scripts/ksun_susfs_replay.py. Never pass it to replay.py; that script expects a complete kernel_commit + patches array with local patch files.",
+  "verified_ksun_source_providers": {
+    "repository": "https://github.com/pershoot/KernelSU-Next",
+    "commit": "2f858cb292265795dee2807759cec2eb8a7d79b1",
+    "files": [
+      {
+        "path": "kernel/core/init.c",
+        "blob_sha": "0f83468ff555cc8a93e9c0df7fbab7df789a958d",
+        "finding": "CONFIG_KSU_SUSFS branch invokes susfs_init() and blacklists susfs_guard_lkm"
+      },
+      {
+        "path": "kernel/runtime/ksud_integration.c",
+        "blob_sha": "177dabff8bd10ec4d5af39887cb1647bdaf181b8",
+        "finding": "Defines ksu_is_init_rc_hook_enabled at line 36 and ksu_handle_sys_read(unsigned int fd, char __user **buf_ptr, size_t *count_ptr) at line 533"
+      },
+      {
+        "path": "kernel/Kbuild",
+        "blob_sha": "3499b99a0a67633ef35048f160def925123cda4e",
+        "finding": "Contains CONFIG_KSU and CONFIG_KSU_SUSFS conditional build logic; does not alone prove kernel-tree integration"
+      }
+    ],
+    "status": "source_presence_only",
+    "limitations": "Not an ordered integration patch; does not prove successful replay, final linking, or runtime"
+  }
 }
