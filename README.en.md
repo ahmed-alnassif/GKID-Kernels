@@ -92,6 +92,8 @@ Open **Actions → Cogan Kernel Builder → Run workflow** in your repository.
 | Networking | BBRv3 and extra networking (enabled by default) |
 | BBG | Baseband Guard (enabled by default) |
 
+**Build output:** on the run page, download the `Cogan-<variant>-….zip` artifact. It is the flashable AnyKernel3 ZIP itself (no extraction needed), and its SHA256 is shown in the run summary.
+
 **Updating components:** open **Actions → Cogan Manual Update**.
 - `check` only reports versions.
 - `update` applies the new versions straight to `dev`.

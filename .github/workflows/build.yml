@@ -382,6 +382,36 @@ jobs:
           path: artifacts/
           retention-days: 1
 
+      # The flashable AnyKernel3 ZIP as its own artifact, uploaded as-is (archive: false):
+      # downloading it gives the ZIP directly, not a ZIP wrapped in another ZIP.
+      - name: Find flashable ZIP
+        id: flashable
+        if: success()
+        run: |
+          shopt -s nullglob
+          zips=(artifacts/*.zip)
+          if [ "${#zips[@]}" -ne 1 ]; then
+            echo "::warning::Expected exactly one flashable ZIP in artifacts/, found ${#zips[@]}; skipping the direct download"
+            exit 0
+          fi
+          echo "path=${zips[0]}" >> "$GITHUB_OUTPUT"
+          {
+            echo "### 📦 Flashable ZIP"
+            echo ""
+            echo "🇮🇩 Unduh artifact **$(basename "${zips[0]}")**: langsung berupa ZIP AnyKernel3, tidak perlu diekstrak lagi."
+            echo "🇬🇧 Download the **$(basename "${zips[0]}")** artifact: it is the AnyKernel3 ZIP itself, no extra extraction needed."
+            echo ""
+            echo "SHA256: \`$(sha256sum "${zips[0]}" | cut -d' ' -f1)\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload flashable ZIP (direct download)
+        if: success() && steps.flashable.outputs.path != ''
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          path: ${{ steps.flashable.outputs.path }}
+          archive: false
+          retention-days: 7
+
   upload-all:
     needs: build
     if: ${{ needs.build.result == 'success' }}
@@ -391,6 +421,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: downloaded-artifacts
+          pattern: build-*
           merge-multiple: true
 
       - name: Upload combined artifacts
@@ -417,6 +448,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: release-artifacts
+          pattern: build-*
           merge-multiple: true
 
       - name: Generate Checksums
