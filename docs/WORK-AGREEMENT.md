@@ -47,10 +47,11 @@ Dokumen ini adalah sumber utama aturan kerja dan urutan prioritas. Owner cukup m
 | W8 | P3 | Selaraskan nama workflow dengan file/isi (T7); putuskan hapus atau simpan workflow Telegram yang nonaktif. | **Selesai** 2026-10-15 — "Cogan Manual Update" diganti **"Cogan Manual Update"** sesuai pilihan owner (file tetap `cogan-smart-auto-update.yml` agar riwayat run menyatu); baris KernelSU Next memakai branch `dev`. Workflow Telegram tetap nonaktif sesuai PR #5. Catatan: sebagian tumpang-tindih dengan `root-upstream-provenance.yml` |
 | W9 | P3 | Rapikan issue #2, #3 (roadmap) dan #19 (SUSFS): perbarui ringkasan status, tutup yang selesai. | **Selesai** 2026-10-15 — body ketiganya diganti checklist status; tidak ada yang layak ditutup (masih ada sisa pekerjaan) |
 | W10 | P2 | Issue #3: catat SHA root manager & SUSFS yang benar-benar dipakai per build; usulan pin KernelSU/BakaSU. | **Selesai** 2026-10-15 — `ROOT_MANAGER_REPO/REF/SHA` + `SUSFS_SHA` masuk `build-env-*.txt`; ref tidak diubah. Usulan: KernelSU `v3.3.1` setelah 1 build sukses; BakaSU tetap `main` (tag stabil terlalu tua) |
-| W11 | P1 | KSUN+SUSFS di workflow: label `(uji)`; jalur build khusus yang membangun persis kandidat tervalidasi. | **Tersambung** 2026-10-15 — `scripts/stage_ksun_susfs_candidate.py` (replay core + snapshot beku + fitur 001–003, cek tree `1246bd4c`), config fragment + resolved-config gate, ZIP AnyKernel3 `+Test`. Hanya 6.1.177 (lts), fullLTO, BBG aktif, non-Compat. Sisa: owner run workflow sekali → uji HP → ganti label jadi normal |
+| W11 | P1 | KSUN+SUSFS di workflow: label `(uji)`; jalur build khusus yang membangun persis kandidat tervalidasi. | **Tersambung** 2026-10-15 — `scripts/stage_ksun_susfs_candidate.py` (replay core + snapshot beku + fitur 001–003, cek tree `1246bd4c`), config fragment + resolved-config gate, ZIP AnyKernel3 `+Test`. Hanya 6.1.177 (lts), fullLTO, BBG aktif, non-Compat. Run #11 (`38749819782`) hijau, tetapi **bootloop di HP** (rothko, MT6989): `CONFIG_KSU_SAMSUNG_KDP/RKP/DEFEX=y` (default fork pershoot) → `kernelsu_init` gagal sebelum `ksu_cred` dibuat → hook init.rc SUSFS memanggil `override_creds(NULL)`. **Diperbaiki** di fragment + gate (lihat `docs/validation/ksun-susfs-6.1-bootloop-fix.json`). Sisa: owner run workflow lagi → uji HP → ganti label jadi normal |
 | W12 | P1 | **Cogan Manual Update = satu-satunya jalan update** (arahan owner 2026-10-15): run build hanya compile, tidak pernah update sendiri. | **Selesai** 2026-10-15 — semua isi form Run workflow yang berasal dari upstream dipin di `configs/upstream.lock`: KernelSU, BakaSU, KSUN, SUSFS 6.1, NoMount (setup + source), AnyKernel3, kernel GKID 6.1 **termasuk tiap sublevel 160–177**. `build.sh` memasang persis pin itu dan gagal bila checkout berbeda. **Cogan Manual Update** `check` = laporan; `update` = **commit langsung ke `dev`** (keputusan owner), PR hanya bila push ditolak. Bila GKID-6.1 naik sublevel, Auto pindah ke sublevel baru dan sublevel lama tetap tersedia. Input **Kernel Sublevel** kini kolom teks (`lts` = terbaru, atau angka, mis. 177) yang dicek ke lock, jadi sublevel baru langsung bisa dipakai tanpa mengubah file workflow |
 | W13 | P1 | BBG: pin + checkbox di bawah Networking (default on) + patch `003` (disetujui owner). | **Selesai** 2026-10-15 — `BBG_COMMIT` di lock, komponen `bbg` di Manual Update; `003` dipakai di build produksi dan kandidat KSUN+SUSFS (Image lokal `f5c68737…`) |
 | W14 | P1 | Toolchain Neutron clang dipin (`NEUTRON_RELEASE`/`NEUTRON_SHA256`), menggantikan `antman -S` yang selalu mengambil terbaru. | **Selesai** 2026-10-15 — 06092026 (= terbaru saat ini, jadi build hari ini tidak berubah); komponen `toolchain` di Manual Update |
+| W15 | P2 | Arsipkan tag rilis GKID milik Ahmed (permintaan owner 2026-10-15) supaya yang tersisa hanya rilis Cogan. | **Arsip siap** — 246 tag dicatat di `docs/archive/gkid-upstream-tags.tsv`; semuanya identik di `ahmed-alnassif/GKID-Kernels`, jadi tidak ada yang hilang. Dipertahankan: `v26.10.14-r2`, `v26.10.14-r3` (rilis owner) dan `ci-ccache-store` (cache build). Penghapusan tag diblokir izin sesi Claude → dijalankan owner (bagian G) |
 
 ## D. Bukti hijau (tidak perlu diulang)
 
@@ -66,6 +67,7 @@ Dokumen ini adalah sumber utama aturan kerja dan urutan prioritas. Owner cukup m
 - **2026-10-15** — PR #29 di-merge (W10). W2 diputuskan (`dev` utama). W7 disetujui, tapi penghapusan diblokir proxy sesi (403) → perlu dieksekusi owner. Compile W4b belum diizinkan. **Aturan tambahan:** setelah PR di-merge, `dev` di-merge ke branch kerja; tidak ada force-push (ruleset melarangnya).
 - **2026-10-15** — Aturan A10 diperjelas owner: hanya **run workflow** build kernel yang khusus owner; compile lokal boleh. W4b dimulai secara lokal.
 - **2026-10-15** — Run #9 (`KernelSU + SUSFS`, 38735686355) **hijau**: baseline pin. Image lokal KSUN+SUSFS Full LTO lulus. W12 selesai: semua komponen dipin; update hanya via Cogan Manual Update.
+- **2026-10-15** — Uji HP build `(uji)` run #11: **bootloop** (kernel panic di `override_creds` ← `ksu_handle_sys_read`). Penyebab: opsi khusus Samsung di KSUN fork aktif pada perangkat MediaTek. Opsi dimatikan dan dikunci di gate; Image lokal dibangun ulang. Berikutnya: owner run workflow `KernelSU Next + SUSFS (uji)` sekali lagi, lalu uji HP.
 
 ## F. Perintah hapus branch lama (W7, dijalankan owner)
 
@@ -84,3 +86,10 @@ git push origin --delete \
 
 Semua branch diproteksi ruleset; bila ditolak, nonaktifkan sementara aturan *Restrict deletions* di Settings → Rules, atau hapus satu per satu di halaman Branches.
 
+## G. Hapus tag rilis lama milik Ahmed (W15, dijalankan owner)
+
+```sh
+grep -v '^#' docs/archive/gkid-upstream-tags.tsv | cut -f1 | sed 's#^#refs/tags/#' | xargs -n 50 git push origin --delete
+```
+
+Hanya 246 tag di file arsip yang dihapus; `v26.10.14-r2`, `v26.10.14-r3` dan `ci-ccache-store` tidak ikut. Tag yang terhapus bisa dipulihkan dari upstream (perintah ada di kepala file arsip).

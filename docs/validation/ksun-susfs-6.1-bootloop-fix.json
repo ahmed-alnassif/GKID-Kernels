@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "status": "root_cause_found_fix_built_locally_device_retest_pending",
+  "recorded_at": "2026-10-15",
+  "report": {
+    "build": "Cogan Kernel Builder run 38749819782 (#11), artifact build-6.1-KSUN+SUSFS-11, VARIANT KernelSU-Next+SuSFS+Test",
+    "device": "POCO rothko (2407FPN8EG), MediaTek MT6989, HyperOS OS3.0.301.0.WNNIDXM, stock kernel 6.1.138-android14-11",
+    "symptom": "bootloop; ro.boot.bootreason=kernel_panic",
+    "evidence": "owner bugreport, section 'LAST KMSG (/sys/fs/pstore/console-ramoops-0)', kernel 6.1.177-Cogan-r11-3f08838cb"
+  },
+  "panic": {
+    "time": "1.625 s, PID 1 init (second stage), right after 'KernelSU: ksu_init_rc_hook is disabled'",
+    "error": "Unable to handle kernel NULL pointer dereference at virtual address 0000000000000000 (ESR 0x96000005)",
+    "pc": "override_creds+0x24/0xbc",
+    "call_trace": "ksu_handle_sys_read+0x1ac/0x370 <- __arm64_sys_read <- el0_svc"
+  },
+  "root_cause": {
+    "summary": "ksu_cred was NULL when the SUSFS init.rc read hook ran load_module_rc_once() -> override_creds(ksu_cred)",
+    "chain": [
+      "The pershoot KernelSU-Next fork (2f858cb) defaults CONFIG_KSU_SAMSUNG_KDP, CONFIG_KSU_SAMSUNG_RKP and CONFIG_KSU_SAMSUNG_DEFEX to y; olddefconfig kept them (resolved .config 41492e89...)",
+      "ksu_samsung_kdp_init() cannot resolve the Samsung-only symbol prepare_ro_creds on a non-Samsung GKI kernel and returns -ENOENT",
+      "kernelsu_init() returns before 'ksu_cred = prepare_creds()', so ksu_cred stays NULL (setup_ksu_cred() silently skips NULL)",
+      "The kernel-side SUSFS hooks are static keys in the kernel tree and stay enabled, so init's first read of /system/etc/init/hw/init.rc reaches ksu_install_rc_hook() -> load_module_rc_once() -> override_creds(NULL)"
+    ],
+    "not_the_cause": [
+      "Vendor modules loaded and boot reached second-stage init, so the 6.1.177 KMI was accepted",
+      "WARNINGs in xhci_mtk_trace_init/tracepoint_probe_unregister are a vendor driver registering one tracepoint probe twice (-EEXIST); non-fatal",
+      "Production 'KernelSU Next' builds use the official KernelSU-Next v3.4.2, whose Kconfig has no Samsung options"
+    ]
+  },
+  "fix": {
+    "fragment": "configs/ksun-susfs-6.1-features.config: '# CONFIG_KSU_SAMSUNG_KDP/RKP/DEFEX is not set'",
+    "fragment_sha256": "6ccc7fe7203e77281b721a604406a57bd53db68f6985d7348836de76718c3e91",
+    "lock": "configs/ksun-susfs-6.1-features.lock.json: new fragment sha256, the three options added to configuration.forbidden",
+    "regression_test": "tests/test_ksun_susfs_resolved_config.py::test_repository_lock_forbids_samsung_ksu_options",
+    "kernel_source_unchanged": "integrated kernel tree 1246bd4c9a0afc0859ecbc4ad91031dab65aa413 and KSUN snapshot ce13bc5d are unchanged"
+  },
+  "local_verification": {
+    "where": "Claude session container, same O= directory and Neutron 06092026 toolchain as docs/validation/ksun-susfs-6.1-local-image.json",
+    "resolved_config": {
+      "method": "fresh O=: gki_defconfig, merge_config.sh -m with the new fragment, olddefconfig",
+      "resolved_config_sha256": "c0c1259cd617b134f9bcfdf5501892df4c2d85af8a5e2df4c5b9411c02d1a6fd",
+      "difference_from_bootloop_config": "only CONFIG_KSU_SAMSUNG_DEFEX, CONFIG_KSU_SAMSUNG_KDP and CONFIG_KSU_SAMSUNG_RKP changed from y to not set",
+      "gate_new_config": "PASS",
+      "gate_bootloop_config": "BLOCKED: CONFIG_KSU_SAMSUNG_KDP/RKP/DEFEX forbidden value y"
+    },
+    "image_build": {
+      "command": "make -j4 Image (incremental, 14 GiB swapfile for the Full LTO link)",
+      "result": "rc=0",
+      "elapsed_seconds": 682,
+      "recompiled_objects": "kernel/configs.o, drivers/kernelsu/core/init.o, compat/samsung_kdp.o, compat/samsung_defex.o, compat/samsung_rkp.o, policy/app_profile.o, feature/selinux_hide.o, init/version-timestamp.o",
+      "Image_bytes": 42617344,
+      "disassembly": "ksu_samsung_kdp_init and ksu_samsung_defex_init are now 'mov w0, wzr; ret' (return 0); defex_enforce_kprobe is absent from System.map",
+      "init_symbols_present": [
+        "kernelsu_init",
+        "susfs_init",
+        "bbg_init",
+        "nomount_init"
+      ]
+    },
+    "ci_steps_run_locally": "validate_workflows, validate_shell, validate_python, test_root_matrix and all 8 unittest modules from validate.yml pass"
+  },
+  "not_verified": [
+    "Boot on the device with the fixed build (needs an owner-run workflow build and a flash by the owner)",
+    "Manager APK pairing with the pershoot KSUN fork"
+  ],
+  "upstream_note": "The fork keeps SUSFS hooks active after kernelsu_init() fails; any other init failure would crash the same way. Worth reporting to pershoot/KernelSU-Next.",
+  "github_actions_runs_started_for_this_record": 0
+}

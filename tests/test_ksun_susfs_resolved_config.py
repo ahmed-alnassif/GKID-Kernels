@@ -197,6 +197,20 @@ class ResolvedConfigTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Malformed config entry"):
             self.check(GOOD + "# CONFIG_BAD-NAME is not set\n")
 
+    def test_repository_lock_forbids_samsung_ksu_options(self):
+        # Bootloop on a MediaTek GKI device: Samsung KDP init failed, ksu_cred stayed
+        # NULL and the SUSFS init.rc hook crashed in override_creds().
+        import json
+        lock = json.loads((ROOT / "configs/ksun-susfs-6.1-features.lock.json")
+                          .read_text(encoding="utf-8"))
+        fragment = (ROOT / lock["configuration"]["fragment"]).read_text(encoding="utf-8")
+        for key in ("CONFIG_KSU_SAMSUNG_KDP", "CONFIG_KSU_SAMSUNG_RKP",
+                    "CONFIG_KSU_SAMSUNG_DEFEX"):
+            self.assertIn(key, lock["configuration"]["forbidden"])
+            self.assertIn(f"# {key} is not set", fragment.splitlines())
+            errors = gate.audit((GOOD + f"{key}=y\n").encode(), lock)
+            self.assertTrue(any(key in e for e in errors))
+
     def test_nomount_module_not_builtin(self):
         self.assertTrue(any("CONFIG_NOMOUNT" in error for error in
                             self.check(GOOD.replace("CONFIG_NOMOUNT=y", "CONFIG_NOMOUNT=m"))))

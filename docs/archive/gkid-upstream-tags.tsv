@@ -1,0 +1,250 @@
+# Tag rilis GKID milik Ahmed Al-Nassif yang tersalin saat fork (diarsipkan 2026-10-15).
+# Semua tag ini identik (nama + commit) di https://github.com/ahmed-alnassif/GKID-Kernels/tags
+# Pulihkan satu tag: git fetch https://github.com/ahmed-alnassif/GKID-Kernels tag <TAG> && git push origin <TAG>
+# tag<TAB>commit<TAB>commit_date<TAB>subject
+v26.02.24-r26	9d4d0967e0e0c5a4b858fd669dcf772710a87621	2026-02-24	wip: trying to fix SukiSU by adding the required stub
+v26.02.25-r27	a3c15f10969c2d7148878834ce702c23c36cb400	2026-02-24	refactor: release workflow for susfs
+v26.02.25-r28	636ce23283d946c82f3fa141501148b8fe6123cf	2026-02-25	feat: dynamic clang setup
+v26.02.25-r29	4867b72bf721ef9c626449a4890caa270f90d6f4	2026-02-25	refactor: optimization and cleanup
+v26.02.25-r30	9be7dd61335170fc38d717b8ebb35291235c0454	2026-02-25	defconfig: add networking extras configs
+v26.02.25-r31	a7a1409daa688e4941c35f9a43dcab0933e91d45	2026-02-25	feat: add tweaks section in releases page
+v26.02.26-r33	d32dec9dbfa72a7bfb8a3778673d9d8e58435744	2026-02-26	fix: move RELEASE variable definition before GITHUB_ENV usage
+v26.02.26-r34	b815d99db68a485db4a3749194a1cb6814c3f9cd	2026-02-26	wip: test
+v26.02.26-r35	c36c6163b9519a85fe732086cc4b99cda8720a9a	2026-02-26	fix: gh token
+v26.02.26-r36	74437c505eb69c4c4d151b34941caaf67b348e02	2026-02-26	feat: pipeline release test
+v26.02.26-r38	5df38db0f7a762358c5bf30d7228e94895a88dbf	2026-02-26	fix(SukiSU): use main branch for GKI
+v26.02.27-r42	9de7d37db7a132a5283440efb759d4a420dd0fd5	2026-02-27	fix(SukiSU): app_profile.c syntax errors from recent commits
+v26.02.27-r49	5ebd837b9c45525be984727b72beebbb366fb253	2026-02-27	fix: use my fork url and branch
+v26.02.27-r52	33d528c093d0c58db2fbed491d359119d9c3965b	2026-02-27	fix: clean log for better debugging
+v26.02.27-r63	33d528c093d0c58db2fbed491d359119d9c3965b	2026-02-27	fix: clean log for better debugging
+v26.02.28-r64	33d528c093d0c58db2fbed491d359119d9c3965b	2026-02-27	fix: clean log for better debugging
+v26.02.28-r67	fcb10f6f809c45c75e31706d9e3a68439c79a71b	2026-02-28	chore: merge pull request #2 from ahmed-alnassif/feat-multi-variants
+v26.02.28-r73	ede4d9c40d53c7fcd26cf8fc7c2a314b77f96896	2026-02-28	wip: test
+v26.02.28-r74	714e86af300a6837b5d7b9f084d9eccfb5c08bb3	2026-02-28	fix: checksums section and add a warning message for testing
+v26.02.28-r75	714e86af300a6837b5d7b9f084d9eccfb5c08bb3	2026-02-28	fix: checksums section and add a warning message for testing
+v26.02.28-r76	714e86af300a6837b5d7b9f084d9eccfb5c08bb3	2026-02-28	fix: checksums section and add a warning message for testing
+v26.02.28-r77	714e86af300a6837b5d7b9f084d9eccfb5c08bb3	2026-02-28	fix: checksums section and add a warning message for testing
+v26.03.01-r78	68ffa5c992e95afef2d32a8f0b3c0161680ac1d2	2026-03-01	docs: fix downloads badge (") removed
+v26.03.02-r91	68ffa5c992e95afef2d32a8f0b3c0161680ac1d2	2026-03-01	docs: fix downloads badge (") removed
+v26.03.02-r100	68ffa5c992e95afef2d32a8f0b3c0161680ac1d2	2026-03-01	docs: fix downloads badge (") removed
+v26.03.02-r105	68ffa5c992e95afef2d32a8f0b3c0161680ac1d2	2026-03-01	docs: fix downloads badge (") removed
+v26.03.02-r107	68ffa5c992e95afef2d32a8f0b3c0161680ac1d2	2026-03-01	docs: fix downloads badge (") removed
+v26.03.03-r109	68ffa5c992e95afef2d32a8f0b3c0161680ac1d2	2026-03-01	docs: fix downloads badge (") removed
+v26.03.03-r110	68ffa5c992e95afef2d32a8f0b3c0161680ac1d2	2026-03-01	docs: fix downloads badge (") removed
+v26.03.03-r111	68ffa5c992e95afef2d32a8f0b3c0161680ac1d2	2026-03-01	docs: fix downloads badge (") removed
+v26.03.04-r114	19618547036a8b879d29dc0fe92a78e06e91c64a	2026-03-04	chore: merge pull request #6 from ahmed-alnassif/feat/KSUN+Wild_KSU
+v26.03.05-r119	7a499f378d7b5e0167816878a5041c42efe5dbfc	2026-03-04	docs(README.md): update features
+v26.03.05-r120	56c7cd7e050be92d733e2bdeea465c28298a885e	2026-03-05	chore: merge pull request #8 from ahmed-alnassif/feat/wild_ksu_changelog
+v26.03.06-r121	56c7cd7e050be92d733e2bdeea465c28298a885e	2026-03-05	chore: merge pull request #8 from ahmed-alnassif/feat/wild_ksu_changelog
+v26.03.07-r122	e5e3a7f88a6a1aa7530395ae5a7429c7d8477b6b	2026-03-06	chore: merge pull request #9 from ahmed-alnassif/feat/update_defconfig
+v26.03.07-r124	e5e3a7f88a6a1aa7530395ae5a7429c7d8477b6b	2026-03-06	chore: merge pull request #9 from ahmed-alnassif/feat/update_defconfig
+v26.03.07-r125	e5e3a7f88a6a1aa7530395ae5a7429c7d8477b6b	2026-03-06	chore: merge pull request #9 from ahmed-alnassif/feat/update_defconfig
+v26.03.07-r128	e5e3a7f88a6a1aa7530395ae5a7429c7d8477b6b	2026-03-06	chore: merge pull request #9 from ahmed-alnassif/feat/update_defconfig
+v26.03.07-r130	e5e3a7f88a6a1aa7530395ae5a7429c7d8477b6b	2026-03-06	chore: merge pull request #9 from ahmed-alnassif/feat/update_defconfig
+v26.03.08-r132	3c4b566b1d0ee47d8c92130883ba89cabdf6d6cb	2026-03-07	chore: merge pull request #10 from ahmed-alnassif/fix/deconfig_bootloop
+v26.03.08-r142	3c4b566b1d0ee47d8c92130883ba89cabdf6d6cb	2026-03-07	chore: merge pull request #10 from ahmed-alnassif/fix/deconfig_bootloop
+v26.03.08-r143	7698cd83c279cc96b3f788e1e518ac7999da9257	2026-03-08	chore: merge pull request #11 from ahmed-alnassif/feat/better_version
+v26.03.09-r148	1c2a2d045142d63e4753bb7fca1e6b320ca0198b	2026-03-08	chore: merge pull request #12 from ahmed-alnassif/feat/switch_kernel_branch
+v26.03.09-r150	1c2a2d045142d63e4753bb7fca1e6b320ca0198b	2026-03-08	chore: merge pull request #12 from ahmed-alnassif/feat/switch_kernel_branch
+v26.03.10-r152	da0744a8c92c5832552e7586b1ae5cd089010f73	2026-03-10	chore: merge pull request #14 from ahmed-alnassif/feat/switch_to_SukiSU_upstream
+v26.03.10-r154	da0744a8c92c5832552e7586b1ae5cd089010f73	2026-03-10	chore: merge pull request #14 from ahmed-alnassif/feat/switch_to_SukiSU_upstream
+v26.03.10-r155	da0744a8c92c5832552e7586b1ae5cd089010f73	2026-03-10	chore: merge pull request #14 from ahmed-alnassif/feat/switch_to_SukiSU_upstream
+v26.03.10-r170	da0744a8c92c5832552e7586b1ae5cd089010f73	2026-03-10	chore: merge pull request #14 from ahmed-alnassif/feat/switch_to_SukiSU_upstream
+v26.03.12-r171	b59e378f951070863d9f6000e83faccc36fe8cb7	2026-03-10	chore: merge pull request #15 from ahmed-alnassif/fix/susfs
+v26.03.12-r172	b59e378f951070863d9f6000e83faccc36fe8cb7	2026-03-10	chore: merge pull request #15 from ahmed-alnassif/fix/susfs
+v26.03.12-r173	b59e378f951070863d9f6000e83faccc36fe8cb7	2026-03-10	chore: merge pull request #15 from ahmed-alnassif/fix/susfs
+v26.03.12-r174	b59e378f951070863d9f6000e83faccc36fe8cb7	2026-03-10	chore: merge pull request #15 from ahmed-alnassif/fix/susfs
+v26.03.12-r175	b59e378f951070863d9f6000e83faccc36fe8cb7	2026-03-10	chore: merge pull request #15 from ahmed-alnassif/fix/susfs
+v26.03.12-r177	b59e378f951070863d9f6000e83faccc36fe8cb7	2026-03-10	chore: merge pull request #15 from ahmed-alnassif/fix/susfs
+v26.03.12-r178	b59e378f951070863d9f6000e83faccc36fe8cb7	2026-03-10	chore: merge pull request #15 from ahmed-alnassif/fix/susfs
+v26.03.12-r179	b59e378f951070863d9f6000e83faccc36fe8cb7	2026-03-10	chore: merge pull request #15 from ahmed-alnassif/fix/susfs
+v26.03.12-r180	b59e378f951070863d9f6000e83faccc36fe8cb7	2026-03-10	chore: merge pull request #15 from ahmed-alnassif/fix/susfs
+v26.03.12-r181	b59e378f951070863d9f6000e83faccc36fe8cb7	2026-03-10	chore: merge pull request #15 from ahmed-alnassif/fix/susfs
+v26.03.12-r182	b59e378f951070863d9f6000e83faccc36fe8cb7	2026-03-10	chore: merge pull request #15 from ahmed-alnassif/fix/susfs
+v26.03.12-r183	b59e378f951070863d9f6000e83faccc36fe8cb7	2026-03-10	chore: merge pull request #15 from ahmed-alnassif/fix/susfs
+v26.03.12-r184	b59e378f951070863d9f6000e83faccc36fe8cb7	2026-03-10	chore: merge pull request #15 from ahmed-alnassif/fix/susfs
+v26.03.12-r187	b59e378f951070863d9f6000e83faccc36fe8cb7	2026-03-10	chore: merge pull request #15 from ahmed-alnassif/fix/susfs
+v26.03.12-r188	b59e378f951070863d9f6000e83faccc36fe8cb7	2026-03-10	chore: merge pull request #15 from ahmed-alnassif/fix/susfs
+v26.03.13-r189	95a7642a01bea72425941d2fa5db7e21a509cebe	2026-03-12	chore: merge pull request #16 from ahmed-alnassif/feat/disable_debugging_defconfig
+v26.03.13-r190	95a7642a01bea72425941d2fa5db7e21a509cebe	2026-03-12	chore: merge pull request #16 from ahmed-alnassif/feat/disable_debugging_defconfig
+v26.03.13-r191	95a7642a01bea72425941d2fa5db7e21a509cebe	2026-03-12	chore: merge pull request #16 from ahmed-alnassif/feat/disable_debugging_defconfig
+v26.03.13-r192	95a7642a01bea72425941d2fa5db7e21a509cebe	2026-03-12	chore: merge pull request #16 from ahmed-alnassif/feat/disable_debugging_defconfig
+v26.03.13-r194	95a7642a01bea72425941d2fa5db7e21a509cebe	2026-03-12	chore: merge pull request #16 from ahmed-alnassif/feat/disable_debugging_defconfig
+v26.03.16-r196	928b54a406e85d319f649bb767cd38aaf06bc8ee	2026-03-16	chore: merge pull request #18 from ahmed-alnassif/feat/defconfig_and_cleanup
+v26.03.16-r197	928b54a406e85d319f649bb767cd38aaf06bc8ee	2026-03-16	chore: merge pull request #18 from ahmed-alnassif/feat/defconfig_and_cleanup
+v26.03.16-r198	928b54a406e85d319f649bb767cd38aaf06bc8ee	2026-03-16	chore: merge pull request #18 from ahmed-alnassif/feat/defconfig_and_cleanup
+v26.03.16-r205	928b54a406e85d319f649bb767cd38aaf06bc8ee	2026-03-16	chore: merge pull request #18 from ahmed-alnassif/feat/defconfig_and_cleanup
+v26.03.17-r207	928b54a406e85d319f649bb767cd38aaf06bc8ee	2026-03-16	chore: merge pull request #18 from ahmed-alnassif/feat/defconfig_and_cleanup
+v26.03.17-r209	928b54a406e85d319f649bb767cd38aaf06bc8ee	2026-03-16	chore: merge pull request #18 from ahmed-alnassif/feat/defconfig_and_cleanup
+v26.03.19-r210	928b54a406e85d319f649bb767cd38aaf06bc8ee	2026-03-16	chore: merge pull request #18 from ahmed-alnassif/feat/defconfig_and_cleanup
+v26.03.19-r211	928b54a406e85d319f649bb767cd38aaf06bc8ee	2026-03-16	chore: merge pull request #18 from ahmed-alnassif/feat/defconfig_and_cleanup
+v26.03.20-r214	928b54a406e85d319f649bb767cd38aaf06bc8ee	2026-03-16	chore: merge pull request #18 from ahmed-alnassif/feat/defconfig_and_cleanup
+v26.03.23-r222	b10ac76074aeca4483a11ea30bbd1895fb261cfd	2026-03-22	chore: merge pull request #21 from ahmed-alnassif/feat/KernelSU
+v26.03.23-r225	b10ac76074aeca4483a11ea30bbd1895fb261cfd	2026-03-22	chore: merge pull request #21 from ahmed-alnassif/feat/KernelSU
+v26.03.23-r227	b10ac76074aeca4483a11ea30bbd1895fb261cfd	2026-03-22	chore: merge pull request #21 from ahmed-alnassif/feat/KernelSU
+v26.03.24-r228	b10ac76074aeca4483a11ea30bbd1895fb261cfd	2026-03-22	chore: merge pull request #21 from ahmed-alnassif/feat/KernelSU
+v26.03.25-r229	b10ac76074aeca4483a11ea30bbd1895fb261cfd	2026-03-22	chore: merge pull request #21 from ahmed-alnassif/feat/KernelSU
+v26.03.26-r231	b10ac76074aeca4483a11ea30bbd1895fb261cfd	2026-03-22	chore: merge pull request #21 from ahmed-alnassif/feat/KernelSU
+v26.03.27-r232	699141dd5d8974c8ec5bafd61113005d930361f3	2026-03-26	chore: merge pull request #22 from ahmed-alnassif/feat/KernelSU_changelog
+v26.03.30-r250	f2f292583a457751a7029151520cbaeea796ce22	2026-03-27	docs: update README
+v26.03.31-r253	f2f292583a457751a7029151520cbaeea796ce22	2026-03-27	docs: update README
+v26.03.31-r254	f2f292583a457751a7029151520cbaeea796ce22	2026-03-27	docs: update README
+v26.03.31-r256	f2f292583a457751a7029151520cbaeea796ce22	2026-03-27	docs: update README
+v26.03.31-r260	f2f292583a457751a7029151520cbaeea796ce22	2026-03-27	docs: update README
+v26.03.31-r262	f2f292583a457751a7029151520cbaeea796ce22	2026-03-27	docs: update README
+v26.04.01-r266	f2f292583a457751a7029151520cbaeea796ce22	2026-03-27	docs: update README
+v26.04.02-r269	f2f292583a457751a7029151520cbaeea796ce22	2026-03-27	docs: update README
+v26.04.06-r274	f2f292583a457751a7029151520cbaeea796ce22	2026-03-27	docs: update README
+v26.04.08-r276	f2f292583a457751a7029151520cbaeea796ce22	2026-03-27	docs: update README
+v26.04.09-r278	f2f292583a457751a7029151520cbaeea796ce22	2026-03-27	docs: update README
+v26.04.14-r282	f2f292583a457751a7029151520cbaeea796ce22	2026-03-27	docs: update README
+v26.04.14-r285	f2f292583a457751a7029151520cbaeea796ce22	2026-03-27	docs: update README
+v26.04.14-r286	f2f292583a457751a7029151520cbaeea796ce22	2026-03-27	docs: update README
+v26.04.16-r291	f2f292583a457751a7029151520cbaeea796ce22	2026-03-27	docs: update README
+v26.04.18-r294	f2f292583a457751a7029151520cbaeea796ce22	2026-03-27	docs: update README
+v26.04.18-r295	f2f292583a457751a7029151520cbaeea796ce22	2026-03-27	docs: update README
+v26.04.22-r298	6fede335489cf872197fde39b81dd80b9ffa4e1e	2026-04-19	chore: merge pull request #26 from ahmed-alnassif/dev2
+v26.04.26-r304	6fede335489cf872197fde39b81dd80b9ffa4e1e	2026-04-19	chore: merge pull request #26 from ahmed-alnassif/dev2
+v26.04.26-r305	6fede335489cf872197fde39b81dd80b9ffa4e1e	2026-04-19	chore: merge pull request #26 from ahmed-alnassif/dev2
+v26.04.28-r307	6fede335489cf872197fde39b81dd80b9ffa4e1e	2026-04-19	chore: merge pull request #26 from ahmed-alnassif/dev2
+v26.04.29-r308	6fede335489cf872197fde39b81dd80b9ffa4e1e	2026-04-19	chore: merge pull request #26 from ahmed-alnassif/dev2
+v26.04.29-r309	6fede335489cf872197fde39b81dd80b9ffa4e1e	2026-04-19	chore: merge pull request #26 from ahmed-alnassif/dev2
+v26.04.30-r310	6fede335489cf872197fde39b81dd80b9ffa4e1e	2026-04-19	chore: merge pull request #26 from ahmed-alnassif/dev2
+v26.05.01-r311	6fede335489cf872197fde39b81dd80b9ffa4e1e	2026-04-19	chore: merge pull request #26 from ahmed-alnassif/dev2
+v26.05.02-r313	6fede335489cf872197fde39b81dd80b9ffa4e1e	2026-04-19	chore: merge pull request #26 from ahmed-alnassif/dev2
+v26.05.03-r315	6fede335489cf872197fde39b81dd80b9ffa4e1e	2026-04-19	chore: merge pull request #26 from ahmed-alnassif/dev2
+v26.05.03-r317	6fede335489cf872197fde39b81dd80b9ffa4e1e	2026-04-19	chore: merge pull request #26 from ahmed-alnassif/dev2
+v26.05.03-r318	6fede335489cf872197fde39b81dd80b9ffa4e1e	2026-04-19	chore: merge pull request #26 from ahmed-alnassif/dev2
+v26.05.05-r321	6fede335489cf872197fde39b81dd80b9ffa4e1e	2026-04-19	chore: merge pull request #26 from ahmed-alnassif/dev2
+v26.05.05-r322	6fede335489cf872197fde39b81dd80b9ffa4e1e	2026-04-19	chore: merge pull request #26 from ahmed-alnassif/dev2
+v26.05.08-r326	4fcd3f9622572a193eebd23e41f83ad0b481a3f8	2026-05-08	Revert "feat: add SukiSU Ultra + susfs back"
+v26.05.10-r329	410b4e15f64c63574367ecd92f5731e05e1e42df	2026-05-10	fix: ccache
+v26.05.10-r330	d17a70afca90c163aaaf10f342626d8e783a1e53	2026-05-10	fix: ccache
+v26.05.10-r331	d17a70afca90c163aaaf10f342626d8e783a1e53	2026-05-10	fix: ccache
+v26.05.10-r333	d17a70afca90c163aaaf10f342626d8e783a1e53	2026-05-10	fix: ccache
+v26.05.10-r334	416e436cc5ee130fcd948b08a75ba6418ac42525	2026-05-10	fix: use kernel last commit date as build date to fix ccache misses
+v26.05.12-r339	730391325c13dd3e3673bb6864f5d2d2c212db11	2026-05-12	fix: disable RESukiSU until they sync with susfs
+v26.05.14-r341	730391325c13dd3e3673bb6864f5d2d2c212db11	2026-05-12	fix: disable RESukiSU until they sync with susfs
+v26.05.15-r342	c459b63aad5b257283259f0666839d5f2b3316bd	2026-05-15	refactor: add avc log spoofing patch
+v26.05.15-r343	8448159cedc3953650149c0f68b0029e959033cd	2026-05-15	feat(KernelSU): throne_tracker: offload to kthread
+v26.05.16-r344	c040c60998717187e7316f96acc0f849c07136c2	2026-05-16	chore: revert "fix: disable RESukiSU until they sync with susfs"
+v26.05.16-r345	13679afaed455edcb7c480c21502a5ed2a03a688	2026-05-16	refactor: remove unused patches
+v26.05.17-r347	c9d788762771cd720a2580fe33ea910412bed0ba	2026-05-17	feat: use my own source code of the kernel
+v26.05.18-r349	9a206b046569918a5bf2a4d164d77712674c86b8	2026-05-18	feat(KernelSU): allowlist: escape persistent_allow_list to kthread
+v26.05.18-r351	8db4e9795c0437898f5c21c255bd0a0413213e6b	2026-05-18	feat(KernelSU): supercalls: allow userspace to pull list entries
+v26.05.18-r353	8db4e9795c0437898f5c21c255bd0a0413213e6b	2026-05-18	feat(KernelSU): supercalls: allow userspace to pull list entries
+v26.05.20-r355	8db4e9795c0437898f5c21c255bd0a0413213e6b	2026-05-18	feat(KernelSU): supercalls: allow userspace to pull list entries
+v26.05.21-r356	8db4e9795c0437898f5c21c255bd0a0413213e6b	2026-05-18	feat(KernelSU): supercalls: allow userspace to pull list entries
+v26.05.22-r357	8db4e9795c0437898f5c21c255bd0a0413213e6b	2026-05-18	feat(KernelSU): supercalls: allow userspace to pull list entries
+v26.05.25-r358	8db4e9795c0437898f5c21c255bd0a0413213e6b	2026-05-18	feat(KernelSU): supercalls: allow userspace to pull list entries
+v26.05.29-r361	890203156741128889623112e5b4bac4c4ef54ad	2026-05-29	fix: disable RESukiSU until they sync with susfs
+v26.05.31-r369	259f27dc253475e07678ccc7603d71a96933454b	2026-05-29	chore: revert "fix: disable RESukiSU until they sync with susfs"
+v26.06.01-r373	259f27dc253475e07678ccc7603d71a96933454b	2026-05-29	chore: revert "fix: disable RESukiSU until they sync with susfs"
+v26.06.01-r374	259f27dc253475e07678ccc7603d71a96933454b	2026-05-29	chore: revert "fix: disable RESukiSU until they sync with susfs"
+v26.06.01-r375	259f27dc253475e07678ccc7603d71a96933454b	2026-05-29	chore: revert "fix: disable RESukiSU until they sync with susfs"
+v26.06.04-r378	259f27dc253475e07678ccc7603d71a96933454b	2026-05-29	chore: revert "fix: disable RESukiSU until they sync with susfs"
+v26.06.04-r379	259f27dc253475e07678ccc7603d71a96933454b	2026-05-29	chore: revert "fix: disable RESukiSU until they sync with susfs"
+v26.06.09-r384	259f27dc253475e07678ccc7603d71a96933454b	2026-05-29	chore: revert "fix: disable RESukiSU until they sync with susfs"
+v26.06.11-r386	259f27dc253475e07678ccc7603d71a96933454b	2026-05-29	chore: revert "fix: disable RESukiSU until they sync with susfs"
+v26.06.12-r387	259f27dc253475e07678ccc7603d71a96933454b	2026-05-29	chore: revert "fix: disable RESukiSU until they sync with susfs"
+v26.06.12-r388	259f27dc253475e07678ccc7603d71a96933454b	2026-05-29	chore: revert "fix: disable RESukiSU until they sync with susfs"
+v26.06.12-r389	259f27dc253475e07678ccc7603d71a96933454b	2026-05-29	chore: revert "fix: disable RESukiSU until they sync with susfs"
+v26.06.16-r390	259f27dc253475e07678ccc7603d71a96933454b	2026-05-29	chore: revert "fix: disable RESukiSU until they sync with susfs"
+v26.06.16-r391	259f27dc253475e07678ccc7603d71a96933454b	2026-05-29	chore: revert "fix: disable RESukiSU until they sync with susfs"
+v26.06.18-r392	259f27dc253475e07678ccc7603d71a96933454b	2026-05-29	chore: revert "fix: disable RESukiSU until they sync with susfs"
+v26.06.20-r393	259f27dc253475e07678ccc7603d71a96933454b	2026-05-29	chore: revert "fix: disable RESukiSU until they sync with susfs"
+v26.06.21-r394	259f27dc253475e07678ccc7603d71a96933454b	2026-05-29	chore: revert "fix: disable RESukiSU until they sync with susfs"
+v26.06.23-r396	0d003c5eab9e702860c01b4a3e98cc80d3519a7d	2026-06-22	refactor: remove patches that already committed to the kernel
+v26.06.25-r414	0d003c5eab9e702860c01b4a3e98cc80d3519a7d	2026-06-22	refactor: remove patches that already committed to the kernel
+v26.06.30-r415	0d003c5eab9e702860c01b4a3e98cc80d3519a7d	2026-06-22	refactor: remove patches that already committed to the kernel
+v26.06.30-r416	0d003c5eab9e702860c01b4a3e98cc80d3519a7d	2026-06-22	refactor: remove patches that already committed to the kernel
+v26.07.05-r417	0d003c5eab9e702860c01b4a3e98cc80d3519a7d	2026-06-22	refactor: remove patches that already committed to the kernel
+v26.07.06-r418	0d003c5eab9e702860c01b4a3e98cc80d3519a7d	2026-06-22	refactor: remove patches that already committed to the kernel
+v26.07.13-r422	0d003c5eab9e702860c01b4a3e98cc80d3519a7d	2026-06-22	refactor: remove patches that already committed to the kernel
+v26.07.15-r424	0d003c5eab9e702860c01b4a3e98cc80d3519a7d	2026-06-22	refactor: remove patches that already committed to the kernel
+v26.07.18-r425	0d003c5eab9e702860c01b4a3e98cc80d3519a7d	2026-06-22	refactor: remove patches that already committed to the kernel
+v26.07.19-r426	d8d232b9356d17e58faefb1a43ced43df7674e9d	2026-07-18	docs: add banner image
+v26.07.21-r428	d8d232b9356d17e58faefb1a43ced43df7674e9d	2026-07-18	docs: add banner image
+v26.07.22-r430	d8d232b9356d17e58faefb1a43ced43df7674e9d	2026-07-18	docs: add banner image
+v26.07.22-r431	d8d232b9356d17e58faefb1a43ced43df7674e9d	2026-07-18	docs: add banner image
+v26.07.22-r432	d8d232b9356d17e58faefb1a43ced43df7674e9d	2026-07-18	docs: add banner image
+v26.07.23-r434	2aad4a28079963cba9d579c0825a8e92db434532	2026-07-23	fix: disable LTO on compat variants for full compatibility
+v26.07.24-r438	1def26ad44677a1525f3e39346d4c23ab699666f	2026-07-24	fix: make config generation
+v26.07.24-r439	1def26ad44677a1525f3e39346d4c23ab699666f	2026-07-24	fix: make config generation
+v26.07.26-r443	b3bc6398315773df10951cea290aeb584ebe199c	2026-07-26	fix: use the correct path of droidspaces.config
+v26.07.27-r444	b3bc6398315773df10951cea290aeb584ebe199c	2026-07-26	fix: use the correct path of droidspaces.config
+v26.07.27-r448	ec86facef20aa054cb9d936a3663b640f0c39cfd	2026-07-27	fix: disable DroidSpaces in vanilla builds for NoLTO
+v26.07.29-r452	619b734f20383c3daac7384c4577a30aecc59d08	2026-07-29	chore: update release body
+v26.07.29-r454	8021bb6307a1d7b7a3dfa75a6d93c78ddc5a7aea	2026-07-29	refactor: clean defconfig setup
+v26.07.31-r457	5436c7f18d7ca60c99dc82fc766a569f72a720d7	2026-07-31	refactor: use the official KernelSU-Next repo to fetch commits
+v26.08.01-r459	8301e92e3ab0dc3d81e079966c319123906e31d5	2026-08-01	feat: Nethunter support
+v26.08.02-r463	5ef6e910d158825c7575aec783862971f1255b70	2026-08-02	fix: initialize rtw88 submodule during build
+v26.08.02-r466	60f02ce325b3a35ae9e8fbea3cb7137b0183e12f	2026-08-02	fix: add Kali NetHunter missing wireless stack configs
+v26.08.02-r467	6aedb8b2de1bf8a396a9236259abcd9c1daf4268	2026-08-02	fix: make rtw88 as lkm modules
+v26.08.02-r468	3e6bf60eda0ed194446ddb4d6b4413c2b090472f	2026-08-02	fix: add wireless required modules
+v26.08.02-r469	04d5005e881bf940839bb29675e0ee35e39f6a96	2026-08-02	feat: add KernelSU module for rtw88 wireless drivers
+v26.08.02-r470	ae464c72abb3db279cb30bd3ef189a0ae66c5962	2026-08-02	fix: KernelSU module layout
+v26.08.03-r471	98ed550c05ab0cb104bcabafbf9349c091cc9272	2026-08-03	defconfig: enable R8188EU staging driver
+v26.08.04-r472	3711b114ab339092ad5c5ba6afd53aa769234ba1	2026-08-04	refactor: add R8188EU staging driver as lkm
+v26.08.04-r473	3711b114ab339092ad5c5ba6afd53aa769234ba1	2026-08-04	refactor: add R8188EU staging driver as lkm
+v26.08.04-r474	3711b114ab339092ad5c5ba6afd53aa769234ba1	2026-08-04	refactor: add R8188EU staging driver as lkm
+v26.08.05-r475	3711b114ab339092ad5c5ba6afd53aa769234ba1	2026-08-04	refactor: add R8188EU staging driver as lkm
+v26.08.07-r480	3711b114ab339092ad5c5ba6afd53aa769234ba1	2026-08-04	refactor: add R8188EU staging driver as lkm
+v26.08.08-r481	3711b114ab339092ad5c5ba6afd53aa769234ba1	2026-08-04	refactor: add R8188EU staging driver as lkm
+v26.08.10-r483	c6d8b6a780b1aea0b21e72c385a869037bfbe038	2026-08-10	docs: remove TCP_NODELAY since it breaks TCP algorithms
+v26.08.11-r485	8ecf9748e1fcf202b7d4a3f0ae727855f29e6b3a	2026-08-11	chore: remove TCP_NODELAY same reason as c6d8b6a
+v26.08.12-r487	44a9f7e895bd9159aa684c2ce33075201537ac38	2026-08-12	refactor: add NoMount support and code cleanup
+v26.08.14-r488	3ab04ce4312a019a919ba4f41742093541d1faa2	2026-08-14	refactor: apply NoMount new setup script
+v26.08.16-r490	3ab04ce4312a019a919ba4f41742093541d1faa2	2026-08-14	refactor: apply NoMount new setup script
+v26.08.17-r500	749f7fd2664130d0d35abf191223bda7a58d5143	2026-08-17	ci: reorder zip naming and remove redundant KMI check
+v26.08.17-r501	9a844f7b76d307e0c47ceae309fd2086e9560774	2026-08-17	ci: capitalize LTO label in release notes
+v26.08.19-r502	9a844f7b76d307e0c47ceae309fd2086e9560774	2026-08-17	ci: capitalize LTO label in release notes
+v26.08.21-r507	224b9352b45c8a360a4a9c8ff58861258e573ff6	2026-08-21	feat: add a new compat variant with LTO support
+v26.08.25-r508	3e638f4bdb7041223a3c0be359171488dec0d82a	2026-08-22	ci: add python-based validation workflow for actions, shell, and python files
+v26.08.29-r511	cc9955d8a7bf6dc8024fe40e8b59babde9975640	2026-08-27	docs: add USDT donation info to README and release notes
+v26.08.29-r513	df47a1bbcb82fafc4e62fdf30b5fda79227a88e5	2026-08-29	fix(ci): read release fields from parsed env_vars, not os.environ
+v26.08.30-r515	504e5474dca21fb81d31a0f3db6a1696c7d993e7	2026-08-30	fix: set contents permission to write
+v26.08.31-r516	504e5474dca21fb81d31a0f3db6a1696c7d993e7	2026-08-30	fix: set contents permission to write
+v26.09.02-r529	f4739c6492f772b136ed9f9326da946a551d3488	2026-09-02	fix: use github.sha for commit url, head_commit is empty on non-push triggers
+v26.09.04-r531	f4739c6492f772b136ed9f9326da946a551d3488	2026-09-02	fix: use github.sha for commit url, head_commit is empty on non-push triggers
+v26.09.05-r532	344eb0659d5ee2349f3c95670da8084453a4d312	2026-09-05	ci: it's stable now
+v26.09.06-r538	af5e01943f3148904fe5c6eaf5a5bba2e98c4a1f	2026-09-06	ci(fix): improve disk cleanup and swap to prevent build kill
+v26.09.07-r551	af5e01943f3148904fe5c6eaf5a5bba2e98c4a1f	2026-09-06	ci(fix): improve disk cleanup and swap to prevent build kill
+v26.09.07-r561	23c8e7e0cf2a54d0f5bb941f230d94fc303d01c0	2026-09-07	fix: add task_mmu.c corruption fix for broken patches
+v26.09.07-r574	835b3f60c91e35aab4936305c1802b151ee707b1	2026-09-07	fix: apply SuSFS fix in SuSFS function
+v26.09.08-r575	95de1e158609c08dc591d012d00262cf84c11145	2026-09-08	feat: add a new caching system
+v26.09.08-r580	22aeae69ca555239ceaafc1fa4a1813b7a6ca870	2026-09-08	fix: correct regex operator syntax in pahole version check
+v26.09.08-r584	29a409960aef055aa1b320cdf010e1cb2d41664d	2026-09-08	feat: make pahole logs cleaner
+v26.09.08-r585	29a409960aef055aa1b320cdf010e1cb2d41664d	2026-09-08	feat: make pahole logs cleaner
+v26.09.08-r587	4ebb2f8a994c88f6551df42e6598fafb8f7ddaa4	2026-09-08	fix: apply_force_load_module_patch doesn't apply correctly
+v26.09.08-r589	4ebb2f8a994c88f6551df42e6598fafb8f7ddaa4	2026-09-08	fix: apply_force_load_module_patch doesn't apply correctly
+v26.09.09-r590	481f933ee2a3ab044e81aeba61d6a649c8659278	2026-09-09	fix: GitHub android app rendering issue again
+v26.09.09-r591	481f933ee2a3ab044e81aeba61d6a649c8659278	2026-09-09	fix: GitHub android app rendering issue again
+v26.09.09-r593	1ea26286d6e06fa80be9dabfe6081e51e5bf280d	2026-09-09	feat: add custom sponsorship URL to FUNDING.yml
+v26.09.09-r595	8ae7b52ad6aa20bb56831973997a711ba3e7ee16	2026-09-09	fix: disable multiple managers patch temporarily
+v26.09.09-r596	8ae7b52ad6aa20bb56831973997a711ba3e7ee16	2026-09-09	fix: disable multiple managers patch temporarily
+v26.09.10-r598	125dfee8f426c917d0550eb032bdae7e45d39fc6	2026-09-10	fix: gate BBG to kernel >=6.1 (bootloop on 5.10/5.15)
+v26.09.10-r600	b7c045f515f5d3ffddffb8ccd0c8c96fc69462a8	2026-09-10	fix: disable common patches on 5 to debug
+v26.09.10-r602	9cc45fec42681e79c9c478f4305135dcbf6bf5aa	2026-09-10	fix: don't cache everything
+v26.09.11-r603	c0716de7db39cbe4be8336001726d383986b60eb	2026-09-10	fix: cache system
+v26.09.12-r604	c0716de7db39cbe4be8336001726d383986b60eb	2026-09-10	fix: cache system
+v26.09.12-r605	25c860e88a00a3dcabb9ffd2f2a9e48894aeb3fb	2026-09-12	fix: disable NoMount by default because it causes bootloops and issues to multiple users
+v26.09.12-r609	253e267fdc39d231589a838413eaa2ae3338367c	2026-09-12	fix: sync 0001-fix-susfs-fs-namespace.c-patch.patch with SuSFS
+v26.09.12-r616	e9d934078d6b0f1725221c08e7fba67932321b5f	2026-09-12	fix: set NH to false to make it disabled in NoDS variants
+v26.09.12-r619	ec68c7b7127f9160afb0c8eac62a8a60e76811ef	2026-09-12	fix: force commit pin checkout in clone_susfs and log actual HEAD
+v26.09.12-r622	ec2b72e4f9fc17f07a2e12327b946c7816472848	2026-09-12	revert: "fix: sync 0001-fix-susfs-fs-namespace.c-patch.patch with SuSFS"
+v26.09.12-r623	ec2b72e4f9fc17f07a2e12327b946c7816472848	2026-09-12	revert: "fix: sync 0001-fix-susfs-fs-namespace.c-patch.patch with SuSFS"
+v26.09.14-r624	ec2b72e4f9fc17f07a2e12327b946c7816472848	2026-09-12	revert: "fix: sync 0001-fix-susfs-fs-namespace.c-patch.patch with SuSFS"
+v26.09.15-r625	ec2b72e4f9fc17f07a2e12327b946c7816472848	2026-09-12	revert: "fix: sync 0001-fix-susfs-fs-namespace.c-patch.patch with SuSFS"
+v26.09.15-r626	ec2b72e4f9fc17f07a2e12327b946c7816472848	2026-09-12	revert: "fix: sync 0001-fix-susfs-fs-namespace.c-patch.patch with SuSFS"
+v26.09.23-r629	1d1b4d9abe1e6ab566da7e5a8107a2f2eff107f9	2026-09-23	fix: disable throne_tracker-offload-to-kthread.patch temporarily
+v26.09.23-r630	9d2fc015776d7d13bcd7430a3aba7e758fb40324	2026-09-23	fix: sync 0001-fix-susfs-fs-namespace.c-patch.patch with SuSFS
+v26.09.25-r632	d7bbd45148f56d419545b519ee4d6a4febc3174a	2026-09-25	feat: update kernel string format
+v26.09.30-r634	f28bb49bb21f96476ee35b8fa64fd27f0fe97c4b	2026-09-30	fix: disable Compatibility GKI Networking and Filesystem configs on 5.10, 6.12 to fix abi breaking
+v26.09.30-r635	f28bb49bb21f96476ee35b8fa64fd27f0fe97c4b	2026-09-30	fix: disable Compatibility GKI Networking and Filesystem configs on 5.10, 6.12 to fix abi breaking
+v26.10.01-r641	cc3895b13a49a35397afb702fa0395d71ecf00f6	2026-10-01	fix: separate the built-in features from custom defconfig
+v26.10.01-r643	a65b977960e9d4dc69e6a8831d320ce01418d400	2026-10-01	fix: sync 6.12 SuSFS patch with upstream
+v26.10.05-r644	e6ad2b58678e8a7f04c0d4df95a3b5372e6605e4	2026-10-03	docs: replace donations link with wallets
+v26.10.11-r649	74fb7e9ee5df08e27f5e47b9a8cb58b78a27ca0c	2026-10-11	ci: some clean up
+v26.10.12-r650	74fb7e9ee5df08e27f5e47b9a8cb58b78a27ca0c	2026-10-11	ci: some clean up
+v26.10.13-r652	74fb7e9ee5df08e27f5e47b9a8cb58b78a27ca0c	2026-10-11	ci: some clean up

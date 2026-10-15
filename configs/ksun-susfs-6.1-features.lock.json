@@ -150,7 +150,7 @@
   "integrated_kernel_tree": "1246bd4c9a0afc0859ecbc4ad91031dab65aa413",
   "configuration": {
     "fragment": "configs/ksun-susfs-6.1-features.config",
-    "sha256": "792f1fa18bd85696c94918a5b3175e0baf54a336f66af0c41e1dbc9bb133d1c9",
+    "sha256": "6ccc7fe7203e77281b721a604406a57bd53db68f6985d7348836de76718c3e91",
     "target": "gki_defconfig",
     "merge": "scripts/kconfig/merge_config.sh -m",
     "resolve": "olddefconfig",
@@ -174,7 +174,10 @@
       "CONFIG_LTO_CLANG_THIN",
       "CONFIG_LTO_NONE",
       "CONFIG_BBG_BLOCK_BOOT",
-      "CONFIG_BBG_BLOCK_RECOVERY"
+      "CONFIG_BBG_BLOCK_RECOVERY",
+      "CONFIG_KSU_SAMSUNG_KDP",
+      "CONFIG_KSU_SAMSUNG_RKP",
+      "CONFIG_KSU_SAMSUNG_DEFEX"
     ]
   },
   "toolchain": {
