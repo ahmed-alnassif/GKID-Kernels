@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "status": "source_only",
+  "build_enabled": false,
+  "implementation": "pershoot_builtin",
+  "target": {
+    "arch": "arm64",
+    "kernel_version": "6.1.177",
+    "ksu_mode": "built_in",
+    "lkm_validated": false
+  },
+  "sources": {
+    "kernel": {
+      "repository": "https://github.com/ahmed-alnassif/GKI-Duchamp-6.1.git",
+      "ref_hint": "GKID-6.1",
+      "commit": "a7ba124af5a535078d3f83b3e145f9cc8ec651b8"
+    },
+    "ksun": {
+      "repository": "https://github.com/pershoot/KernelSU-Next.git",
+      "ref_hint": "dev-susfs",
+      "commit": "2f858cb292265795dee2807759cec2eb8a7d79b1"
+    },
+    "susfs": {
+      "repository": "https://gitlab.com/pershoot/susfs4ksu.git",
+      "ref_hint": "gki-android14-6.1-dev",
+      "commit": "a9bb4dd3ed248ada636b480bfdff70af704f1463"
+    }
+  },
+  "adaptation": {
+    "delta": "kernel-patches/susfs/ksun-6.1-companion-adjustments.patch",
+    "delta_sha256": "6962a4a910ef74c776e7793cf64a064712fd26d71f90529208adbf35d9d88af1",
+    "applies_to": "kernel_patches/50_add_susfs_in_gki-android14-6.1.patch",
+    "input_sha256": "57e97f34055608a133594ff723ae5fa436b4559b1473d6e3284093c3ccb22156",
+    "output_sha256": "c9e79c169c42ddae58ce92318a5ae59dcc6b3142849833c79c02059a4d25c46b",
+    "includes_existing_namespace_fix": true,
+    "apply_ksu_manager_patch_to_ksun": false
+  },
+  "companion_files_sha256": {
+    "kernel_patches/fs/susfs.c": "976f6d47a45260bcb0bb17d8ffe8beddeda398f8aba9bba54517ece9daf9e253",
+    "kernel_patches/include/linux/susfs.h": "fafff787b8856bd37a6736c2f0bbc5a57fd1f36232be267936f892fb57bc5120",
+    "kernel_patches/include/linux/susfs_def.h": "db7f98dcf8119a4eb5c45c05205b6c1065766047d6f803b0e86f3d14b1a251f0"
+  }
+}

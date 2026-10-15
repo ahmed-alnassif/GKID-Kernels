@@ -1,0 +1,37 @@
+diff --git a/kernel_patches/50_add_susfs_in_gki-android14-6.1.patch b/kernel_patches/50_add_susfs_in_gki-android14-6.1.patch
+--- a/kernel_patches/50_add_susfs_in_gki-android14-6.1.patch
++++ b/kernel_patches/50_add_susfs_in_gki-android14-6.1.patch
+@@ -558,7 +558,7 @@
+ index f22f76d9c..1d7e79262 100644
+ --- a/fs/namespace.c
+ +++ b/fs/namespace.c
+-@@ -32,10 +32,20 @@
++@@ -32,11 +32,21 @@
+  #include <linux/fs_context.h>
+  #include <linux/shmem_fs.h>
+  #include <linux/mnt_idmapping.h>
+@@ -568,6 +568,7 @@
+  
+  #include "pnode.h"
+  #include "internal.h"
++ #include <trace/hooks/blk.h>
+  
+ +#ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
+ +extern bool susfs_is_current_ksu_domain(void);
+@@ -1616,14 +1617,14 @@
+  
+ +#ifdef CONFIG_KSU_SUSFS
+ +extern struct static_key_true ksu_is_init_rc_hook_enabled;
+-+extern __attribute__((cold)) void ksu_handle_sys_read(unsigned int fd);
+++extern __attribute__((cold)) void ksu_handle_sys_read(unsigned int fd, char __user **buf_ptr, size_t *count_ptr);
+ +#endif
+ +
+  SYSCALL_DEFINE3(read, unsigned int, fd, char __user *, buf, size_t, count)
+  {
+ +#ifdef CONFIG_KSU_SUSFS
+ +	if (static_branch_unlikely(&ksu_is_init_rc_hook_enabled))
+-+		ksu_handle_sys_read(fd);
+++		ksu_handle_sys_read(fd, &buf, &count);
+ +#endif
+ +
+  	return ksys_read(fd, buf, count);

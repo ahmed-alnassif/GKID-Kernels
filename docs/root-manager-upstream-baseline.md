@@ -43,3 +43,45 @@ Do not upgrade root manager revisions automatically, remove existing build choic
 - The LKM's `ksu_umount_gate.c` resolves `ksu_uid_should_umount` through kallsyms, with documented behavior when the symbol is missing and a potential stale pointer if KernelSU unloads first. This must be tested rather than assumed safe.
 - **Decision:** Keep Cogan's current `KernelSU Next + SUSFS` build variant blocked. Do not silently substitute the LKM for Simonpunk's in-kernel patch. First choose an explicit supported implementation, pin its sources, validate patch/hook compatibility, and only then change build behavior.
 - Upstream references: `KernelSU-Next/KernelSU-Next` tag `v3.4.2`, `kernel/susfs/Makefile`, `kernel/susfs/ksu_umount_gate.c`, and `kernel/setup.sh`.
+
+## Active handoff — built-in candidate, 2026-10-15 (WIB)
+
+**HOLD: source pairing identified; no verified Image, boot, Manager, SUSFS or vendor ABI/KMI result for the current bundle.**
+
+The selected research candidate is the **pershoot built-in integration**, separate from the ordinary official KSUN `v3.4.2` baseline. It does not substitute `susfs_guard_lkm.ko` for Simonpunk's kernel hooks. Its immutable sources and payload hashes are saved in [`configs/ksun-susfs-6.1.lock.json`](../configs/ksun-susfs-6.1.lock.json). This is a source-pair lock, not a complete production build lock or permission to enable the variant.
+
+| Candidate source | Immutable commit |
+| --- | --- |
+| GKI-Duchamp kernel 6.1.177 | `a7ba124af5a535078d3f83b3e145f9cc8ec651b8` |
+| `pershoot/KernelSU-Next`, `dev-susfs` | `2f858cb292265795dee2807759cec2eb8a7d79b1` |
+| `pershoot/susfs4ksu`, `gki-android14-6.1-dev` | `a9bb4dd3ed248ada636b480bfdff70af704f1463` |
+
+Use the commit values, not moving branch tips. Keep normal KSUN on its existing official tag and immutable commit. The normal build now checks both the installed commit and tag against `4c706b5938665866ebe16944a481a7b91e3396af`; provenance resolves that tag, including annotated-tag peeling, rather than the retired `next` branch. Installed KSUN identity is included in build environment metadata after successful verification.
+
+### Preserved source evidence
+
+The earlier checkpoint `ksun_susfs_candidate_review.md` (snapshot 2026-10-15 05:07 WIB) records successful application to 24 kernel files, the corrected three-argument `ksu_handle_sys_read(fd, &buf, &count)`, full-source composition, and real built-in ARM64 Kconfig evaluation. These unchanged successful checks must not be repeated as new work.
+
+The saved [`ksun-6.1-companion-adjustments.patch`](../kernel-patches/susfs/ksun-6.1-companion-adjustments.patch) reconstructs the already-validated delta. It changes the **SUSFS patch file**, not kernel C files directly:
+
+1. Start with a clean SUSFS checkout at the locked commit and verify the `adaptation.input_sha256` value.
+2. From that checkout, apply the saved delta once with `git apply /absolute/path/to/ksun-6.1-companion-adjustments.patch`.
+3. Verify `adaptation.output_sha256`. The delta already includes Cogan's namespace-context correction; do not apply that correction a second time.
+4. The resulting kernel patch and its matching `susfs.c`/headers belong to the locked kernel and KSUN candidate. Do not apply `KernelSU/10_enable_susfs_for_ksu.patch` to this KSUN source.
+
+No new patch-application pass or kernel compilation is claimed by recovering these payloads. The delta and original companion/core/header byte hashes were matched to the preserved evidence.
+
+### Build-result reconciliation and bundle gap
+
+The earlier Image attempt stopped first at a host libelf include-path problem; the corrected second invocation resumed incrementally. At snapshot time, 23/24 tracked integration objects existed, but no final exit/link/Image result was recorded. The former workspace `/workspace/scratch/9e88f97f3592` is unavailable in this Work session, so its process, log and `build-result.json` could not be recovered. **The Image result remains unknown; do not claim that it passed or failed, or start another build merely because the session changed.**
+
+That older source composition enabled DroidSpaces, omitted NoMount, and used ThinLTO with a portable Clang 18 toolchain. The current owner bundle fixes **NoMount + Clean LTO**, disables **DroidSpaces**, and defaults to **fullLTO**. Its additional source/config/link interaction and production toolchain have not been validated by the older result. A read-only inspection observed NoMount `master` at `7046c7ad3ee0bf4ae66e80f6b93b1e30db0cb4e3`; this observation is not a compatibility result or a change to the normal build's NoMount selection.
+
+### Resume from here
+
+1. Recover a final result/log from the earlier build if it becomes available; keep an unavailable result marked unknown. Reuse the existing source evidence and saved delta.
+2. Address only the changed current bundle: locked NoMount source/install procedure, DroidSpaces off, the selected LTO mode, production toolchain and real resolved config. Keep networking behavior unchanged; do not revive separate TCP/BBR development.
+3. Only after a reviewable source/config composition exists, assess whether one explicitly justified targeted build is needed. Diagnose any failure first; no speculative reruns, broad matrix, or repeated green Actions.
+4. Boot, matching Manager/root, SUSFS, ordinary Wi-Fi and vendor ABI/KMI/runtime still require evidence before readiness. Keep the existing workflow choice and fail-closed guard; do not enable the variant from metadata alone.
+
+The workflow guard now stops in `prepare`, before cache/dependency jobs; direct invocations stop at script entry, before source downloads, installers or host changes. Regression checks cover both guards' lack of side effects and the dedicated dropdown mapping. Continue on this one `dev` branch; update this handoff instead of creating duplicate PRs or checkpoints.

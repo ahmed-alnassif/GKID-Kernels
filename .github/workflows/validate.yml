@@ -33,3 +33,8 @@ jobs:
 
       - name: Validate Python syntax
         run: python3 .github/scripts/validate_python.py
+
+      - name: Check root matrix, early guard, and source provenance offline
+        run: |
+          python3 tests/test_root_matrix.py
+          python3 -m unittest discover -s tests -p 'test_root_provenance.py'

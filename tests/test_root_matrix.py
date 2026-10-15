@@ -4,7 +4,9 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
+import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "py" / "generate-matrix.py"
@@ -36,6 +38,7 @@ def main():
     for manager, expected_ksu, expected_susfs in (
         ("KernelSU", "KSU", "false"),
         ("KernelSU Next", "KSUN", "false"),
+        ("KernelSU Next + SUSFS", "KSUN", "true"),
         ("KernelSU + SUSFS", "KSU", "true"),
         ("BakaSU + SUSFS", "BSU", "true"),
         ("Vanilla", "no", "false"),
@@ -50,7 +53,36 @@ def main():
     assert 'if [ "$KSU" = "KSUN" ]; then' in build_script
     assert 'if susfs_included; then' in build_script
     assert 'KSUN+SUSFS is not enabled until compatibility is validated' in build_script
-    assert 'install_ksu "KernelSU-Next/KernelSU-Next" "next"' in build_script
+    assert 'KSUN_REF="v3.4.2"' in build_script
+    assert 'KSUN_EXPECTED_SHA="4c706b5938665866ebe16944a481a7b91e3396af"' in build_script
+    assert 'install_ksu "KernelSU-Next/KernelSU-Next" "$KSUN_REF"' in build_script
+    # A blocked choice must exit before any tool, download or workspace mutation.
+    with tempfile.TemporaryDirectory() as directory:
+        env = os.environ.copy()
+        env.update(KSU="KSUN", KSU_SUSFS="true", PATH=directory)
+        rejected = subprocess.run(
+            ["/bin/bash", str(ROOT / "build.sh")], cwd=directory,
+            env=env, text=True, capture_output=True,
+        )
+        assert rejected.returncode == 1, rejected.stderr
+        assert 'KSUN+SUSFS is not enabled until compatibility is validated' in rejected.stderr
+        assert 'command not found' not in rejected.stderr, rejected.stderr
+        assert not list(Path(directory).iterdir()), 'Blocked build changed the workspace'
+        # The workflow must reject it in prepare, before cache/dependency jobs.
+        workflow = yaml.safe_load((ROOT / ".github/workflows/build.yml").read_text())
+        preflight = next(
+            step["run"] for step in workflow["jobs"]["prepare"]["steps"]
+            if step["name"] == "Validate sublevel, build time and optional features"
+        )
+        env.update(ROOT_MANAGER_INPUT="KernelSU Next + SUSFS")
+        rejected = subprocess.run(
+            ["/bin/bash", "-c", preflight], cwd=directory,
+            env=env, text=True, capture_output=True,
+        )
+        assert rejected.returncode == 1, rejected.stderr
+        assert 'KSUN+SUSFS is not enabled until compatibility is validated' in rejected.stderr
+        assert 'command not found' not in rejected.stderr, rejected.stderr
+        assert not list(Path(directory).iterdir()), 'Blocked workflow changed the workspace'
     assert len(entries(matrix(manager="All variants (advanced)"))) == 10
     assert len(entries(matrix(version="All", manager="All variants (advanced)"))) == 50
     assert matrix(manager="invalid", BUILD_KSU=True).returncode != 0

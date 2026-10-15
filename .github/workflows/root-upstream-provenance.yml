@@ -15,7 +15,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Collect root manager branch tips
+      - name: Collect root manager refs and compare the KSUN build pin
         run: python3 scripts/collect_root_provenance.py artifacts/root-upstream-provenance.json
 
       - name: Show collected metadata

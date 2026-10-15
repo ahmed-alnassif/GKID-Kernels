@@ -130,11 +130,16 @@ jobs:
 
       - name: Validate sublevel, build time and optional features
         env:
+          ROOT_MANAGER_INPUT: ${{ inputs.ROOT_MANAGER }}
           KERNEL_VERSION_INPUT: ${{ inputs.KERNEL_VERSION }}
           KERNEL_SUBLEVEL_INPUT: ${{ inputs.KERNEL_SUBLEVEL }}
           BUILD_TIME_INPUT: ${{ inputs.BUILD_TIME }}
         run: |
           set -euo pipefail
+          if [[ "$ROOT_MANAGER_INPUT" == "KernelSU Next + SUSFS" ]]; then
+            echo "::error::KSUN+SUSFS is not enabled until compatibility is validated" >&2
+            exit 1
+          fi
           if [[ "$KERNEL_SUBLEVEL_INPUT" != "Auto" ]]; then
             [[ "$KERNEL_VERSION_INPUT" == "6.1" && "$KERNEL_SUBLEVEL_INPUT" =~ ^(16[1-9]|17[0-7])$ ]] || { echo "::error::Sublevel 161-177 requires kernel 6.1"; exit 1; }
           fi
@@ -279,6 +284,8 @@ jobs:
           BASE_NAME=${{ env.BASE_NAME }}
           KSU=${{ matrix.KSU }}
           KSU_SUSFS=${{ matrix.KSU_SUSFS }}
+          KSUN_REF=${{ env.KSUN_REF }}
+          KSUN_INSTALLED_SHA=${{ env.KSUN_INSTALLED_SHA }}
           KERNEL_VERSION=${{ env.KERNEL_VERSION }}
           ANDROID_RELEASE=${{ env.ANDROID_RELEASE }}
           KERNEL_SOURCE_REPO=${{ env.KERNEL_SOURCE_REPO }}
