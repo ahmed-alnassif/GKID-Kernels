@@ -41,6 +41,10 @@ def audit(config_bytes, lock):
         if hashlib.sha256(fragment_raw).hexdigest() != spec["sha256"]:
             raise ValueError("Locked candidate fragment SHA256 mismatch")
         for line in fragment_raw.decode("utf-8").splitlines():
+            if line.startswith("CONFIG_LSM="):
+                expected_lsm = line.split("=", 1)[1]
+                if values.get("CONFIG_LSM") != expected_lsm:
+                    errors.append("CONFIG_LSM: resolved list differs from locked fragment")
             if line.startswith("CONFIG_") and line.endswith("=y"):
                 key = line.split("=", 1)[0]
                 if values.get(key, "n") != "y":
