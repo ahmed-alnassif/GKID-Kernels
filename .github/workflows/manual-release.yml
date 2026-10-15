@@ -67,9 +67,10 @@ jobs:
               raise SystemExit("Unexpected or duplicate matrix job names")
           if len(artifacts) != len(variants):
               raise SystemExit("Build artifact count does not match matrix job count")
-          for variant in variants:
-              if sum(name.startswith("build-" + variant + "-") for name in artifacts) != 1:
-                  raise SystemExit("Missing or ambiguous artifact for " + variant)
+          run_number = str(__import__("json").load(open("source-run.json"))["run_number"])
+          expected = {"build-" + variant + "-" + run_number for variant in variants}
+          if set(artifacts) != expected:
+              raise SystemExit(f"Artifact mismatch: expected {sorted(expected)}, got {sorted(artifacts)}")
           print("Verified", len(variants), "successful matrix build(s) and matching artifacts")
           PY
           while IFS= read -r name; do
