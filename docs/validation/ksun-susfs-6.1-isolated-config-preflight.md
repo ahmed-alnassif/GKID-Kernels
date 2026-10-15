@@ -30,10 +30,10 @@ python3 scripts/check_ksun_susfs_resolved_config.py /absolute/path/to/new/out/.c
 sha256sum /absolute/path/to/new/out/.config
 ```
 
-The validator must pass all locked enabled and disabled flags, KSUN/SUSFS, BBG, NoMount, Full LTO/CFI, KEYS, ARM64, and the `baseband_guard` LSM token. Inspect the generated config for unwanted NTSync, DroidSpaces, or LKM settings. Save the final config checksum and source/toolchain identities in a new validation record **only after actual execution**.
+The validator must pass all locked enabled and disabled flags, KSUN/SUSFS, BBG, NoMount, Full LTO/CFI, KEYS, ARM64, and the **complete pinned `CONFIG_LSM` string** (not just the `baseband_guard` token). If `olddefconfig` legitimately rewrites the LSM ordering or list, STOP and investigate Kconfig dependencies; do not relax the guard merely to make the check pass. Inspect the generated config for unwanted NTSync, DroidSpaces, or LKM settings. Save the final config checksum and source/toolchain identities in a new validation record **only after actual execution**.
 
 ## Current evidence and boundaries
 
-The offline validator test suite passed 15 tests on 2026-10-15, and the pinned fragment hash matched. The offline CLI smoke test used a synthetic configuration, **not** a Kconfig-resolved kernel configuration. Direct GitHub cloning in the current environment failed DNS resolution, and the prior Work integrated worktree is not mounted here. Consequently **no genuine `olddefconfig` output exists and compilation readiness is NOT established**.
+The offline validator test suite passed 16 tests on 2026-10-15, and the pinned fragment hash matched. The offline CLI smoke test used a synthetic configuration, **not** a Kconfig-resolved kernel configuration. Direct GitHub cloning in the current environment failed DNS resolution, and the prior Work integrated worktree is not mounted here. Consequently **no genuine `olddefconfig` output exists and compilation readiness is NOT established**.
 
 No additional Actions, PRs, builds, releases, or flashes are required for this preflight document.
