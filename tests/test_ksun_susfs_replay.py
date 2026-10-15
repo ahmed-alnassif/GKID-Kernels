@@ -76,6 +76,24 @@ class ReplayTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual((self.kernel / "sample.txt").read_text(), "before\n")
 
+    def test_second_patch_failure_leaves_checkout_clean(self):
+        second = self.base / "second.patch"
+        second.write_text(
+            "diff --git a/sample.txt b/sample.txt\\n"
+            "--- a/sample.txt\\n+++ b/sample.txt\\n"
+            "@@ -1 +1 @@\\n-missing\\n+broken\\n"
+        )
+        data = json.loads(self.manifest.read_text())
+        data["patches"].append({
+            "path": second.name,
+            "sha256": hashlib.sha256(second.read_bytes()).hexdigest()
+        })
+        self.manifest.write_text(json.dumps(data))
+        result = self.run_replay("--apply")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("preflight patch 2", result.stderr)
+        self.assertEqual((self.kernel / "sample.txt").read_text(), "before\\n")
+
     def test_nonapplicable_patch_blocks(self):
         self.patch.write_text(self.patch.read_text().replace("-before", "-absent"))
         self.write_manifest()
