@@ -53,7 +53,9 @@ def main():
                     raise ValueError('Companion adjustment rejected: ' + result.stderr[:1200])
             if digest(source) != adaptation['output_sha256']:
                 raise ValueError('Adjusted SUSFS patch SHA256 mismatch')
-            # Exclusive create: never overwrite an output that appeared during preparation.\n            with output.open('xb') as target:\n                target.write(source.read_bytes())
+            # Exclusive create: never overwrite an output that appeared during preparation.
+            with output.open('xb') as target:
+                target.write(source.read_bytes())
         print('VERIFIED: original, delta, and adjusted patch SHA256 match lock')
         print('OUTPUT:', output)
         print('NOT APPLIED to kernel; full build and runtime unverified')
