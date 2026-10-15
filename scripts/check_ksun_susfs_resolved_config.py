@@ -6,6 +6,7 @@ Read-only: does not run Kconfig, compile, download or change kernel files.
 import argparse
 import hashlib
 import json
+import re
 from pathlib import Path
 import sys
 
@@ -18,6 +19,8 @@ def audit(config_bytes, lock):
     for raw in config_bytes.decode("utf-8").splitlines():
         if raw.startswith("CONFIG_") and "=" in raw:
             key, value = raw.split("=", 1)
+            if not re.fullmatch(r"CONFIG_[A-Z0-9_]+", key):
+                raise ValueError("Malformed config entry: " + raw[:120])
             if key in values:
                 raise ValueError("Duplicate config key: " + key)
             values[key] = value
@@ -26,6 +29,8 @@ def audit(config_bytes, lock):
             if key in values:
                 raise ValueError("Duplicate config key: " + key)
             values[key] = "n"
+        elif raw.startswith(("CONFIG_", "# CONFIG_")):
+            raise ValueError("Malformed config entry: " + raw[:120])
     errors = []
     spec = lock["configuration"]
     for key, expected in spec["required"].items():

@@ -181,6 +181,14 @@ class ResolvedConfigTests(unittest.TestCase):
         errors = gate.audit((GOOD + "CONFIG_BBG_BLOCK_RECOVERY=y\n").encode(), lock)
         self.assertTrue(any("CONFIG_BBG_BLOCK_RECOVERY" in e for e in errors))
 
+    def test_malformed_config_assignment_rejected(self):
+        with self.assertRaisesRegex(ValueError, "Malformed config entry"):
+            self.check(GOOD + "CONFIG_BBG =n\n")
+
+    def test_malformed_disabled_config_rejected(self):
+        with self.assertRaisesRegex(ValueError, "Malformed config entry"):
+            self.check(GOOD + "# CONFIG_NTSYNC is not set \n")
+
     def test_nomount_module_not_builtin(self):
         self.assertTrue(any("CONFIG_NOMOUNT" in error for error in
                             self.check(GOOD.replace("CONFIG_NOMOUNT=y", "CONFIG_NOMOUNT=m"))))
