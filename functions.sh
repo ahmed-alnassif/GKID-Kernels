@@ -48,7 +48,8 @@ load_upstream_lock() {
   fi
   while IFS= read -r line || [ -n "$line" ]; do
     case "$line" in ''|'#'*) continue ;; esac
-    if [[ ! "$line" =~ ^([A-Z][A-Z0-9_]*)=(v[0-9]+\.[0-9]+\.[0-9]+|[0-9a-f]{40}|[0-9a-f]{64}|[0-9]{8})$ ]]; then
+    # Values: release tag (optionally -rcN), commit, SHA256, Neutron date, or a release asset file name.
+    if [[ ! "$line" =~ ^([A-Z][A-Z0-9_]*)=(v[0-9]+\.[0-9]+\.[0-9]+(-rc[0-9]+)?|[0-9a-f]{40}|[0-9a-f]{64}|[0-9]{8}|[A-Za-z0-9][A-Za-z0-9._+-]*\.(apk|zip))$ ]]; then
       error "Malformed upstream lock line: $line"
       return 1
     fi

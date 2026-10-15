@@ -33,7 +33,7 @@ Kernel generik yang dibangun dari sumber GKI 6.1 ([GKI-Duchamp-6.1](https://gith
 - **Performa**: timer 300 Hz, MGLRU, zRAM LZ4 + writeback, mq-deadline, kompresi F2FS, NTSync
 - **TMPFS**: xattr dan POSIX ACL
 - **Toolchain**: Neutron Clang (versi dikunci) dengan pilihan Full LTO, Thin LTO, atau tanpa LTO
-- **Komponen terkunci**: kernel, root manager, SUSFS, NoMount, BBG, AnyKernel3 dan toolchain dipin ke commit tertentu, dan hanya diperbarui lewat **Cogan Manual Update**
+- **Komponen terkunci**: kernel, root manager, SUSFS, NoMount, BBG, AnyKernel3 dan toolchain dipin ke commit tertentu, dan hanya diperbarui lewat **Cogan Manual Update**. Root manager dan NoMount mengikuti **tag rilis resmi**, jadi APK manager dan modul NoMount selalu versi yang sama dengan kernel
 
 ---
 
@@ -65,7 +65,7 @@ Kernel generik yang dibangun dari sumber GKI 6.1 ([GKI-Duchamp-6.1](https://gith
 2. **Siapkan `boot.img` stock** yang sama persis dengan versi ROM Anda ([caranya](docs/bootloop.md#1-siapkan-bootimg-stock-sebelum-flash)).
 3. Unduh ZIP dari **[Releases](https://github.com/cogan17/Cogan/releases)**, lalu cocokkan SHA256-nya dengan `checksums.txt`.
 4. Flash ZIP AnyKernel3 dengan aplikasi flasher kernel di perangkat yang sudah root, misalnya [Kernel Flasher](https://github.com/capntrips/KernelFlasher) atau [Horizon Kernel Flasher](https://github.com/libxzr/HorizonKernelFlasher), atau lewat custom recovery. ZIP ini **tidak** bisa di-flash lewat `fastboot`.
-5. Pasang aplikasi manager yang sesuai dari rilis resminya: [KernelSU](https://github.com/tiann/KernelSU/releases), [KernelSU Next](https://github.com/KernelSU-Next/KernelSU-Next/releases) atau [BakaSU](https://github.com/Baka-SU/BakaSU/releases).
+5. Pasang APK manager yang versinya sama dengan kernel. APK ini ikut di artifact build; bisa juga diunduh dari rilis resmi dengan tag yang sama: [KernelSU](https://github.com/tiann/KernelSU/releases), [KernelSU Next](https://github.com/KernelSU-Next/KernelSU-Next/releases) atau [BakaSU](https://github.com/Baka-SU/BakaSU/releases). Modul NoMount (ZIP) dipasang lewat menu Modul di manager.
 6. Reboot. Kalau macet di logo atau terus restart, buka **[Panduan Bootloop](docs/bootloop.md)**.
 
 ---
@@ -92,7 +92,12 @@ Buka **Actions → Cogan Kernel Builder → Run workflow** di repositori Anda.
 | Networking | BBRv3 dan paket jaringan tambahan (default aktif) |
 | BBG | Baseband Guard (default aktif) |
 
-**Hasil build:** di halaman run, unduh artifact `Cogan-<varian>-….zip`. Itu langsung ZIP AnyKernel3 yang siap di-flash (tidak perlu diekstrak), dan SHA256-nya tertulis di ringkasan run.
+**Hasil build:** saat run hijau, halaman run berisi tiga artifact yang bisa langsung diunduh (tidak perlu diekstrak):
+- `Cogan-<varian>-….zip`: kernel (ZIP AnyKernel3), di-flash dengan Kernel Flasher;
+- `Cogan-<varian>-<APK manager>.apk`: root manager resmi dari tag rilis yang sama dengan kernel;
+- `Cogan-<varian>-NoMount-….zip`: modul NoMount resmi dengan versi yang sama dengan NoMount di kernel.
+
+SHA256 semuanya tertulis di ringkasan run.
 
 **Memperbarui komponen:** buka **Actions → Cogan Manual Update**.
 - `check` hanya menampilkan laporan versi.

@@ -634,10 +634,11 @@ git -C anykernel checkout -q --detach "$PIN_ANYKERNEL_COMMIT"
 verify_pinned_checkout anykernel "$PIN_ANYKERNEL_COMMIT" "AnyKernel3"
 
 AK3_ZIP_NAME=${AK3_ZIP_NAME//REL/$RELEASE}
-sed -i \
-  -e "s/kernel.string=.*/kernel.string=${KERNEL_NAME} ${RELEASE} ${LINUX_VERSION} ${VARIANT} by Ahmed Al-Nassif (ahmed-alnassif)/g" \
-  -e "s/supported_kernel=\".*\"/supported_kernel=\"${KERNEL_VERSION}\"/g" \
-  $WORKDIR/anykernel/anykernel.sh
+sed -i -e "s/supported_kernel=\".*\"/supported_kernel=\"${KERNEL_VERSION}\"/g" "$WORKDIR/anykernel/anykernel.sh"
+# Cogan name, banner and upstream credits in the flasher output. Fails closed if the
+# pinned AnyKernel3 layout changes, so the GKID branding can never ship silently.
+python3 "$WORKDIR/scripts/brand_anykernel.py" "$WORKDIR/anykernel" \
+  "${KERNEL_NAME} ${RELEASE} ${LINUX_VERSION} ${VARIANT} by Cogan (cogan17)" || exit 1
 
 cd anykernel
 log "Zipping anykernel"

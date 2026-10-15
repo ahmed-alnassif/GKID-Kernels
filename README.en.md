@@ -33,7 +33,7 @@ A generic kernel built from GKI 6.1 sources ([GKI-Duchamp-6.1](https://github.co
 - **Performance**: 300 Hz timer, MGLRU, zRAM LZ4 + writeback, mq-deadline, F2FS compression, NTSync
 - **TMPFS**: xattr and POSIX ACLs
 - **Toolchain**: Neutron Clang (pinned version) with Full LTO, Thin LTO or no LTO
-- **Pinned components**: the kernel, root managers, SUSFS, NoMount, BBG, AnyKernel3 and the toolchain are pinned to exact commits and are only updated through **Cogan Manual Update**
+- **Pinned components**: the kernel, root managers, SUSFS, NoMount, BBG, AnyKernel3 and the toolchain are pinned to exact commits and are only updated through **Cogan Manual Update**. Root managers and NoMount follow **official release tags**, so the manager APK and NoMount module always match the kernel
 
 ---
 
@@ -65,7 +65,7 @@ A generic kernel built from GKI 6.1 sources ([GKI-Duchamp-6.1](https://github.co
 2. **Keep your stock `boot.img`**, exactly matching your ROM version ([how](docs/bootloop.en.md#1-keep-your-stock-bootimg-before-flashing)).
 3. Download the ZIP from **[Releases](https://github.com/cogan17/Cogan/releases)** and check its SHA256 against `checksums.txt`.
 4. Flash the AnyKernel3 ZIP with a kernel flasher app on a rooted device, for example [Kernel Flasher](https://github.com/capntrips/KernelFlasher) or [Horizon Kernel Flasher](https://github.com/libxzr/HorizonKernelFlasher), or from a custom recovery. The ZIP can **not** be flashed with `fastboot`.
-5. Install the matching manager app from its official releases: [KernelSU](https://github.com/tiann/KernelSU/releases), [KernelSU Next](https://github.com/KernelSU-Next/KernelSU-Next/releases) or [BakaSU](https://github.com/Baka-SU/BakaSU/releases).
+5. Install the manager APK that matches the kernel. It ships with the build artifacts, or download it from the official release with the same tag: [KernelSU](https://github.com/tiann/KernelSU/releases), [KernelSU Next](https://github.com/KernelSU-Next/KernelSU-Next/releases) or [BakaSU](https://github.com/Baka-SU/BakaSU/releases). Install the NoMount module (ZIP) from the manager's Modules screen.
 6. Reboot. If it gets stuck on the logo or keeps restarting, open the **[Bootloop Guide](docs/bootloop.en.md)**.
 
 ---
@@ -92,7 +92,12 @@ Open **Actions → Cogan Kernel Builder → Run workflow** in your repository.
 | Networking | BBRv3 and extra networking (enabled by default) |
 | BBG | Baseband Guard (enabled by default) |
 
-**Build output:** on the run page, download the `Cogan-<variant>-….zip` artifact. It is the flashable AnyKernel3 ZIP itself (no extraction needed), and its SHA256 is shown in the run summary.
+**Build output:** a green run lists three artifacts you can download directly (no extraction needed):
+- `Cogan-<variant>-….zip`: the kernel (AnyKernel3 ZIP), flashed with Kernel Flasher;
+- `Cogan-<variant>-<manager APK>.apk`: the official root manager from the same release tag as the kernel;
+- `Cogan-<variant>-NoMount-….zip`: the official NoMount module, the same version as the NoMount in the kernel.
+
+All SHA256 values are in the run summary.
 
 **Updating components:** open **Actions → Cogan Manual Update**.
 - `check` only reports versions.

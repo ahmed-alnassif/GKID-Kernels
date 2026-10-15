@@ -11,26 +11,43 @@ from scripts import cogan_manual_update as mu
 ROOT = Path(__file__).resolve().parents[1]
 REAL_LOCK = (ROOT / "configs/upstream.lock").read_text()
 NEW = "c" * 40
+# Release tags and companion assets as Cogan Manual Update records them.
+COMPANION_FIXTURE = {
+    "KSU_REF": "v3.3.1", "BSU_REF": "v4.2.0-rc3", "NOMOUNT_REF": "v2.1.1",
+    "KSU_MANAGER_APK": "KernelSU_v3.3.1_32211-release.apk", "KSU_MANAGER_SHA256": "1" * 64,
+    "BSU_MANAGER_APK": "BakaSU_v4.2.0-rc3_35222-release.apk", "BSU_MANAGER_SHA256": "2" * 64,
+    "KSUN_MANAGER_APK": "KernelSU_Next_v3.4.2_33355-release.apk", "KSUN_MANAGER_SHA256": "3" * 64,
+    "NOMOUNT_MODULE_ZIP": "NoMount-v2.1.1-release-7046c7a-120.zip", "NOMOUNT_MODULE_SHA256": "4" * 64,
+}
+FULL_LOCK = mu.write_lock(REAL_LOCK, COMPANION_FIXTURE)
+# The lock before any release-tag update: no optional keys at all.
+BARE_LOCK = "".join(line + "\n" for line in REAL_LOCK.splitlines()
+                    if line.split("=", 1)[0] not in mu.ANCHORS)
 
 
-def fake_lister(overrides=None, tags=None, neutron=None):
+def fake_lister(overrides=None, tags=None, neutron=None, lock_text=None):
     """Upstream equal to the lock, except for explicit overrides."""
-    lock = mu.read_lock(REAL_LOCK)
-    by_ref = {}
+    lock = mu.read_lock(lock_text or FULL_LOCK)
+    by_ref, by_url_tags = {}, {}
     for key, (_, _, url, ref) in mu.PINS.items():
-        if ref != "latest-stable-tag":
-            by_ref[(url, ref)] = (overrides or {}).get(key, lock[key])
+        commit = (overrides or {}).get(key, lock[key])
+        if ref.startswith("latest-"):
+            tag = lock.get(mu.TAG_KEYS[key]) or COMPANION_FIXTURE[mu.TAG_KEYS[key]]
+            by_url_tags[url] = {"refs/tags/v0.0.1": "d" * 40, "refs/tags/v9.0.0-legacy": "e" * 40,
+                                "refs/tags/" + tag: commit}
+        else:
+            by_ref[(url, ref)] = commit
+    if tags is not None:
+        by_url_tags[mu.PINS["KSUN_COMMIT"][2]] = tags
 
     def lister(url, *patterns, options=()):
         if url == mu.NEUTRON_REPO:
             return neutron if neutron is not None else {
                 "refs/tags/30072026": "a" * 40, "refs/tags/" + lock["NEUTRON_RELEASE"]: "b" * 40}
         if "--tags" in options:
-            return tags if tags is not None else {
-                "refs/tags/v3.4.0-legacy": "d" * 40,
-                "refs/tags/" + lock["KSUN_REF"]: lock["KSUN_COMMIT"],
-                "refs/tags/v3.4.1": "e" * 40,
-            }
+            if url not in by_url_tags:
+                raise subprocess.CalledProcessError(2, "git")
+            return by_url_tags[url]
         ref = patterns[0]
         if (url, ref) not in by_ref:
             raise subprocess.CalledProcessError(2, "git")
@@ -38,11 +55,31 @@ def fake_lister(overrides=None, tags=None, neutron=None):
     return lister
 
 
+def fake_assets(drop=()):
+    """Release assets: the recorded companion plus a spoofed APK and a bare binary."""
+    def assets_of(repo, tag):
+        for key, companion in mu.COMPANIONS.items():
+            if companion.repo == repo and key not in drop:
+                name = COMPANION_FIXTURE[companion.name_key]
+                return [{"name": name, "url": "https://example.invalid/" + name,
+                         "digest": "sha256:" + COMPANION_FIXTURE[companion.sha_key]},
+                        {"name": "spoofed_" + name, "url": "https://example.invalid/s", "digest": ""},
+                        {"name": "ksud-aarch64-linux-android", "url": "https://example.invalid/k", "digest": ""}]
+        return []
+    return assets_of
+
+
+def plan(lock, groups, lister, **kwargs):
+    kwargs.setdefault("assets_of", fake_assets())
+    return mu.plan(lock, groups, lister, **kwargs)
+
+
 class LockTests(unittest.TestCase):
     def test_real_lock_parses_and_has_every_pin(self):
         lock = mu.read_lock(REAL_LOCK)
         sublevels = {key for key in lock if mu.SUBLEVEL_KEY.fullmatch(key)}
-        self.assertEqual(set(mu.REQUIRED), set(lock) - sublevels)
+        self.assertLessEqual(set(mu.REQUIRED), set(lock) - sublevels)
+        self.assertLessEqual(set(lock) - sublevels - set(mu.REQUIRED), set(mu.OPTIONAL))
         self.assertEqual(sorted(int(key.rsplit("_", 1)[1]) for key in sublevels), list(range(160, 178)))
 
     def test_unknown_key_rejected(self):
@@ -66,6 +103,15 @@ class LockTests(unittest.TestCase):
         self.assertEqual(changed, [(next(l for l in before if l.startswith("KSU_COMMIT=")),
                                     "KSU_COMMIT=" + NEW)])
 
+    def test_every_key_family_has_one_value_shape(self):
+        for key, value in (("KSU_REF", "main"), ("KSU_REF", "a" * 40), ("BSU_MANAGER_APK", "x.zip"),
+                           ("NOMOUNT_MODULE_ZIP", "x.apk"), ("KSU_MANAGER_SHA256", "a" * 40),
+                           ("KSU_COMMIT", "v3.3.1"), ("SUSFS_COMMIT_6_1", "1" * 64)):
+            with self.assertRaisesRegex(ValueError, "Bad value|Malformed", msg=key):
+                mu.read_lock(mu.write_lock(FULL_LOCK, {}).replace(
+                    next(l for l in FULL_LOCK.splitlines() if l.startswith(key + "=")), f"{key}={value}"))
+        self.assertEqual(mu.read_lock(FULL_LOCK)["BSU_REF"], "v4.2.0-rc3")
+
     def test_write_lock_rejects_unknown_key_and_bad_value(self):
         with self.assertRaises(ValueError):
             mu.write_lock(REAL_LOCK, {"NOT_A_PIN": NEW})
@@ -75,18 +121,18 @@ class LockTests(unittest.TestCase):
 
 class PlanTests(unittest.TestCase):
     def setUp(self):
-        self.lock = mu.read_lock(REAL_LOCK)
+        self.lock = mu.read_lock(FULL_LOCK)
 
     def test_everything_up_to_date_proposes_nothing(self):
-        rows, updates = mu.plan(self.lock, set(mu.GROUPS), fake_lister())
+        rows, updates = plan(self.lock, set(mu.GROUPS), fake_lister())
         self.assertEqual(updates, {})
         self.assertTrue(all(row[-1] == "UP TO DATE" for row in rows))
 
     def test_update_limited_to_selected_group(self):
         lister = fake_lister({"KSU_COMMIT": NEW, "SUSFS_COMMIT_6_1": NEW})
-        _, updates = mu.plan(self.lock, mu.select("susfs"), lister)
+        _, updates = plan(self.lock, mu.select("susfs"), lister)
         self.assertEqual(updates, {"SUSFS_COMMIT_6_1": NEW})
-        rows, updates = mu.plan(self.lock, mu.select("root-managers"), lister)
+        rows, updates = plan(self.lock, mu.select("root-managers"), lister)
         self.assertEqual(updates, {"KSU_COMMIT": NEW})
         susfs_row = next(row for row in rows if row[0] == "SUSFS 6.1")
         self.assertEqual(susfs_row[-1], "UPDATE AVAILABLE")  # reported, not changed
@@ -97,19 +143,91 @@ class PlanTests(unittest.TestCase):
                 "refs/tags/v3.10.0-legacy": "d" * 40,
                 "refs/tags/v3.4.10": "1" * 40,
                 "refs/tags/v3.4.10^{}": NEW}
-        _, updates = mu.plan(self.lock, {"root-managers"}, fake_lister(tags=tags))
+        _, updates = plan(self.lock, {"root-managers"}, fake_lister(tags=tags))
         self.assertEqual(updates, {"KSUN_REF": "v3.4.10", "KSUN_COMMIT": NEW})
+
+    def test_release_tag_pins_record_tag_and_matching_assets(self):
+        bare = mu.read_lock(BARE_LOCK)
+        commits = {"KSU_COMMIT": "1" * 40, "BSU_COMMIT": "2" * 40, "NOMOUNT_COMMIT": "4" * 40}
+        rows, updates = plan(bare, {"root-managers", "nomount"},
+                             fake_lister(commits, lock_text=BARE_LOCK))
+        for key, value in COMPANION_FIXTURE.items():
+            if key != "KSUN_REF":
+                self.assertEqual(updates.get(key), value, key)
+        self.assertEqual(updates["KSU_COMMIT"], "1" * 40)
+        self.assertEqual(updates["BSU_COMMIT"], "2" * 40)
+        row = next(row for row in rows if row[0] == "BakaSU")
+        self.assertIn("v4.2.0-rc3", row[4])
+        self.assertIn(COMPANION_FIXTURE["BSU_MANAGER_APK"], row[4])
+        lines = mu.write_lock(BARE_LOCK, updates).splitlines()
+        start = lines.index("KSU_COMMIT=" + "1" * 40)
+        self.assertEqual(lines[start + 1:start + 4], [
+            "KSU_REF=v3.3.1", "KSU_MANAGER_APK=" + COMPANION_FIXTURE["KSU_MANAGER_APK"],
+            "KSU_MANAGER_SHA256=" + "1" * 64])
+        mu.read_lock("\n".join(lines) + "\n")
+
+    def test_missing_manager_apk_keeps_that_root_manager_pinned(self):
+        bare = mu.read_lock(BARE_LOCK)
+        rows, updates = plan(bare, {"root-managers"}, fake_lister({"BSU_COMMIT": NEW}, lock_text=BARE_LOCK),
+                             assets_of=fake_assets(drop=("BSU_COMMIT",)))
+        self.assertFalse({"BSU_COMMIT", "BSU_REF", "BSU_MANAGER_APK"} & set(updates))
+        self.assertIn("KSU_REF", updates)
+        row = next(row for row in rows if row[0] == "BakaSU")
+        self.assertTrue(row[-1].startswith("UNAVAILABLE: no usable .apk"), row)
+
+    def test_nomount_without_module_zip_still_follows_the_tag(self):
+        bare = mu.read_lock(BARE_LOCK)
+        rows, updates = plan(bare, {"nomount"}, fake_lister({"NOMOUNT_COMMIT": NEW}, lock_text=BARE_LOCK),
+                             assets_of=fake_assets(drop=("NOMOUNT_COMMIT",)))
+        self.assertEqual(updates["NOMOUNT_COMMIT"], NEW)
+        self.assertEqual(updates["NOMOUNT_REF"], "v2.1.1")
+        self.assertNotIn("NOMOUNT_MODULE_ZIP", updates)
+        row = next(row for row in rows if row[0] == "NoMount source")
+        self.assertIn("no usable .zip", row[-1])
+
+    def test_new_manager_asset_on_same_tag_is_an_update(self):
+        lister = fake_lister()
+        assets = lambda repo, tag: [{"name": "KernelSU_v3.3.1_32212-release.apk", "url": "u",
+                                     "digest": "sha256:" + "9" * 64}] if repo == "tiann/KernelSU" \
+            else fake_assets()(repo, tag)
+        _, updates = plan(self.lock, {"root-managers"}, lister, assets_of=assets)
+        self.assertEqual(updates, {"KSU_MANAGER_APK": "KernelSU_v3.3.1_32212-release.apk",
+                                   "KSU_MANAGER_SHA256": "9" * 64})
+
+    def test_pick_asset_excludes_spoofed_and_debug_and_prefers_release(self):
+        assets = [{"name": n, "url": "u", "digest": ""} for n in (
+            "KernelSU_Next_v3.4.2_33355-spoofed-release.apk", "KernelSU_Next_v3.4.2_33355-debug.apk",
+            "KernelSU_Next_v3.4.2_33355-release.apk", "KernelSU_Next_v3.4.2_33355.apk", "AnyKernel3-x.zip")]
+        self.assertEqual(mu.pick_asset(assets, ".apk")["name"], "KernelSU_Next_v3.4.2_33355-release.apk")
+        with self.assertRaisesRegex(ValueError, "found 2"):
+            mu.pick_asset([{"name": "a.apk"}, {"name": "b.apk"}], ".apk")
+        with self.assertRaisesRegex(ValueError, "found 0"):
+            mu.pick_asset([], ".zip")
+        with self.assertRaisesRegex(ValueError, "unsupported asset name"):
+            mu.pick_asset([{"name": "bad name.apk"}], ".apk")
+
+    def test_asset_sha256_prefers_the_recorded_digest(self):
+        self.assertEqual(mu.asset_sha256({"digest": "sha256:" + "a" * 64, "url": "u"},
+                                         opener=lambda *a, **k: self.fail("downloaded")), "a" * 64)
+
+    def test_latest_tag_orders_release_candidates_below_the_final_release(self):
+        refs = {f"refs/tags/{t}": t.replace(".", "").replace("-", "").ljust(40, "0")[:40]
+                for t in ("v4.1.0", "v4.2.0-rc1", "v4.2.0-rc3", "v4.2.0-rc10", "v4.2.0-beta1")}
+        self.assertEqual(mu.latest_tag(refs, allow_rc=True)[0], "v4.2.0-rc10")
+        self.assertEqual(mu.latest_tag(refs)[0], "v4.1.0")
+        refs["refs/tags/v4.2.0"] = "f" * 40
+        self.assertEqual(mu.latest_tag(refs, allow_rc=True), ("v4.2.0", "f" * 40))
 
     def test_unreachable_upstream_never_becomes_an_update(self):
         def broken(*_args, **_kwargs):
             raise subprocess.TimeoutExpired("git", 40)
-        rows, updates = mu.plan(self.lock, set(mu.GROUPS), broken)
+        rows, updates = plan(self.lock, set(mu.GROUPS), broken)
         self.assertEqual(updates, {})
         self.assertTrue(all(row[-1].startswith("UNAVAILABLE") for row in rows))
 
     def test_kernel_advance_moves_auto_and_adds_the_new_sublevel(self):
         lister = fake_lister({"KERNEL_COMMIT_6_1": NEW})
-        rows, updates = mu.plan(self.lock, {"kernel-6.1"}, lister, sublevel_of=lambda commit: 178)
+        rows, updates = plan(self.lock, {"kernel-6.1"}, lister, sublevel_of=lambda commit: 178)
         self.assertEqual(updates, {"KERNEL_COMMIT_6_1": NEW, "KERNEL_COMMIT_6_1_178": NEW})
         row = next(row for row in rows if row[0] == "Kernel GKID 6.1")
         self.assertTrue(row[3].startswith("6.1.177 ") and row[4].startswith("6.1.178 "), row)
@@ -120,13 +238,13 @@ class PlanTests(unittest.TestCase):
 
     def test_new_commit_on_same_sublevel_replaces_that_entry(self):
         lister = fake_lister({"KERNEL_COMMIT_6_1": NEW})
-        _, updates = mu.plan(self.lock, {"kernel-6.1"}, lister, sublevel_of=lambda commit: 177)
+        _, updates = plan(self.lock, {"kernel-6.1"}, lister, sublevel_of=lambda commit: 177)
         self.assertEqual(updates, {"KERNEL_COMMIT_6_1": NEW, "KERNEL_COMMIT_6_1_177": NEW})
 
     def test_unreadable_sublevel_blocks_the_kernel_update(self):
         def unreadable(commit):
             raise OSError("offline")
-        rows, updates = mu.plan(self.lock, {"kernel-6.1"}, fake_lister({"KERNEL_COMMIT_6_1": NEW}),
+        rows, updates = plan(self.lock, {"kernel-6.1"}, fake_lister({"KERNEL_COMMIT_6_1": NEW}),
                                 sublevel_of=unreadable)
         self.assertEqual(updates, {})
         row = next(row for row in rows if row[0] == "Kernel GKID 6.1")
@@ -142,17 +260,17 @@ class PlanTests(unittest.TestCase):
         tags = {"refs/tags/06092026": "a" * 40, "refs/tags/01102026": "b" * 40,
                 "refs/tags/31122025": "c" * 40, "refs/tags/latest": "d" * 40}
         digest = "e" * 64
-        rows, updates = mu.plan(self.lock, {"toolchain"}, fake_lister(neutron=tags),
+        rows, updates = plan(self.lock, {"toolchain"}, fake_lister(neutron=tags),
                                 sha256_of=lambda tag: digest)
         self.assertEqual(updates, {"NEUTRON_RELEASE": "01102026", "NEUTRON_SHA256": digest})
         self.assertEqual(mu.read_lock(mu.write_lock(REAL_LOCK, updates))["NEUTRON_RELEASE"], "01102026")
-        _, updates = mu.plan(self.lock, {"susfs"}, fake_lister(neutron=tags), sha256_of=lambda tag: digest)
+        _, updates = plan(self.lock, {"susfs"}, fake_lister(neutron=tags), sha256_of=lambda tag: digest)
         self.assertEqual(updates, {})  # reported only when toolchain is not selected
 
     def test_unreadable_toolchain_archive_blocks_the_update(self):
         def broken(tag):
             raise OSError("offline")
-        rows, updates = mu.plan(self.lock, {"toolchain"},
+        rows, updates = plan(self.lock, {"toolchain"},
                                 fake_lister(neutron={"refs/tags/01102026": "b" * 40}), sha256_of=broken)
         self.assertEqual(updates, {})
         self.assertTrue(rows[-1][-1].startswith("UNAVAILABLE: Archive unreadable"), rows[-1])
@@ -179,6 +297,20 @@ class ShellLockTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         lock = mu.read_lock(REAL_LOCK)
         self.assertEqual(result.stdout.split()[-2:], [lock["KSUN_REF"], lock["SUSFS_COMMIT_6_1"]])
+
+    def test_release_tags_and_companion_assets_load(self):
+        with tempfile.TemporaryDirectory() as directory:
+            lock = Path(directory) / "upstream.lock"
+            lock.write_text(FULL_LOCK)
+            script = (f'set -eo pipefail; WORKDIR="{ROOT}"; source "{ROOT}/functions.sh" >/dev/null; '
+                      f'load_upstream_lock "{lock}" && echo "$PIN_BSU_REF $PIN_KSUN_MANAGER_APK $PIN_NOMOUNT_MODULE_ZIP"')
+            result = subprocess.run(["bash", "-c", script], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(result.stdout.split()[-3:], [COMPANION_FIXTURE["BSU_REF"],
+                                                      COMPANION_FIXTURE["KSUN_MANAGER_APK"],
+                                                      COMPANION_FIXTURE["NOMOUNT_MODULE_ZIP"]])
+        for bad in ("KSU_MANAGER_APK=evil;rm -rf.apk", "KSU_MANAGER_APK=../x.apk", "KSU_REF=v1.2.3-beta"):
+            self.assertNotEqual(self.load(REAL_LOCK + bad + "\n").returncode, 0, bad)
 
     def test_branch_name_instead_of_commit_rejected(self):
         result = self.load(REAL_LOCK.replace("BSU_COMMIT=", "BSU_COMMIT=main\n#", 1))

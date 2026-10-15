@@ -4,6 +4,8 @@ name: Cogan Manual Update
 # Baseband Guard (BBG), AnyKernel3, the Neutron clang toolchain and the GKID 6.1 kernel source (scope: kernel 6.1 only). Pins live
 # in configs/upstream.lock.
 # The kernel build workflow only compiles those exact commits.
+# Root managers and NoMount follow release tags; each pin records the official
+# manager APK / module ZIP of that same tag (name + SHA256), which the build ships.
 #   check  : report pinned vs latest upstream (no changes)
 #   update : bump the selected pins and commit them straight to dev, so the next
 #            build run uses them (a pull request is opened only if the push is refused)
@@ -56,6 +58,8 @@ jobs:
         env:
           MODE: ${{ github.event.inputs.MODE }}
           COMPONENTS: ${{ github.event.inputs.COMPONENTS }}
+          # Read-only: lists release assets (manager APK, NoMount module) of the pinned tags.
+          GH_TOKEN: ${{ github.token }}
         run: |
           python3 scripts/cogan_manual_update.py --mode "$MODE" --components "$COMPONENTS" \
             --summary "$GITHUB_STEP_SUMMARY" --changes "$RUNNER_TEMP/changes.txt"

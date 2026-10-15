@@ -412,6 +412,35 @@ jobs:
           archive: false
           retention-days: 7
 
+      # Official root manager APK and NoMount module from the same release tag the
+      # kernel was built from (pins and SHA256 recorded by Cogan Manual Update).
+      - name: Fetch matching root manager and NoMount module
+        id: companions
+        if: success()
+        env:
+          KSU_INPUT: ${{ matrix.KSU }}
+          KSU_SUSFS_INPUT: ${{ matrix.KSU_SUSFS }}
+        run: |
+          python3 scripts/fetch_companions.py --ksu "$KSU_INPUT" --susfs "$KSU_SUSFS_INPUT" \
+            --prefix "$BASE_NAME" --out companions \
+            --github-output "$GITHUB_OUTPUT" --summary "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload root manager APK (direct download)
+        if: success() && steps.companions.outputs.manager != ''
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          path: ${{ steps.companions.outputs.manager }}
+          archive: false
+          retention-days: 7
+
+      - name: Upload NoMount module (direct download)
+        if: success() && steps.companions.outputs.nomount != ''
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          path: ${{ steps.companions.outputs.nomount }}
+          archive: false
+          retention-days: 7
+
   upload-all:
     needs: build
     if: ${{ needs.build.result == 'success' }}
