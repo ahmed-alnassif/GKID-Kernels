@@ -100,5 +100,24 @@
     },
     "candidate_required_route": "isolated pinned pershoot KSUN checkout plus checksum-verified SUSFS kernel patch and companion files; full order and integration method still missing",
     "status": "source_route_difference_verified_only"
+  },
+  "verified_ksun_setup_mechanism": {
+    "source": "https://github.com/pershoot/KernelSU-Next/blob/2f858cb292265795dee2807759cec2eb8a7d79b1/kernel/setup.sh",
+    "blob_sha": "94b94d9546f21cadca3bc87ab96b1bc97330911e",
+    "source_revision": "2f858cb292265795dee2807759cec2eb8a7d79b1",
+    "upstream_operations": [
+      "detect common/drivers, aosp/drivers, or drivers",
+      "create drivers/kernelsu symlink to pinned KSUN kernel directory",
+      "append obj-$(CONFIG_KSU) += kernelsu/ to drivers/Makefile when absent",
+      "insert source \"drivers/kernelsu/Kconfig\" into drivers/Kconfig when absent"
+    ],
+    "unsafe_for_replay": [
+      "git clone floating repository state",
+      "git pull before checkout",
+      "checkout failure falls back to default branch",
+      "git stash can hide changes"
+    ],
+    "candidate_procedure_requirement": "Use independently pinned checkout with exact HEAD assertion and clean source verification, then reproduce only the documented driver symlink/Makefile/Kconfig operations in isolated candidate tree. Check existing contents before mutation and record resulting diff. Do not execute upstream setup.sh as-is.",
+    "status": "mechanism_verified_not_executed"
   }
 }
