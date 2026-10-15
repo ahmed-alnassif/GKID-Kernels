@@ -28,3 +28,10 @@ Status: documentation only; **not** a verified version/Manager compatibility mat
 - [ ] Validate metadata generation offline before adding expensive build jobs.
 
 Do not upgrade root manager revisions automatically, remove existing build choices, or infer device compatibility from a successful compile.
+
+## KSUN v3.4.2 source inspection (2026-10-15)
+
+- Upstream contains `kernel/susfs/` with `lsm_hook.c`, `ksu_umount_gate.c`, `imports_guard.c` and related files. These names alone do **not** establish integration with Simonpunk SUSFS.
+- `kernel/Kconfig` does not declare `CONFIG_KSU_SUSFS`; `kernel/Kbuild` does not list those `kernel/susfs/` sources among `kernelsu-objs` in the inspected tag.
+- Do not blindly apply `KernelSU/10_enable_susfs_for_ksu.patch` to KSUN: the patch targets a different manager source tree.
+- Next: inspect KSUN's SUSFS integration points and compare against the selected Simonpunk patch revision before enabling compilation. Keep the existing fail-closed guard.
