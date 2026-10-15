@@ -17,6 +17,7 @@ Dokumen ini adalah sumber utama aturan kerja dan urutan prioritas. Owner cukup m
 8. **Judul workflow harus sesuai isi pekerjaannya.** Ketidaksesuaian dicatat dan diperbaiki.
 9. **Checkpoint secukupnya.** Hanya di akhir satu blok kerja yang berarti (bukan setiap langkah), ditulis di bagian *Checkpoint* dokumen ini.
 10. **Menjalankan workflow GitHub Actions yang mengompilasi kernel hanya oleh owner** (diperjelas 2026-10-15). Kompilasi kernel lain, misalnya lokal di container sesi, **boleh** dilakukan Claude. Workflow ringan seperti `Validate` boleh berjalan otomatis lewat push/PR. Release, flash, dan penghapusan production guard tetap keputusan owner.
+11. **Ruang lingkup: kernel 6.1 saja** (keputusan owner 2026-10-15). Versi 5.10/5.15/6.6/6.12 diabaikan: tidak dipin, tidak dilaporkan, dan tidak dikerjakan, tetapi juga tidak dihapus dari form build.
 
 ## B. Temuan audit (2026-10-15)
 
@@ -46,7 +47,7 @@ Dokumen ini adalah sumber utama aturan kerja dan urutan prioritas. Owner cukup m
 | W9 | P3 | Rapikan issue #2, #3 (roadmap) dan #19 (SUSFS): perbarui ringkasan status, tutup yang selesai. | **Selesai** 2026-10-15 — body ketiganya diganti checklist status; tidak ada yang layak ditutup (masih ada sisa pekerjaan) |
 | W10 | P2 | Issue #3: catat SHA root manager & SUSFS yang benar-benar dipakai per build; usulan pin KernelSU/BakaSU. | **Selesai** 2026-10-15 — `ROOT_MANAGER_REPO/REF/SHA` + `SUSFS_SHA` masuk `build-env-*.txt`; ref tidak diubah. Usulan: KernelSU `v3.3.1` setelah 1 build sukses; BakaSU tetap `main` (tag stabil terlalu tua) |
 | W11 | P1 | Label dropdown `KernelSU Next + SUSFS (terkunci)` sampai kandidat v2 tersambung ke `build.sh` dan lolos uji perangkat; lalu kembalikan label & buka guard. | **Label terpasang** 2026-10-15 (run 38734766759 terbuang karena opsi terlihat normal) |
-| W12 | P1 | **Cogan Manual Update = satu-satunya jalan update** (arahan owner 2026-10-15): run build hanya compile. | **Selesai** 2026-10-15 — `configs/upstream.lock` memin KernelSU, BakaSU, KSUN, NoMount (setup + source), AnyKernel3, kernel GKID 6.1, SUSFS 5.10–6.12; `build.sh` memasang persis pin itu dan gagal bila checkout berbeda. Workflow **Cogan Manual Update**: `check` (laporan) / `update` (PR pin baru ke `dev`). Kernel 5.10/5.15/6.6/6.12 (googlesource) masih hanya dilaporkan |
+| W12 | P1 | **Cogan Manual Update = satu-satunya jalan update** (arahan owner 2026-10-15): run build hanya compile. | **Selesai** 2026-10-15 — `configs/upstream.lock` memin KernelSU, BakaSU, KSUN, NoMount (setup + source), AnyKernel3, kernel GKID 6.1, SUSFS 6.1; `build.sh` memasang persis pin itu dan gagal bila checkout berbeda. Workflow **Cogan Manual Update**: `check` (laporan) / `update` (PR pin baru ke `dev`). Ruang lingkup 6.1 saja (aturan A11) |
 
 ## D. Bukti hijau (tidak perlu diulang)
 

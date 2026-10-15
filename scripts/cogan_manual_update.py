@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Cogan Manual Update: report upstream revisions and, on request, bump pins.
 
+Scope: kernel 6.1 (GKID) only, by owner decision.
+
 The only writer of configs/upstream.lock. Owner-triggered via the
 "Cogan Manual Update" workflow; the kernel build workflow only reads the lock.
 
@@ -36,20 +38,9 @@ PINS = {
     "NOMOUNT_COMMIT": ("nomount", "NoMount source", "https://github.com/maxsteeel/nomount.git", "refs/heads/master"),
     "ANYKERNEL_COMMIT": ("anykernel", "AnyKernel3", "https://github.com/ahmed-alnassif/AK3-GKID.git", "HEAD"),
     "KERNEL_COMMIT_6_1": ("kernel-6.1", "Kernel GKID 6.1", "https://github.com/ahmed-alnassif/GKI-Duchamp-6.1.git", "refs/heads/GKID-6.1"),
-    "SUSFS_COMMIT_5_10": ("susfs", "SUSFS 5.10", SUSFS, "refs/heads/gki-android12-5.10"),
-    "SUSFS_COMMIT_5_15": ("susfs", "SUSFS 5.15", SUSFS, "refs/heads/gki-android13-5.15"),
     "SUSFS_COMMIT_6_1": ("susfs", "SUSFS 6.1", SUSFS, "refs/heads/gki-android14-6.1"),
-    "SUSFS_COMMIT_6_6": ("susfs", "SUSFS 6.6", SUSFS, "refs/heads/gki-android15-6.6"),
-    "SUSFS_COMMIT_6_12": ("susfs", "SUSFS 6.12", SUSFS, "refs/heads/gki-android16-6.12"),
 }
 GROUPS = sorted({group for group, *_ in PINS.values()})
-# Reported only: fetching an exact commit from these hosts is not verified yet.
-REPORT_ONLY = [
-    ("Kernel 5.10", "https://android.googlesource.com/kernel/common", "refs/heads/android12-5.10-lts"),
-    ("Kernel 5.15", "https://android.googlesource.com/kernel/common", "refs/heads/android13-5.15-lts"),
-    ("Kernel 6.6", "https://android.googlesource.com/kernel/common", "refs/heads/android15-6.6-lts"),
-    ("Kernel 6.12", "https://android.googlesource.com/kernel/common", "refs/heads/android16-6.12-lts"),
-]
 LOCAL_FINGERPRINTS = [
     ("Networking / BBRv3", ["kernel-patches/bbrv3/bbrv3.patch", "configs/custom.config"]),
     ("Clean LTO", ["configs/gki_defconfig.sh", "build.sh"]),
@@ -175,7 +166,7 @@ def plan(lock, groups, lister=ls_remote):
     return rows, updates
 
 
-def report(rows, report_only, fingerprints, mode, groups, updates):
+def report(rows, fingerprints, mode, groups, updates):
     lines = [
         f"## Cogan Manual Update — mode `{mode}`",
         "",
@@ -188,9 +179,6 @@ def report(rows, report_only, fingerprints, mode, groups, updates):
         "|---|---|---|---|---|---|",
     ]
     lines += ["| " + " | ".join(row) + " |" for row in rows]
-    lines += ["", "### Reported only (not pinned yet)", "",
-              "| Component | Upstream ref | Latest upstream |", "|---|---|---|"]
-    lines += ["| " + " | ".join(row) + " |" for row in report_only]
     lines += ["", "### Cogan local fingerprints", "", "| Component | SHA256 (12) |", "|---|---|"]
     lines += ["| " + " | ".join(row) + " |" for row in fingerprints]
     lines.append("")
@@ -203,14 +191,6 @@ def report(rows, report_only, fingerprints, mode, groups, updates):
     lines += ["", "A newer upstream revision is not proof of compatibility. "
               "Build and test after merging the update."]
     return "\n".join(lines) + "\n"
-
-
-def collect_report_only(lister=ls_remote):
-    rows = []
-    for label, url, ref in REPORT_ONLY:
-        commit, _, error = resolve(url, ref, lister)
-        rows.append((label, ref.replace("refs/heads/", ""), commit[:12] if commit else "UNAVAILABLE: " + str(error)))
-    return rows
 
 
 def collect_fingerprints(root=ROOT):
@@ -240,7 +220,7 @@ def main(argv=None):
     lock = read_lock(text)
     groups = select(args.components)
     rows, updates = plan(lock, groups)
-    output = report(rows, collect_report_only(), collect_fingerprints(), args.mode, groups, updates)
+    output = report(rows, collect_fingerprints(), args.mode, groups, updates)
     if args.summary:
         with open(args.summary, "a", encoding="utf-8") as handle:
             handle.write(output)

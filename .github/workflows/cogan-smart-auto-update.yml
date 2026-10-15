@@ -1,7 +1,8 @@
 name: Cogan Manual Update
 
 # The only way Cogan components get updated: root managers, SUSFS, NoMount,
-# AnyKernel3 and the GKID 6.1 kernel source. Pins live in configs/upstream.lock.
+# AnyKernel3 and the GKID 6.1 kernel source (scope: kernel 6.1 only). Pins live
+# in configs/upstream.lock.
 # The kernel build workflow only compiles those exact commits.
 #   check  : report pinned vs latest upstream (no changes)
 #   update : bump the selected pins and open a pull request to dev for review
