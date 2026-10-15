@@ -54,8 +54,24 @@ jobs:
           while IFS= read -r name; do
             gh run download "$SOURCE_RUN" --repo "$REPO" --name "$name" --dir "downloads/$name"
           done < artifact-names.txt
-          find downloads -type f -name '*.zip' -exec cp -n {} release-files/ \;
-          test -n "$(find release-files -maxdepth 1 -name '*.zip' -print -quit)" || { echo "::error::No kernel ZIPs"; exit 1; }
+          python3 - <<'PY'
+          from pathlib import Path
+          import shutil
+          roots = sorted(Path("downloads").glob("build-*"))
+          if not roots:
+              raise SystemExit("No build artifacts downloaded")
+          seen = set()
+          for root in roots:
+              zips = list(root.rglob("*.zip"))
+              if len(zips) != 1:
+                  raise SystemExit(f"{root.name}: expected exactly one kernel ZIP, found {len(zips)}")
+              source = zips[0]
+              if source.name in seen:
+                  raise SystemExit(f"Duplicate ZIP filename: {source.name}")
+              seen.add(source.name)
+              shutil.copy2(source, Path("release-files") / source.name)
+          print(f"Selected {len(seen)} distinct kernel ZIP(s)")
+          PY
 
       - name: Validate flash ZIPs and generate checksums
         run: |
