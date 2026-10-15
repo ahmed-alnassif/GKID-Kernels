@@ -578,8 +578,30 @@ if [ ! -f "$KERNEL_IMAGE" ];then
   exit 1
 fi
 cp "$KERNEL_IMAGE" .
-zip -r9 "$WORKDIR/$AK3_ZIP_NAME" ./*
-cd $OLDPWD
+# Package only the AnyKernel payload; reject embedded archives and missing flash entrypoint.
+python3 - "$WORKDIR/$AK3_ZIP_NAME" <<'PY'
+import pathlib, sys, zipfile
+root = pathlib.Path.cwd()
+output = pathlib.Path(sys.argv[1])
+files = sorted(p for p in root.rglob("*") if p.is_file() and ".git" not in p.parts)
+if not (root / "anykernel.sh").is_file() or not (root / "Image").is_file():
+    raise SystemExit("Packaging failed: AnyKernel entrypoint or kernel Image missing")
+nested = [str(p.relative_to(root)) for p in files if p.suffix.lower() in {".zip", ".7z", ".rar"}]
+if nested:
+    raise SystemExit("Packaging failed: nested archives found: " + ", ".join(nested))
+with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
+    for file in files:
+        archive.write(file, file.relative_to(root).as_posix())
+with zipfile.ZipFile(output) as archive:
+    bad = archive.testzip()
+    if bad:
+        raise SystemExit("Packaging failed: corrupt ZIP member " + bad)
+    names = set(archive.namelist())
+    if "anykernel.sh" not in names or "Image" not in names:
+        raise SystemExit("Packaging failed: invalid ZIP root layout")
+print("Validated flash ZIP:", output.name)
+PY
+cd "$OLDPWD"
 
 echo "BASE_NAME=$KERNEL_NAME-$VARIANT" >> $GITHUB_ENV
 mkdir -p $RELEASE_DIR
