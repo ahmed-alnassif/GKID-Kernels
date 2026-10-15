@@ -34,3 +34,11 @@ Stop and record **workspace unavailable**. A fresh checkout does not recover the
 Run **one** justified full Image/link attempt in the recovered build environment, preserving successful objects and logs. Check `vmlinux` link, BTF, Image existence and hashes, packaging, device/vendor ABI/KMI and boot/root/SUSFS/Wi-Fi behavior separately. Do not report **ready to flash** on a green Validate workflow or partial `ld.lld -r` link alone.
 
 Current documented state: partial build verified; full Image, manager compatibility, and runtime **not verified**. Track blockers in issue #19.
+
+## Gate D — Evidence completeness before GitHub Actions
+
+The JSON evidence records commit identities and checksums, but **does not contain a replayable patch manifest or a complete working-tree diff**. Treat `source_context.prerequisite_commits` as provenance pointers, not instructions to cherry-pick those commits blindly. The config blob identifiers likewise do not reconstruct the kernel working tree.
+
+Before scheduling a candidate-only manual Actions run, require a reviewable, ordered manifest of every applied kernel/KSUN/SUSFS patch (source URL, immutable revision, expected SHA256, application order), all local modifications, the toolchain download URL and SHA256, and the exact commands used to resolve `.config`. Verify each input *before* any compilation; stop on missing or mismatched inputs. Do not use floating branch tips, `curl | bash`, or `git apply` without checking downloaded content. Do not assume the recorded `driver_archive_member_sha256` verifies `built-in.a` as a whole.
+
+If the historical workspace and patch provenance cannot be recovered, mark the candidate **not reproducible** and build a newly versioned candidate from independently pinned inputs. A green source-only Validate workflow does not waive these requirements. Keep production `build.yml` and `build.sh` KSUN+SUSFS guards intact.
