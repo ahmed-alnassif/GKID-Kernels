@@ -26,13 +26,13 @@ on:
           - "Standard Build"
 
       LTO:
-        description: "LTO optimization"
-        default: "fullLTO"
+        description: "LTO Build Package (NoMount + Clean LTO included)"
+        default: "fullLTO + NoMount + Clean LTO"
         type: choice
         options:
-          - "noneLTO"
-          - "thinLTO"
-          - "fullLTO"
+          - "noneLTO + NoMount + Clean LTO"
+          - "thinLTO + NoMount + Clean LTO"
+          - "fullLTO + NoMount + Clean LTO"
 
       KERNEL_VERSION:
         description: "GKI LTS kernel line to build"
@@ -82,6 +82,7 @@ on:
 
 # Legacy workflow (Edo Tensei): former TODO and TEST inputs are retired.
 # Standard Build is the sole supported mode: TODO=kernel, TEST=no.
+# LTO package labels map to legacy LTO values; NM=true and CLEAN_LTO_CACHE=true stay fixed.
 # Keep the underlying build script's TODO/TEST variables for compatibility.
 env:
   MAN_DISABLE: true
@@ -185,7 +186,7 @@ jobs:
           No_DS: ${{ matrix.No_DS }}
           TODO: kernel
           TEST: no
-          LTO: ${{ inputs.LTO }}
+          LTO: ${{ startsWith(inputs.LTO, 'noneLTO') && 'noneLTO' || startsWith(inputs.LTO, 'thinLTO') && 'thinLTO' || 'fullLTO' }}
           CLEAN_LTO_CACHE: 'true'
           DROIDSPACES: 'false'
           NM: 'true'
@@ -309,7 +310,7 @@ jobs:
           TEST_INPUT: no
           DROIDSPACES_INPUT: 'false'
           NM_INPUT: 'true'
-          LTO_INPUT: ${{ inputs.LTO }}
+          LTO_INPUT: ${{ startsWith(inputs.LTO, 'noneLTO') && 'noneLTO' || startsWith(inputs.LTO, 'thinLTO') && 'thinLTO' || 'fullLTO' }}
         run: python3 .github/scripts/prepare_release.py
 
       - name: Upload All Builds to release repo
