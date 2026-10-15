@@ -4,9 +4,9 @@ Status: documentation only; **not** a verified version/Manager compatibility mat
 
 | Build identifier | Upstream source | Reference used in `build.sh` | Immutable commit | Manager compatibility |
 | --- | --- | --- | --- | --- |
-| KSUN | `KernelSU-Next/KernelSU-Next` | `v3.4.2` | `4c706b5938665866ebe16944a481a7b91e3396af` (upstream tag) | KSUN + SUSFS not verified |
-| KSU | `tiann/KernelSU` | `main` | Recorded per build as `ROOT_MANAGER_SHA` (not pinned) | Not verified |
-| BSU (BakaSU) | `Baka-SU/BakaSU` | `main` | Recorded per build as `ROOT_MANAGER_SHA` (not pinned) | Not verified |
+| KSUN | `KernelSU-Next/KernelSU-Next` | `KSUN_REF`/`KSUN_COMMIT` in `configs/upstream.lock` (`v3.4.2`) | `4c706b5938665866ebe16944a481a7b91e3396af` (upstream tag) | KSUN + SUSFS not verified |
+| KSU | `tiann/KernelSU` | `KSU_COMMIT` in `configs/upstream.lock` | `b94e0916bf6394cb75b03f50b0e8f5a90de3471c` (verified after install) | Not verified |
+| BSU (BakaSU) | `Baka-SU/BakaSU` | `BSU_COMMIT` in `configs/upstream.lock` | `d7260ca1e5c128061122924d0d48754e361e135c` (verified after install) | Not verified |
 
 ## Evidence and limitations
 
@@ -24,7 +24,7 @@ Status: documentation only; **not** a verified version/Manager compatibility mat
 - [x] Capture resolved upstream commit SHA and setup/install source for each selected manager in build metadata (`ROOT_MANAGER_REPO/REF/SHA` and `SUSFS_SHA` in `build-env-*.txt`, 2026-10-15).
 - [ ] Capture relevant patchset commit SHAs and source versions.
 - [ ] Verify matching Manager APK release/version and record the evidence.
-- [ ] Decide and pin known-good revisions only after compatibility testing.
+- [x] Pin revisions (`configs/upstream.lock`, 2026-10-15, baseline from successful run 38735686355). Pins change only via the **Cogan Manual Update** workflow (`update` mode opens a PR to `dev`).
 - [ ] Validate metadata generation offline before adding expensive build jobs.
 
 Do not upgrade root manager revisions automatically, remove existing build choices, or infer device compatibility from a successful compile.

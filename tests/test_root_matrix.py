@@ -53,9 +53,12 @@ def main():
     assert 'if [ "$KSU" = "KSUN" ]; then' in build_script
     assert 'if susfs_included; then' in build_script
     assert 'KSUN+SUSFS is not enabled until compatibility is validated' in build_script
-    assert 'KSUN_REF="v3.4.2"' in build_script
-    assert 'KSUN_EXPECTED_SHA="4c706b5938665866ebe16944a481a7b91e3396af"' in build_script
+    assert 'KSUN_REF="$PIN_KSUN_REF"' in build_script
+    assert 'KSUN_EXPECTED_SHA="$PIN_KSUN_COMMIT"' in build_script
     assert 'install_ksu "KernelSU-Next/KernelSU-Next" "$KSUN_REF"' in build_script
+    lock = (ROOT / "configs/upstream.lock").read_text()
+    assert "\nKSUN_REF=v3.4.2\n" in lock
+    assert "\nKSUN_COMMIT=4c706b5938665866ebe16944a481a7b91e3396af\n" in lock
     # A blocked choice must exit before any tool, download or workspace mutation.
     with tempfile.TemporaryDirectory() as directory:
         env = os.environ.copy()

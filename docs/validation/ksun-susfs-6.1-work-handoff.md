@@ -84,3 +84,12 @@ Record: `docs/validation/ksun-susfs-6.1-resolved-config.json`.
 - Not done: full compile/link/Image, BTF, KCFI, ABI/KMI, runtime. Guards remain false. No Actions, PR, release or flash.
 - **Next:** one isolated full compile with exactly these identities. A local compile outside GitHub Actions is allowed; dispatching the kernel build workflow is owner-only. Decide first whether to include the BBG allow-cache candidate (proposed as `003`); including it changes the feature tree.
 
+## Checkpoint 2026-10-15 — local Full LTO Image PASS (latest)
+
+Record: `docs/validation/ksun-susfs-6.1-local-image.json`. Built in the session container, not GitHub Actions.
+
+- `make Image` with exactly the resolved-config identities. Attempt 1: all 2805 objects compiled with 0 errors in 17 min, then `LD vmlinux.o` was killed by memory-cgroup OOM (ld.lld about 13.9 GB RSS, 14.3 GB limit). Attempt 2: a 14 GiB swapfile was added and the build resumed at the link only. **PASS** in 11 min; swap removed afterwards.
+- `Image` SHA256 `d03696284c7425685da90e6a5147554cc9e62550ae846151d32b08d887b6d0ca`; `vmlinux` `4f0cd9eb…`; 0 undefined symbols; `susfs_init`, `ksu_lsm_hook_init`, `bbg_init`, `nomount_init` present; `.BTF`/`.BTF_ids` present; kCFI and Full LTO confirmed in the feature objects.
+- BBG allow-cache candidate compiles with `W=1` and 0 warnings (object only; not part of this Image). Tree restored to `b5db2f3c`.
+- **Next:** device boot/root/SUSFS test (owner); then wire the v2 candidate into `build.sh` behind the guard, the owner runs the workflow once, and then the dropdown label and guard are restored (W11). Full LTO link needs about 14 GB+ RAM: on a 14–16 GB host add swap.
+

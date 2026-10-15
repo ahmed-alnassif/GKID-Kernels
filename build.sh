@@ -48,6 +48,7 @@ KERNEL_PATCHES="$WORKDIR/kernel-patches"
 PATCHES_DIR="$WORKDIR/patches"
 
 source $WORKDIR/functions.sh
+load_upstream_lock "$WORKDIR/configs/upstream.lock" || exit 1
 
 if kernel_version_eq "$KERNEL_VERSION" "6.1"; then
   KERNEL_BRANCH="GKID-6.1"
@@ -74,7 +75,8 @@ if [ "$KERNEL_VERSION" = "6.1" ]; then
     174) KERNEL_BRANCH="ae51c26d207ea801c5346f6d2773878bf0d9036d" ;;
     175) KERNEL_BRANCH="bcff58130b54910112d233064b3b41b3c87d868f" ;;
     176) KERNEL_BRANCH="f26a1f4f9013533dd2b0de85e6813f948363a4ff" ;;
-    Auto|177|"") ;;
+    # Current GKID-6.1 (6.1.177) comes from the upstream lock, not the moving branch.
+    Auto|177|"") KERNEL_BRANCH="$PIN_KERNEL_COMMIT_6_1" ;;
     *) echo "Invalid 6.1 sublevel: $KERNEL_SUBLEVEL" >&2; exit 1 ;;
   esac
 elif [ "${KERNEL_SUBLEVEL:-Auto}" != "Auto" ]; then
@@ -162,9 +164,9 @@ else
   echo "No changelog generator wired up yet for $KERNEL_VERSION" \
     > "$RELEASE_DIR/android_kernel-${KERNEL_VERSION}_changelog.txt"
 fi
-generate_gh_changelog "maxsteeel/nomount" "master" 5 "$RELEASE_DIR/nomount_changelog.txt"
-generate_gh_changelog "tiann/KernelSU" "main" 5 "$RELEASE_DIR/ksu_changelog.txt"
-generate_gh_changelog "Baka-SU/BakaSU" "main" 5 "$RELEASE_DIR/BakaSU_changelog.txt"
+generate_gh_changelog "maxsteeel/nomount" "$PIN_NOMOUNT_COMMIT" 5 "$RELEASE_DIR/nomount_changelog.txt"
+generate_gh_changelog "tiann/KernelSU" "$PIN_KSU_COMMIT" 5 "$RELEASE_DIR/ksu_changelog.txt"
+generate_gh_changelog "Baka-SU/BakaSU" "$PIN_BSU_COMMIT" 5 "$RELEASE_DIR/BakaSU_changelog.txt"
 
 echo "::group::[*] Downloading Clang"
 CLANG_BIN="$WORKDIR/neutron-clang/bin"
@@ -245,8 +247,9 @@ fi
 set -eo pipefail
 if susfs_included && [ "$KSU" = "BSU" ]; then
   log "BakaSU included"
-  install_ksu "Baka-SU/BakaSU" "main"
-  record_root_checkout KernelSU "Baka-SU/BakaSU" "main"
+  install_ksu "Baka-SU/BakaSU" "$PIN_BSU_COMMIT"
+  verify_pinned_checkout KernelSU "$PIN_BSU_COMMIT" "BakaSU"
+  record_root_checkout KernelSU "Baka-SU/BakaSU" "$PIN_BSU_COMMIT"
 
   clone_susfs
   apply_susfs_patches
@@ -256,8 +259,8 @@ fi
 if [ "$KSU" = "KSUN" ]; then
   log "KernelSU Next included (experimental)"
   # Use the tag observed in the successful KSUN GKI 6.1 baseline, not the absent 'next' ref.
-  KSUN_REF="v3.4.2"
-  KSUN_EXPECTED_SHA="4c706b5938665866ebe16944a481a7b91e3396af"
+  KSUN_REF="$PIN_KSUN_REF"
+  KSUN_EXPECTED_SHA="$PIN_KSUN_COMMIT"
   install_ksu "KernelSU-Next/KernelSU-Next" "$KSUN_REF"
   # Fail closed if upstream setup.sh silently falls back after a failed checkout.
   if [ -d "KernelSU-Next/.git" ]; then
@@ -284,15 +287,18 @@ fi
 if [ "$KSU" = "KSU" ]; then
   log "KernelSU included"
   if ! susfs_included; then
-    install_ksu "tiann/KernelSU" "main"
-    record_root_checkout KernelSU "tiann/KernelSU" "main"
+    install_ksu "tiann/KernelSU" "$PIN_KSU_COMMIT"
+    verify_pinned_checkout KernelSU "$PIN_KSU_COMMIT" "KernelSU"
+    record_root_checkout KernelSU "tiann/KernelSU" "$PIN_KSU_COMMIT"
   fi
 
   if susfs_included; then
     VARIANT+="+Multiple-Managers"
     git clone "https://github.com/tiann/KernelSU" && echo "[+] Repository cloned."
-    # Upstream base before the local SUSFS patch commit replaces HEAD.
-    record_root_checkout KernelSU "tiann/KernelSU" "main"
+    # Pin the local main branch; the local SUSFS patch commit is built on top of it.
+    git -C KernelSU reset -q --hard "$PIN_KSU_COMMIT"
+    verify_pinned_checkout KernelSU "$PIN_KSU_COMMIT" "KernelSU (SUSFS base)"
+    record_root_checkout KernelSU "tiann/KernelSU" "$PIN_KSU_COMMIT"
     clone_susfs
 
     cd KernelSU
@@ -331,17 +337,18 @@ echo "VARIANT=$VARIANT" >> $GITHUB_ENV
 if [ "$NM" = "true" ]; then
   log "Applying NoMount"
   NOMOUNT_SETUP="$(mktemp)" || { error "Unable to allocate NoMount setup file"; exit 1; }
-  if ! curl -fsSL "https://raw.githubusercontent.com/maxsteeel/nomount/refs/heads/dev/kernel/setup.sh" -o "$NOMOUNT_SETUP"; then
+  if ! curl -fsSL "https://raw.githubusercontent.com/maxsteeel/nomount/$PIN_NOMOUNT_SETUP_COMMIT/kernel/setup.sh" -o "$NOMOUNT_SETUP"; then
     rm -f "$NOMOUNT_SETUP"
     error "NoMount setup download failed"
     exit 1
   fi
-  if ! bash "$NOMOUNT_SETUP" master; then
+  if ! bash "$NOMOUNT_SETUP" "$PIN_NOMOUNT_COMMIT"; then
     rm -f "$NOMOUNT_SETUP"
     error "NoMount setup failed"
     exit 1
   fi
   rm -f "$NOMOUNT_SETUP"
+  verify_pinned_checkout NoMount "$PIN_NOMOUNT_COMMIT" "NoMount"
 fi
 echo "::endgroup::"
 set +eo pipefail
@@ -564,7 +571,9 @@ set -eo pipefail
 cd "$WORKDIR"
 
 log "Cloning anykernel from $(simplify_gh_url "$ANYKERNEL_REPO")"
-git clone -q --depth=1 $ANYKERNEL_REPO anykernel
+git clone -q $ANYKERNEL_REPO anykernel
+git -C anykernel checkout -q --detach "$PIN_ANYKERNEL_COMMIT"
+verify_pinned_checkout anykernel "$PIN_ANYKERNEL_COMMIT" "AnyKernel3"
 
 AK3_ZIP_NAME=${AK3_ZIP_NAME//REL/$RELEASE}
 sed -i \

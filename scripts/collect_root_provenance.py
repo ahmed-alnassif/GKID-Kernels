@@ -19,11 +19,11 @@ UPSTREAMS = {
 }
 
 def ksun_build_reference():
-    source = (ROOT / "build.sh").read_text(encoding="utf-8")
-    refs = re.findall(r'^\s*KSUN_REF="([^"\n]+)"\s*$', source, re.MULTILINE)
-    pins = re.findall(r'^\s*KSUN_EXPECTED_SHA="([0-9a-f]{40})"\s*$', source, re.MULTILINE)
+    source = (ROOT / "configs/upstream.lock").read_text(encoding="utf-8")
+    refs = re.findall(r'^KSUN_REF=(v\d+\.\d+\.\d+)$', source, re.MULTILINE)
+    pins = re.findall(r'^KSUN_COMMIT=([0-9a-f]{40})$', source, re.MULTILINE)
     if len(refs) != 1 or len(pins) != 1:
-        raise ValueError("Missing or ambiguous KSUN tag/immutable pin in build.sh")
+        raise ValueError("Missing or ambiguous KSUN tag/immutable pin in configs/upstream.lock")
     return "refs/tags/" + refs[0], pins[0]
 
 def resolve(url, ref):

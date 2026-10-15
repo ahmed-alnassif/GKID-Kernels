@@ -30,11 +30,58 @@ declare -A GKI_SUSFS_BRANCH=(
   ["6.12"]="gki-android16-6.12"
 )
 
-declare -A GKI_SUSFS_COMMIT=(
-#  ["6.1"]="153f88df3be2501d2d33364f8fe05247aecb3cef"
-#  ["6.6"]="3f0b811b2e105afd8dc858cd71389090e01f404b"
-#  ["6.12"]="fb58aef70a9c2aca8f0f85fba14017af94c4e789"
+# Upstream pins live in configs/upstream.lock (changed only by Cogan Manual Update).
+UPSTREAM_LOCK_REQUIRED=(
+  KSU_COMMIT BSU_COMMIT KSUN_REF KSUN_COMMIT NOMOUNT_SETUP_COMMIT NOMOUNT_COMMIT
+  ANYKERNEL_COMMIT KERNEL_COMMIT_6_1 SUSFS_COMMIT_5_10 SUSFS_COMMIT_5_15
+  SUSFS_COMMIT_6_1 SUSFS_COMMIT_6_6 SUSFS_COMMIT_6_12
 )
+
+# Parse the lock without sourcing it; every value becomes PIN_<KEY>.
+load_upstream_lock() {
+  local lock="${1:-$WORKDIR/configs/upstream.lock}" line key value
+  local -A seen=()
+  if [ ! -f "$lock" ]; then
+    error "Upstream lock not found: $lock"
+    return 1
+  fi
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in ''|'#'*) continue ;; esac
+    if [[ ! "$line" =~ ^([A-Z][A-Z0-9_]*)=(v[0-9]+\.[0-9]+\.[0-9]+|[0-9a-f]{40})$ ]]; then
+      error "Malformed upstream lock line: $line"
+      return 1
+    fi
+    key="${BASH_REMATCH[1]}"
+    value="${BASH_REMATCH[2]}"
+    if [ -n "${seen[$key]:-}" ]; then
+      error "Duplicate upstream lock key: $key"
+      return 1
+    fi
+    seen[$key]=1
+    printf -v "PIN_$key" '%s' "$value"
+  done < "$lock"
+  for key in "${UPSTREAM_LOCK_REQUIRED[@]}"; do
+    local var="PIN_$key"
+    if [ -z "${!var:-}" ]; then
+      error "Upstream lock is missing $key"
+      return 1
+    fi
+  done
+}
+
+# Fail closed when an installer or clone ends on a different commit than pinned.
+verify_pinned_checkout() {
+  local dir="$1" expected="$2" label="$3" actual
+  if [ ! -e "$dir/.git" ] || ! actual="$(git -C "$dir" rev-parse HEAD 2>/dev/null)"; then
+    error "$label checkout missing in $dir"
+    exit 1
+  fi
+  if [ "$actual" != "$expected" ]; then
+    error "$label checkout mismatch: installed $actual, pinned $expected (pins change only via Cogan Manual Update)"
+    exit 1
+  fi
+  log "$label pinned commit verified: $actual"
+}
 
 android_release_for_version() {
   echo "${ANDROID_RELEASE_FOR_KVER[$1]:-unknown}"
@@ -563,7 +610,8 @@ apply_susfs_patches() {
 
 clone_susfs() {
     DEPTH=${1:-1}
-    local pin="${GKI_SUSFS_COMMIT[$KERNEL_VERSION]:-}"
+    local pin_var="PIN_SUSFS_COMMIT_${KERNEL_VERSION//./_}"
+    local pin="${!pin_var:-}"
 
     if [ ! -d "$SUSFS_DIR" ]; then
         if [ -n "$pin" ]; then
@@ -588,6 +636,9 @@ clone_susfs() {
         log "No commit pin configured for KERNEL_VERSION=$KERNEL_VERSION, using branch $SUSFS_BRANCH tip"
     fi
 
+    if [ -n "$pin" ]; then
+        verify_pinned_checkout "$SUSFS_DIR" "$pin" "susfs4ksu ($SUSFS_BRANCH)"
+    fi
     SUSFS_SHA="$(git -C "$SUSFS_DIR" rev-parse HEAD)"
     log "susfs4ksu HEAD is now $SUSFS_SHA"
     echo "SUSFS_SHA=$SUSFS_SHA" >> "${GITHUB_ENV:-/dev/null}"
