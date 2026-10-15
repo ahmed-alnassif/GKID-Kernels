@@ -25,6 +25,7 @@ jobs:
           import hashlib
           import os
           import pathlib
+          import re
           import subprocess
 
           rows = []
@@ -96,7 +97,11 @@ jobs:
               output.append("| " + " | ".join(row) + " |")
           # Compare against the actual Cogan build pin; other sources are floating
           # and cannot be labelled up-to-date without recording a prior build SHA.
-          ksun_tag = "v3.4.2"
+          build_script = pathlib.Path("build.sh").read_text()
+          pin_match = re.search(r'^\s*KSUN_REF="([^"]+)"', build_script, re.MULTILINE)
+          ksun_tag = pin_match.group(1) if pin_match else ""
+          if not ksun_tag:
+              raise SystemExit("KSUN_REF missing in build.sh; cannot verify current pin")
           try:
               pinned = subprocess.run(
                   ["git", "ls-remote", "--tags",
@@ -140,7 +145,7 @@ jobs:
           ]
           output += [
               "",
-              "**KernelSU Next build pin:** v3.4.2; upstream branch HEAD is informational only.",
+              "**KernelSU Next build pin:** " + ksun_tag + "; upstream branch HEAD is informational only.",
               "**SUSFS: HOLD.** No automatic update or compatibility approval.",
               "",
               "**Important:** Upstream SHA discovery does not prove that a revision is safe or compatible. "
