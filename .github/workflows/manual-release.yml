@@ -36,7 +36,9 @@ jobs:
               raise SystemExit("Source run must originate from dev")
           if not str(data.get("path","")).endswith(".github/workflows/build.yml"):
               raise SystemExit("Source run is not the Cogan build workflow")
-          with open(os.environ["GITHUB_ENV"], "a") as env:\n              env.write("SOURCE_SHA=" + data["head_sha"] + "\\n")\n          print("Validated build run", data["id"], data["head_sha"])
+          with open(os.environ["GITHUB_ENV"], "a") as env:
+              env.write("SOURCE_SHA=" + data["head_sha"] + "\\n")
+          print("Validated build run", data["id"], data["head_sha"])
           PY
 
       - name: Download kernel build artifacts only
@@ -91,7 +93,7 @@ jobs:
             exit 1
           fi
           gh release create "$TAG" release-files/*.zip release-files/checksums.txt \
-            --repo "$REPO" --target dev --draft --prerelease \
+            --repo "$REPO" --target "$SOURCE_SHA" --draft --prerelease \
             --title "Cogan build run $SOURCE_RUN (UNTESTED)" \
             --notes "Built from GitHub Actions run $SOURCE_RUN. ZIP structure validated only. Device boot, partition compatibility, and recovery have NOT been verified. Do not publish or flash without device-specific testing."
           echo "## Manual release" >> "$GITHUB_STEP_SUMMARY"
