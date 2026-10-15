@@ -129,6 +129,7 @@ jobs:
           fetch-depth: 1
 
       - name: Validate sublevel, build time and optional features
+        id: validation
         env:
           ROOT_MANAGER_INPUT: ${{ inputs.ROOT_MANAGER }}
           KERNEL_VERSION_INPUT: ${{ inputs.KERNEL_VERSION }}
@@ -148,6 +149,61 @@ jobs:
             date -u -d "$BUILD_TIME_INPUT" >/dev/null || exit 1
             [[ "$(LC_ALL=C date -u -d "$BUILD_TIME_INPUT" +%a)" == "${BUILD_TIME_INPUT%% *}" ]] || { echo "::error::BUILD_TIME weekday mismatch"; exit 1; }
           fi
+
+      - name: Validation result summary
+        if: always()
+        env:
+          VALIDATION_OUTCOME: ${{ steps.validation.outcome }}
+          ROOT_MANAGER_INPUT: ${{ inputs.ROOT_MANAGER }}
+          KERNEL_VERSION_INPUT: ${{ inputs.KERNEL_VERSION }}
+          KERNEL_SUBLEVEL_INPUT: ${{ inputs.KERNEL_SUBLEVEL }}
+          BUILD_TIME_INPUT: ${{ inputs.BUILD_TIME }}
+        run: |
+          {
+            echo "## Cogan Kernel — Validation Summary"
+            echo ""
+            echo "<details open><summary>🇮🇩 Bahasa Indonesia</summary>"
+            echo ""
+            echo "- Root manager: ${ROOT_MANAGER_INPUT}"
+            echo "- Kernel: ${KERNEL_VERSION_INPUT} / sublevel ${KERNEL_SUBLEVEL_INPUT}"
+            echo "- Build time: ${BUILD_TIME_INPUT}"
+            echo "- Status validasi: ${VALIDATION_OUTCOME}"
+            if [[ "${VALIDATION_OUTCOME}" != "success" ]]; then
+              echo ""
+              echo "**Persiapan gagal; kompilasi tidak dijalankan.**"
+              if [[ "${ROOT_MANAGER_INPUT}" == "KernelSU Next + SUSFS" ]]; then
+                echo "KSUN + SUSFS masih dikunci hingga uji kompatibilitas selesai. Jalankan workflow **KSUN SUSFS Patch Apply Check** secara terpisah."
+              else
+                echo "Periksa pesan error pertama pada langkah **Validate sublevel, build time and optional features**."
+              fi
+            else
+              echo ""
+              echo "Validasi input berhasil; ini **bukan** bukti kompilasi berhasil."
+            fi
+            echo ""
+            echo "</details>"
+            echo ""
+            echo "<details><summary>🇬🇧 English</summary>"
+            echo ""
+            echo "- Root manager: ${ROOT_MANAGER_INPUT}"
+            echo "- Kernel: ${KERNEL_VERSION_INPUT} / sublevel ${KERNEL_SUBLEVEL_INPUT}"
+            echo "- Build time: ${BUILD_TIME_INPUT}"
+            echo "- Validation: ${VALIDATION_OUTCOME}"
+            if [[ "${VALIDATION_OUTCOME}" != "success" ]]; then
+              echo ""
+              echo "**Preparation failed; no kernel compilation ran.**"
+              if [[ "${ROOT_MANAGER_INPUT}" == "KernelSU Next + SUSFS" ]]; then
+                echo "KSUN + SUSFS remains locked pending compatibility validation. Use the separate **KSUN SUSFS Patch Apply Check** workflow."
+              else
+                echo "Inspect the first error in **Validate sublevel, build time and optional features**."
+              fi
+            else
+              echo ""
+              echo "Input validation passed; this does **not** prove a successful build."
+            fi
+            echo ""
+            echo "</details>"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Generate build matrix
         id: set-matrix
@@ -323,7 +379,7 @@ jobs:
 
   upload-all:
     needs: build
-    if: always()
+    if: ${{ needs.build.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - name: Download all artifacts
