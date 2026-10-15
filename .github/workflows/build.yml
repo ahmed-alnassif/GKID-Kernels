@@ -291,7 +291,8 @@ jobs:
 
   release:
     needs: build
-    if: always() && needs.build.result == 'success' && inputs.BUILD_MODE == 'Standard Build'
+    # Manual release only: do not publish untested kernel builds automatically.
+    if: ${{ false }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source
