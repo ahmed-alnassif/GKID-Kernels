@@ -67,6 +67,11 @@ on:
         type: boolean
         default: true
 
+      BBG:
+        description: "BBG (Baseband Guard anti-bricking)"
+        type: boolean
+        default: true
+
 # Legacy workflow (Edo Tensei): former TODO and TEST inputs are retired.
 # Standard Build is the sole supported mode: TODO=kernel, TEST=no.
 # LTO package labels map to legacy LTO values; NM=true and CLEAN_LTO_CACHE=true stay fixed.
@@ -245,6 +250,7 @@ jobs:
           LTO: ${{ startsWith(inputs.LTO, 'noneLTO') && 'noneLTO' || startsWith(inputs.LTO, 'thinLTO') && 'thinLTO' || 'fullLTO' }}
           CLEAN_LTO_CACHE: 'true'
           NETWORKING: ${{ inputs.NETWORKING }}
+          BBG: ${{ inputs.BBG }}
           DROIDSPACES: 'false'
           NM: 'true'
           KERNEL_SUBLEVEL: ${{ inputs.KERNEL_SUBLEVEL }}
@@ -263,6 +269,7 @@ jobs:
         env:
           BUILD_OUTCOME: ${{ steps.kernel-build.outcome }}
           NETWORKING_INPUT: ${{ inputs.NETWORKING }}
+          BBG_INPUT: ${{ inputs.BBG }}
           ROOT_MANAGER_INPUT: ${{ inputs.ROOT_MANAGER }}
         run: |
           {
@@ -272,6 +279,7 @@ jobs:
             echo ""
             echo "- Root manager: ${ROOT_MANAGER_INPUT}"
             echo "- Networking: ${NETWORKING_INPUT}"
+            echo "- BBG: ${BBG_INPUT}"
             echo "- Hasil skrip build: ${BUILD_OUTCOME}"
             echo "- Rilis memerlukan persetujuan manual owner."
             echo ""
@@ -288,6 +296,7 @@ jobs:
             echo ""
             echo "- Root manager: ${ROOT_MANAGER_INPUT}"
             echo "- Networking: ${NETWORKING_INPUT}"
+            echo "- BBG: ${BBG_INPUT}"
             echo "- Build script result: ${BUILD_OUTCOME}"
             echo "- Release requires manual owner approval."
             echo ""

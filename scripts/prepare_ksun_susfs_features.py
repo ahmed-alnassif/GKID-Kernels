@@ -131,11 +131,20 @@ def main():
             raise ValueError("Output must be outside kernel checkout")
         patches = generate(kernel, sources, lock)
         manifest = {"kernel_commit": git(kernel, "rev-parse", "HEAD").decode().strip(),
-                    "core_tree": tree, "scope": "BBG and NoMount continuation only", "patches": []}
+                    "core_tree": tree,
+                    "scope": "BBG, BBG allow-cache locking fix and NoMount continuation only",
+                    "patches": []}
         for name, raw in patches:
             if sha(raw) != lock["generated_patches_sha256"][name]:
                 raise ValueError("Generated patch SHA256 mismatch: " + name)
             manifest["patches"].append({"path": name, "sha256": sha(raw)})
+        # Owner-approved fixes kept as separate, checksummed patches after the generated ones.
+        for reviewed in lock.get("reviewed_patches", []):
+            raw = (ROOT / reviewed["source"]).read_bytes()
+            if sha(raw) != reviewed["sha256"]:
+                raise ValueError("Reviewed patch SHA256 mismatch: " + reviewed["name"])
+            patches.append((reviewed["name"], raw))
+            manifest["patches"].append({"path": reviewed["name"], "sha256": reviewed["sha256"]})
         with tempfile.TemporaryDirectory(prefix=".ksun-features-", dir=output.parent) as temp:
             temp = Path(temp)
             for name, raw in patches:

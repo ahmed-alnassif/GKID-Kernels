@@ -11,7 +11,7 @@ The only writer of configs/upstream.lock. Owner-triggered via the
 
 Usage:
   python3 scripts/cogan_manual_update.py --mode check|update \
-      [--components all|root-managers|susfs|nomount|anykernel|kernel-6.1] \
+      [--components all|root-managers|susfs|nomount|bbg|anykernel|kernel-6.1] \
       [--summary FILE] [--changes FILE]
 """
 import argparse
@@ -39,6 +39,7 @@ PINS = {
     "KSUN_COMMIT": ("root-managers", "KernelSU Next", "https://github.com/KernelSU-Next/KernelSU-Next.git", "latest-stable-tag"),
     "NOMOUNT_SETUP_COMMIT": ("nomount", "NoMount setup.sh", "https://github.com/maxsteeel/nomount.git", "refs/heads/dev"),
     "NOMOUNT_COMMIT": ("nomount", "NoMount source", "https://github.com/maxsteeel/nomount.git", "refs/heads/master"),
+    "BBG_COMMIT": ("bbg", "Baseband Guard (BBG)", "https://github.com/vc-teahouse/Baseband-guard.git", "refs/heads/main"),
     "ANYKERNEL_COMMIT": ("anykernel", "AnyKernel3", "https://github.com/ahmed-alnassif/AK3-GKID.git", "HEAD"),
     "KERNEL_COMMIT_6_1": ("kernel-6.1", "Kernel GKID 6.1", "https://github.com/ahmed-alnassif/GKI-Duchamp-6.1.git", "refs/heads/GKID-6.1"),
     "SUSFS_COMMIT_6_1": ("susfs", "SUSFS 6.1", SUSFS, "refs/heads/gki-android14-6.1"),

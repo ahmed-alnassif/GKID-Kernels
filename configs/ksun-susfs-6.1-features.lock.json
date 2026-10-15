@@ -147,7 +147,7 @@
     "automatic_credit_readout_available": false,
     "trigger": "Only an actual visible quota reading or owner notice; do not infer a percentage from elapsed time or tokens."
   },
-  "integrated_kernel_tree": "b5db2f3ccc53539083461caa5cb7d1ddb5cd9e81",
+  "integrated_kernel_tree": "1246bd4c9a0afc0859ecbc4ad91031dab65aa413",
   "configuration": {
     "fragment": "configs/ksun-susfs-6.1-features.config",
     "sha256": "792f1fa18bd85696c94918a5b3175e0baf54a336f66af0c41e1dbc9bb133d1c9",
@@ -185,5 +185,16 @@
     "llvm_commit": "f42c87ba2c70219b1f4ad1f031a5b6a1ea6603fb",
     "archive_verified": true,
     "regular_extracted_files_verified": 316
-  }
+  },
+  "reviewed_patches": [
+    {
+      "name": "003-bbg-allow-cache-spinlock.patch",
+      "source": "kernel-patches/susfs/6.1-v2/features/003-bbg-allow-cache-spinlock.patch",
+      "sha256": "ef50b027655aff46d1a7e3c5061de366e46973eea2e4506153740887d63eb193",
+      "applies_after": "001-bbg.patch",
+      "approved": "owner 2026-10-15",
+      "reason": "Serialize allowed_devs hashtable readers and insertion (IRQ-safe spinlock, double-checked insert)"
+    }
+  ],
+  "integrated_kernel_tree_before_reviewed_patches": "b5db2f3ccc53539083461caa5cb7d1ddb5cd9e81"
 }

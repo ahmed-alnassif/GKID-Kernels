@@ -219,9 +219,29 @@ else
 fi
 
 
-log "BBG included"
-wget -qO- "https://github.com/vc-teahouse/Baseband-guard/raw/main/setup.sh" | bash
-sed -i '/^config LSM$/,/^help$/{ /^[[:space:]]*default/ { /baseband_guard/! s/selinux/selinux,baseband_guard/ } }' "security/Kconfig"
+if [ "${BBG:-true}" = "true" ]; then
+  log "BBG included (Baseband Guard, pinned)"
+  # setup.sh cannot clone a commit directly, so clone at the pin and let it reuse the checkout.
+  git clone -q "https://github.com/vc-teahouse/Baseband-guard" Baseband-guard
+  git -C Baseband-guard checkout -q --detach "$PIN_BBG_COMMIT"
+  verify_pinned_checkout Baseband-guard "$PIN_BBG_COMMIT" "Baseband Guard"
+  # Its closing defconfig notice uses gawk-only awk syntax, so judge setup by its results.
+  bash Baseband-guard/setup.sh "$PIN_BBG_COMMIT" || warning "BBG setup.sh exited non-zero; checking its results"
+  if [ ! -L security/baseband-guard ] || ! grep -q 'baseband-guard/' security/Makefile \
+      || ! grep -q 'baseband-guard/Kconfig' security/Kconfig; then
+    error "BBG setup incomplete (symlink, Makefile or Kconfig entry missing)"
+    exit 1
+  fi
+  verify_pinned_checkout Baseband-guard "$PIN_BBG_COMMIT" "Baseband Guard"
+  # Reviewed allow-cache locking fix (same patch as KSUN+SUSFS feature 003).
+  git -C Baseband-guard apply -p3 "$KERNEL_PATCHES/susfs/6.1-v2/features/003-bbg-allow-cache-spinlock.patch" || {
+    error "BBG allow-cache locking patch failed"
+    exit 1
+  }
+  sed -i '/^config LSM$/,/^help$/{ /^[[:space:]]*default/ { /baseband_guard/! s/selinux/selinux,baseband_guard/ } }' "security/Kconfig"
+else
+  log "Skipping BBG (BBG disabled)"
+fi
 
 if [ "$KSU" = "no" ] || [ "$KSU" = "vnlto" ] || [ "$No_DS" = "true" ]; then
   export DROIDSPACES="false"

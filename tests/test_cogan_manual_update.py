@@ -167,10 +167,13 @@ class ShellLockTests(unittest.TestCase):
         build = (ROOT / "build.sh").read_text()
         self.assertIn('load_upstream_lock "$WORKDIR/configs/upstream.lock" || exit 1', build)
         for name in ("PIN_KSU_COMMIT", "PIN_BSU_COMMIT", "PIN_KSUN_REF", "PIN_KSUN_COMMIT",
-                     "PIN_NOMOUNT_SETUP_COMMIT", "PIN_NOMOUNT_COMMIT", "PIN_ANYKERNEL_COMMIT",
+                     "PIN_NOMOUNT_SETUP_COMMIT", "PIN_NOMOUNT_COMMIT", "PIN_ANYKERNEL_COMMIT", "PIN_BBG_COMMIT",
                      "PIN_KERNEL_COMMIT_6_1"):
             self.assertIn("$" + name, build, name)
         self.assertNotIn("refs/heads/dev/kernel/setup.sh", build)
+        self.assertNotIn("Baseband-guard/raw/main/setup.sh", build)
+        self.assertIn('if [ "${BBG:-true}" = "true" ]; then', build)
+        self.assertIn("features/003-bbg-allow-cache-spinlock.patch", build)
         self.assertNotIn('install_ksu "tiann/KernelSU" "main"', build)
         self.assertNotIn('install_ksu "Baka-SU/BakaSU" "main"', build)
         self.assertIn('SUBLEVEL_PIN_VAR="PIN_KERNEL_COMMIT_6_1_${KERNEL_SUBLEVEL}"', build)

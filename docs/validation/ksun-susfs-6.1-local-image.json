@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "status": "full_lto_image_built_locally_runtime_unverified",
+  "status": "full_lto_image_built_locally_with_feature_003_runtime_unverified",
   "executed_at": "2026-10-15T12:51:00+00:00",
   "where": "Claude session container (not GitHub Actions); 4 vCPU, memory cgroup limit 14343688192 bytes",
   "inputs": "Exactly the identities in docs/validation/ksun-susfs-6.1-resolved-config.json (feature index tree b5db2f3ccc53539083461caa5cb7d1ddb5cd9e81, KSUN tree 2fd43a2d0ef0e1750102348869dd1152d306afb1, Neutron 06092026, .config 41492e89ba04e6f93b14d2de89d653673195f05d7f3dac26a780ecd80665a92d)",
@@ -33,21 +33,34 @@
   },
   "checks": {
     "undefined_symbols_in_vmlinux": 0,
-    "symbol_counts": {"susfs_": 71, "ksu_": 261, "nomount": 23, "bbg/baseband": 6},
-    "init_symbols_present": ["susfs_init", "ksu_lsm_hook_init", "bbg_init", "nomount_init"],
-    "sections": [".BTF", ".BTF_ids"],
+    "symbol_counts": {
+      "susfs_": 71,
+      "ksu_": 261,
+      "nomount": 23,
+      "bbg/baseband": 6
+    },
+    "init_symbols_present": [
+      "susfs_init",
+      "ksu_lsm_hook_init",
+      "bbg_init",
+      "nomount_init"
+    ],
+    "sections": [
+      ".BTF",
+      ".BTF_ids"
+    ],
     "btf_steps": "BTF .btf.vmlinux.bin.o and BTFIDS vmlinux completed",
     "kcfi": "-fsanitize=kcfi present in fs/susfs.o, security/baseband-guard/baseband_guard.o, fs/nomount/nomount.o and drivers/kernelsu objects (arm64 kCFI emits no __cfi_ symbols)",
     "full_lto": "-flto (not -flto=thin) in the same objects; CONFIG_LTO_CLANG_FULL=y",
     "config_unchanged": true
   },
   "bbg_allow_cache_candidate": {
-    "patch": "kernel-patches/susfs/6.1-v2/candidates/bbg-allow-cache-spinlock.patch",
+    "patch": "kernel-patches/susfs/6.1-v2/features/003-bbg-allow-cache-spinlock.patch (was candidates/bbg-allow-cache-spinlock.patch)",
     "method": "applied to the working tree only, make W=1 security/baseband-guard/baseband_guard.o, then restored",
     "patched_source_sha256_prefix": "594c041d3ba40893",
     "result": "rc=0, 0 warnings from baseband_guard.c with W=1",
     "tree_restored_to": "b5db2f3ccc53539083461caa5cb7d1ddb5cd9e81",
-    "included_in_image": false
+    "included_in_image": "superseded: see image_with_feature_003"
   },
   "not_verified": [
     "Modules, ABI/KMI symbol list comparison",
@@ -59,5 +72,27 @@
     "release_allowed": false,
     "flash_allowed": false
   },
-  "github_actions_runs_started_for_this_record": 0
+  "github_actions_runs_started_for_this_record": 0,
+  "image_with_feature_003": {
+    "approved": "owner 2026-10-15",
+    "feature_index_tree": "1246bd4c9a0afc0859ecbc4ad91031dab65aa413",
+    "staged_diff_sha256": "e32ed0a15ee9a20925c75d7195e61bd0adadd23eac41546b6f7ba720a3fd2634",
+    "replay": "scripts/ksun_susfs_replay.py --apply on the clean frozen core 3f08838c: 001-bbg, 002-nomount, 003-bbg-allow-cache-spinlock (3/3)",
+    "config_sha256": "41492e89ba04e6f93b14d2de89d653673195f05d7f3dac26a780ecd80665a92d",
+    "build": "make Image in the same O= directory with a 14 GiB swapfile: 14 objects recompiled (BBG and NoMount), Full LTO relink",
+    "elapsed_seconds": 674,
+    "Image_sha256": "f5c687375f54ddbd64b36b33794ca433c429cd331b1941ebff8ac78c3b6fa148",
+    "Image_bytes": 42617344,
+    "vmlinux_sha256": "78ce876b9aff5b65e76e18a6098711d5196c7453e62e614db2bc8a753d77f8cd",
+    "System_map_sha256": "a0e928cdf8425060430f3ed4a3d095b2fb41d89055635cb05a500d024853cb8e",
+    "undefined_symbols_in_vmlinux": 0,
+    "init_symbols_present": [
+      "susfs_init",
+      "ksu_lsm_hook_init",
+      "bbg_init",
+      "nomount_init"
+    ],
+    "allowed_devs_lock_symbol_present": true,
+    "swap_removed_afterwards": true
+  }
 }

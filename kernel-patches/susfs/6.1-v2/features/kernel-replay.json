@@ -1,7 +1,7 @@
 {
   "kernel_commit": "3f08838cbc5a94bf877df6a462dabb9118095314",
   "core_tree": "7e2b5164757d23fe0fbe3cd81ebec264769a0542",
-  "scope": "BBG and NoMount continuation only",
+  "scope": "BBG, BBG allow-cache locking fix and NoMount continuation only",
   "patches": [
     {
       "path": "001-bbg.patch",
@@ -10,6 +10,10 @@
     {
       "path": "002-nomount.patch",
       "sha256": "b161795835c75aeaf98a7df222231d2b9c384fdc21b1358cade6b610903df38c"
+    },
+    {
+      "path": "003-bbg-allow-cache-spinlock.patch",
+      "sha256": "ef50b027655aff46d1a7e3c5061de366e46973eea2e4506153740887d63eb193"
     }
   ]
 }

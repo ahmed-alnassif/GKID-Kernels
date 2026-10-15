@@ -93,3 +93,11 @@ Record: `docs/validation/ksun-susfs-6.1-local-image.json`. Built in the session 
 - BBG allow-cache candidate compiles with `W=1` and 0 warnings (object only; not part of this Image). Tree restored to `b5db2f3c`.
 - **Next:** device boot/root/SUSFS test (owner); then wire the v2 candidate into `build.sh` behind the guard, the owner runs the workflow once, and then the dropdown label and guard are restored (W11). Full LTO link needs about 14 GB+ RAM: on a 14–16 GB host add swap.
 
+## Checkpoint 2026-10-15 — feature 003 approved and built (latest)
+
+- Owner approved the BBG allow-cache locking fix. It is now `features/003-bbg-allow-cache-spinlock.patch` (unchanged, SHA256 `ef50b027…`). It is listed in `features/kernel-replay.json` and as `reviewed_patches` in `configs/ksun-susfs-6.1-features.lock.json`, and the feature generator carries it.
+- Strict replay of 001→002→003 on the clean frozen core gives feature tree `1246bd4c9a0afc0859ecbc4ad91031dab65aa413`, replacing `b5db2f3c`.
+- Local Full LTO `Image` with 003: SHA256 `f5c687375f54ddbd64b36b33794ca433c429cd331b1941ebff8ac78c3b6fa148`; 0 undefined symbols; `allowed_devs_lock` present. Record: `ksun-susfs-6.1-local-image.json` → `image_with_feature_003`.
+- The production build also applies 003 on top of pinned BBG `a54e0dc6`.
+- Next: owner device test of this Image (boot, root, SUSFS, BBG), then wire the v2 candidate into `build.sh` and unlock the dropdown (W11).
+

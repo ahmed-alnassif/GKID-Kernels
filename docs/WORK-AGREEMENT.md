@@ -18,6 +18,7 @@ Dokumen ini adalah sumber utama aturan kerja dan urutan prioritas. Owner cukup m
 9. **Checkpoint secukupnya.** Hanya di akhir satu blok kerja yang berarti (bukan setiap langkah), ditulis di bagian *Checkpoint* dokumen ini.
 10. **Menjalankan workflow GitHub Actions yang mengompilasi kernel hanya oleh owner** (diperjelas 2026-10-15). Kompilasi kernel lain, misalnya lokal di container sesi, **boleh** dilakukan Claude. Workflow ringan seperti `Validate` boleh berjalan otomatis lewat push/PR. Release, flash, dan penghapusan production guard tetap keputusan owner.
 11. **Ruang lingkup: kernel 6.1 saja** (keputusan owner 2026-10-15). Versi 5.10/5.15/6.6/6.12 diabaikan: tidak dipin, tidak dilaporkan, dan tidak dikerjakan, tetapi juga tidak dihapus dari form build.
+12. **Issue tidak pernah dihapus.** Issue ditutup hanya bila kriteria selesainya terpenuhi (keputusan owner 2026-10-15): #19 setelah uji perangkat lolos dan opsi KSUN+SUSFS dibuka; #3 setelah verifikasi Manager APK di perangkat; #2 setelah data ccache dari build alami berikutnya.
 
 ## B. Temuan audit (2026-10-15)
 
@@ -48,6 +49,7 @@ Dokumen ini adalah sumber utama aturan kerja dan urutan prioritas. Owner cukup m
 | W10 | P2 | Issue #3: catat SHA root manager & SUSFS yang benar-benar dipakai per build; usulan pin KernelSU/BakaSU. | **Selesai** 2026-10-15 — `ROOT_MANAGER_REPO/REF/SHA` + `SUSFS_SHA` masuk `build-env-*.txt`; ref tidak diubah. Usulan: KernelSU `v3.3.1` setelah 1 build sukses; BakaSU tetap `main` (tag stabil terlalu tua) |
 | W11 | P1 | Label dropdown `KernelSU Next + SUSFS (terkunci)` sampai kandidat v2 tersambung ke `build.sh` dan lolos uji perangkat; lalu kembalikan label & buka guard. | **Label terpasang** 2026-10-15 (run 38734766759 terbuang karena opsi terlihat normal) |
 | W12 | P1 | **Cogan Manual Update = satu-satunya jalan update** (arahan owner 2026-10-15): run build hanya compile, tidak pernah update sendiri. | **Selesai** 2026-10-15 — semua isi form Run workflow yang berasal dari upstream dipin di `configs/upstream.lock`: KernelSU, BakaSU, KSUN, SUSFS 6.1, NoMount (setup + source), AnyKernel3, kernel GKID 6.1 **termasuk tiap sublevel 160–177**. `build.sh` memasang persis pin itu dan gagal bila checkout berbeda. **Cogan Manual Update** `check` = laporan; `update` = **commit langsung ke `dev`** (keputusan owner), PR hanya bila push ditolak. Bila GKID-6.1 naik sublevel, Auto pindah ke sublevel baru dan sublevel lama tetap tersedia. Input **Kernel Sublevel** kini kolom teks (`lts` = terbaru, atau angka, mis. 177) yang dicek ke lock, jadi sublevel baru langsung bisa dipakai tanpa mengubah file workflow |
+| W13 | P1 | BBG: pin + checkbox di bawah Networking (default on) + patch `003` (disetujui owner). | **Selesai** 2026-10-15 — `BBG_COMMIT` di lock, komponen `bbg` di Manual Update; `003` dipakai di build produksi dan kandidat KSUN+SUSFS (Image lokal `f5c68737…`) |
 
 ## D. Bukti hijau (tidak perlu diulang)
 

@@ -34,7 +34,7 @@ declare -A GKI_SUSFS_BRANCH=(
 # Scope is kernel 6.1; other versions keep their previous unpinned SUSFS branch tip.
 UPSTREAM_LOCK_REQUIRED=(
   KSU_COMMIT BSU_COMMIT KSUN_REF KSUN_COMMIT NOMOUNT_SETUP_COMMIT NOMOUNT_COMMIT
-  ANYKERNEL_COMMIT KERNEL_COMMIT_6_1 SUSFS_COMMIT_6_1
+  ANYKERNEL_COMMIT BBG_COMMIT KERNEL_COMMIT_6_1 SUSFS_COMMIT_6_1
 )
 
 # Parse the lock without sourcing it; every value becomes PIN_<KEY>.

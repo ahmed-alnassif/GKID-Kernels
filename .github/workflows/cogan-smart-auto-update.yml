@@ -1,7 +1,7 @@
 name: Cogan Manual Update
 
 # The only way Cogan components get updated: root managers, SUSFS, NoMount,
-# AnyKernel3 and the GKID 6.1 kernel source (scope: kernel 6.1 only). Pins live
+# Baseband Guard (BBG), AnyKernel3 and the GKID 6.1 kernel source (scope: kernel 6.1 only). Pins live
 # in configs/upstream.lock.
 # The kernel build workflow only compiles those exact commits.
 #   check  : report pinned vs latest upstream (no changes)
@@ -26,6 +26,7 @@ on:
           - "root-managers"
           - "susfs"
           - "nomount"
+          - "bbg"
           - "anykernel"
           - "kernel-6.1"
 
