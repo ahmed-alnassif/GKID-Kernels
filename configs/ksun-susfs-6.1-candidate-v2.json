@@ -1,0 +1,140 @@
+{
+  "schema_version": 1,
+  "candidate_id": "ksun-susfs-6.1-source-v2",
+  "status": "source_contracts_reviewed_no_build",
+  "implementation": "KSUN built-in plus kernel-patched SUSFS",
+  "kernel_commit": "a7ba124af5a535078d3f83b3e145f9cc8ec651b8",
+  "ksun_commit": "2f858cb292265795dee2807759cec2eb8a7d79b1",
+  "susfs_candidate_provenance": {
+    "repository": "https://gitlab.com/simonpunk/susfs4ksu.git",
+    "commit": "92aab7f579e9fb440a43e387c13bff519af13462",
+    "evidence": "Owner-uploaded susfs-verified.zip; per-file bytes independently SHA256 verified. Commit attribution from owner git-show evidence retained in the prior handoff; no fresh upstream GitLab checkout was verified here.",
+    "zip_sha256": "4308a05c09462c22edf390be066c5e31503de8585891fd2829533c71cbed0777"
+  },
+  "historical_lock_preserved": {
+    "path": "configs/ksun-susfs-6.1.lock.json",
+    "susfs_commit": "a9bb4dd3ed248ada636b480bfdff70af704f1463",
+    "susfs_c_sha256": "976f6d47a45260bcb0bb17d8ffe8beddeda398f8aba9bba54517ece9daf9e253",
+    "equivalence_claimed": false
+  },
+  "original_patch": "50_add_susfs_in_gki-android14-6.1.patch",
+  "adaptation": {
+    "delta": "kernel-patches/susfs/ksun-6.1-companion-adjustments.patch",
+    "delta_sha256": "6962a4a910ef74c776e7793cf64a064712fd26d71f90529208adbf35d9d88af1",
+    "applies_to": "kernel_patches/50_add_susfs_in_gki-android14-6.1.patch",
+    "input_sha256": "57e97f34055608a133594ff723ae5fa436b4559b1473d6e3284093c3ccb22156",
+    "output_sha256": "c9e79c169c42ddae58ce92318a5ae59dcc6b3142849833c79c02059a4d25c46b",
+    "includes_existing_namespace_fix": true,
+    "apply_ksu_manager_patch_to_ksun": false
+  },
+  "driver_integration": {
+    "path": "kernel-patches/susfs/ksun-6.1-driver-integration.patch",
+    "sha256": "01f05f137353ad14823da02f9aeaedf981b83a7f07e2b2327b6d379af4362149",
+    "kernel_inputs": [
+      {
+        "path": "drivers/Makefile",
+        "blob_sha": "bdf1c66141c9bd5e8241a32233b768587e630504"
+      },
+      {
+        "path": "drivers/Kconfig",
+        "blob_sha": "19ee995bd0ae1fe590c20784ff2f92af546bd905"
+      }
+    ],
+    "layout": "<isolated-root>/kernel and <isolated-root>/ksun; drivers/kernelsu -> ../../ksun/kernel"
+  },
+  "files": [
+    {
+      "archive_path": "50_add_susfs_in_gki-android14-6.1.patch",
+      "sha256": "57e97f34055608a133594ff723ae5fa436b4559b1473d6e3284093c3ccb22156"
+    },
+    {
+      "archive_path": "susfs.c",
+      "destination": "fs/susfs.c",
+      "sha256": "5521aa600f6df698e1d5e31df72e3557a36d33c161bd65dcafe5788fb56a7fa7"
+    },
+    {
+      "archive_path": "susfs.h",
+      "destination": "include/linux/susfs.h",
+      "sha256": "fafff787b8856bd37a6736c2f0bbc5a57fd1f36232be267936f892fb57bc5120"
+    },
+    {
+      "archive_path": "susfs_def.h",
+      "destination": "include/linux/susfs_def.h",
+      "sha256": "db7f98dcf8119a4eb5c45c05205b6c1065766047d6f803b0e86f3d14b1a251f0"
+    }
+  ],
+  "reviewed_ksun_blobs": [
+    {
+      "path": "kernel/Kbuild",
+      "blob_sha": "3499b99a0a67633ef35048f160def925123cda4e"
+    },
+    {
+      "path": "kernel/Kconfig",
+      "blob_sha": "cf4d846d49de19912396cdeb9b76598fd568ee67"
+    },
+    {
+      "path": "kernel/core/init.c",
+      "blob_sha": "0f83468ff555cc8a93e9c0df7fbab7df789a958d"
+    },
+    {
+      "path": "kernel/extras.c",
+      "blob_sha": "e2f77a44d6b671929de9afca39fae04206dced03"
+    },
+    {
+      "path": "kernel/feature/sucompat.c",
+      "blob_sha": "a23587df20309c202fab68bc4f16e8c19043de40"
+    },
+    {
+      "path": "kernel/hook/setuid_hook.c",
+      "blob_sha": "424d7f105738e0269b536a62a8f7fd7858f3f4ba"
+    },
+    {
+      "path": "kernel/hook/setuid_hook.h",
+      "blob_sha": "d5ab042360d2917d9f37975fa4fe197da4898b99"
+    },
+    {
+      "path": "kernel/policy/allowlist.c",
+      "blob_sha": "4cdb3024a4e720a4b5e07777b9e8e790a6dd5b95"
+    },
+    {
+      "path": "kernel/runtime/ksud_integration.c",
+      "blob_sha": "177dabff8bd10ec4d5af39887cb1647bdaf181b8"
+    },
+    {
+      "path": "kernel/selinux/selinux.c",
+      "blob_sha": "9b56f096b756d982dfb08858f6c91a8708193418"
+    },
+    {
+      "path": "kernel/supercall/dispatch.c",
+      "blob_sha": "bfc498bb8fa19622bb89c930ccb170d8d215cccb"
+    }
+  ],
+  "required_configuration": {
+    "CONFIG_ARM64": "y",
+    "CONFIG_KSU": "y",
+    "CONFIG_KSU_SUSFS": "y",
+    "CONFIG_KPROBES": "y",
+    "CONFIG_THREAD_INFO_IN_TASK": "y"
+  },
+  "api_review": {
+    "status": "selected_source_contracts_pass",
+    "report": "docs/validation/ksun-susfs-6.1-api-review.md",
+    "full_link_verified": false
+  },
+  "scope": "Minimal source integration only; BBG, NoMount and final feature/config/toolchain inputs are not replayed by this bundle.",
+  "remaining_gates": [
+    "Complete clean pinned kernel and nonshallow KSUN checkout stage",
+    "Review KSUN version metadata against immutable v3.4.2 base before compilation",
+    "Pin and replay BBG and NoMount for the intended final feature bundle; NTSync excluded, DroidSpaces disabled",
+    "Toolchain URL, archive bytes and SHA256",
+    "Exact config inputs, clean-LTO choice and resolved .config",
+    "Selective compile/link and full Image verification",
+    "ABI/KMI and device runtime"
+  ],
+  "guards": {
+    "production_build_enabled": false,
+    "susfs_lkm_allowed": false,
+    "run_full_build": false,
+    "release_or_flash_allowed": false
+  }
+}

@@ -1,11 +1,9 @@
 # KSUN+SUSFS 6.1 dependency inventory (source audit)
 
-Status: **SOURCE-ONLY / INCOMPLETE / NO BUILD**. Branch: `dev`. Evidence from `build.sh` and `functions.sh`.
+Status: **SOURCE-ONLY / INCOMPLETE / NO BUILD**. NTSync is excluded by owner decision; the historical NTSync provenance pointer is not a replay input. Branch: `dev`. Evidence from `build.sh` and `functions.sh`.
 
 | Dependency | Current acquisition | Risk | Required candidate evidence |
 |---|---|---|---|
-| NTSync base | `https://github.com/WildKernels/kernel_patches/raw/main/common/ntsync/ntsync_base.patch` | floating main | exact upstream commit, downloaded SHA256, ordered local patch |
-| NTSync Android14 6.1 compat | `https://github.com/WildKernels/kernel_patches/raw/main/common/ntsync/ntsync_compat_android14-6.1.patch` | floating main | exact commit, SHA256, ordering |
 | Baseband Guard | `https://github.com/vc-teahouse/Baseband-guard/raw/main/setup.sh` piped into bash | floating executable script | pinned source revision, reviewed script and its transitive downloads, resulting diff and hashes |
 | NoMount | `https://raw.githubusercontent.com/maxsteeel/nomount/refs/heads/dev/kernel/setup.sh` then `bash ... master` | floating dev installer and possible floating master content | pin installer and transitive content; verify source revision and resulting diff |
 | Antman toolchain installer | `https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman` | floating executable installer | pinned installer and compiler archive bytes, version and SHA256 |
@@ -18,4 +16,4 @@ Status: **SOURCE-ONLY / INCOMPLETE / NO BUILD**. Branch: `dev`. Evidence from `b
 5. Do not run new CI, publish artifacts, or flash based on this inventory.
 
 ## Next gate
-Prepare local immutable inputs for the candidate, beginning with NTSync base + Android14 6.1 compat. Validate all hashes before applying. Then investigate Baseband Guard, NoMount and toolchain transitive inputs. This document does not claim these inputs have been locked.
+The minimal KSUN+SUSFS v2 source bundle is prepared; see `ksun-susfs-6.1-api-review.md`. Next lock Baseband Guard, NoMount and toolchain transitive inputs before a full feature candidate or compilation. NTSync must not be restored; DroidSpaces remains disabled. This document does not claim these remaining inputs have been locked.
