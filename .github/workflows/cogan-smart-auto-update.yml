@@ -74,6 +74,21 @@ jobs:
               output.append("| " + " | ".join(row) + " |")
           output += [
               "",
+              "### Compatibility assessment",
+              "",
+              "| Check | Result | Explanation |",
+              "|---|---|---|",
+              "| Kernel source + selected sublevel | NEEDS REVIEW | Upstream revision does not establish GKI/Android ABI compatibility |",
+              "| Root manager driver + manager app | NEEDS REVIEW | Driver API and manager version must be checked together |",
+              "| Networking / BBRv3 + kernel | NEEDS REVIEW | Fingerprint is not a patch application test |",
+              "| NoMount + Clean LTO + kernel | NEEDS REVIEW | Fingerprint is not a build or boot test |",
+              "| SUSFS + root manager | BLOCKED | Integration remains on hold |",
+              "",
+              "No component is marked COMPATIBLE without verified build/runtime evidence.",
+              "",
+          ]
+          output += [
+              "",
               "**KernelSU Next build pin:** v3.4.2; upstream branch HEAD is informational only.",
               "**SUSFS: HOLD.** No automatic update or compatibility approval.",
               "",
