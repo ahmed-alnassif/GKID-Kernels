@@ -1,0 +1,122 @@
+{
+  "candidate_id": "ksun-susfs-6.1-v2",
+  "status": "integrated_source_only",
+  "api_review": "exact_reviewed_source_bytes_match",
+  "historical_partial_build_reused": false,
+  "production_changed": false,
+  "build_started": false,
+  "ready_for_compilation": false,
+  "next_compile_gates": [
+    "Review NoMount pinned integration for the requested bundle",
+    "Lock compiler archive URL and verify downloaded SHA256",
+    "Generate and record resolved .config and build commands for this new candidate",
+    "Validate final offline KSUN version metadata in compiler output"
+  ],
+  "lock_sha256": "fa52b7f7e30c63e5f1e063284be4fd9989541abc1ee9dbffda6c557965a5d9f1",
+  "ordered_kernel_patches": [
+    {
+      "path": "001-driver-integration.patch",
+      "sha256": "1ad475b1c970fefc71f79e7ab5f8d211f58992d0a8f90870f9511ea44c141c56",
+      "source": "Reviewed pinned KSUN setup mechanism; local explicit driver glue"
+    },
+    {
+      "path": "002-susfs-kernel.patch",
+      "sha256": "c9e79c169c42ddae58ce92318a5ae59dcc6b3142849833c79c02059a4d25c46b",
+      "source": {
+        "original_sha256": "57e97f34055608a133594ff723ae5fa436b4559b1473d6e3284093c3ccb22156",
+        "delta_sha256": "6962a4a910ef74c776e7793cf64a064712fd26d71f90529208adbf35d9d88af1"
+      }
+    },
+    {
+      "path": "003-susfs-companions.patch",
+      "sha256": "42bd7b39a4a2e93af152a47414aa0e31719697a2b30f6007003713e74e281058",
+      "source": "Exact v2 companion bytes; source provenance in v2 lock"
+    }
+  ],
+  "ordered_ksun_patches": [
+    {
+      "path": "001-offline-version-metadata.patch",
+      "sha256": "5f178ba79ab84fe176d18fc1ab326afd0a0a9e599e42a259de5a8ab7521f13f3",
+      "source": "Remove implicit networking; independently checked immutable version metadata"
+    }
+  ],
+  "offline_version": {
+    "tag": "v3.4.2",
+    "tag_commit": "4c706b5938665866ebe16944a481a7b91e3396af",
+    "head_revision_count": 3365,
+    "ksu_version": 33365
+  },
+  "source_trees": {
+    "kernel": {
+      "head": "a7ba124af5a535078d3f83b3e145f9cc8ec651b8",
+      "integrated_tree": "7e2b5164757d23fe0fbe3cd81ebec264769a0542",
+      "diff_sha256": "48a9e54d579ce171e4e5bf8a9515fdc1260029da2ef8365fade09dce98177727",
+      "status": "M  drivers/Kconfig\nM  drivers/Makefile\nM  drivers/input/input.c\nA  drivers/kernelsu\nM  fs/Makefile\nM  fs/exec.c\nM  fs/namei.c\nM  fs/namespace.c\nM  fs/notify/fdinfo.c\nM  fs/open.c\nM  fs/proc/base.c\nM  fs/proc/bootconfig.c\nM  fs/proc/fd.c\nM  fs/proc/task_mmu.c\nM  fs/proc_namespace.c\nM  fs/read_write.c\nM  fs/readdir.c\nM  fs/stat.c\nM  fs/statfs.c\nM  fs/super.c\nA  fs/susfs.c\nA  include/linux/susfs.h\nA  include/linux/susfs_def.h\nM  kernel/kallsyms.c\nM  kernel/reboot.c\nM  kernel/sys.c\nM  mm/memory.c\nM  security/selinux/avc.c\nM  security/selinux/hooks.c\nM  security/selinux/selinuxfs.c"
+    },
+    "ksun": {
+      "head": "2f858cb292265795dee2807759cec2eb8a7d79b1",
+      "integrated_tree": "2fd43a2d0ef0e1750102348869dd1152d306afb1",
+      "diff_sha256": "92d15c151f654d193aeb9e09de350160fdba73e3372e56ea73b226165ad1dbfa",
+      "status": "M  kernel/Kbuild"
+    }
+  },
+  "validation_date": "2026-10-15",
+  "cogan_base_commit": "c140b2053cc035ad8ad9b5b1a4a5f56402cc87a3",
+  "replay_manifests": {
+    "kernel": "kernel-patches/susfs/6.1-v2/replay/kernel-replay.json",
+    "ksun": "kernel-patches/susfs/6.1-v2/replay/ksun-replay.json"
+  },
+  "local_workspace": {
+    "root": "/workspace/scratch/d5d3c6fbcebc/candidate-v2",
+    "kernel": "/workspace/scratch/d5d3c6fbcebc/candidate-v2/kernel",
+    "ksun": "/workspace/scratch/d5d3c6fbcebc/candidate-v2/ksun",
+    "out": null,
+    "note": "Historical after workspace cleanup; reproduce from pinned inputs, do not claim objects recovered"
+  },
+  "logs": {
+    "kernel": "Verified 3 patch checksums and clean kernel checkout.\nEntire patch series passed isolated index preflight.\nApplied 1/3: 001-driver-integration.patch\nApplied 2/3: 002-susfs-kernel.patch\nApplied 3/3: 003-susfs-companions.patch\nPATCH REPLAY COMPLETE; full Image and runtime remain unverified.\n",
+    "ksun": "Verified 1 patch checksums and clean kernel checkout.\nEntire patch series passed isolated index preflight.\nApplied 1/1: 001-offline-version-metadata.patch\nPATCH REPLAY COMPLETE; full Image and runtime remain unverified.\n"
+  },
+  "configuration_fragment": {
+    "path": "configs/ksun-susfs-6.1-v2.config",
+    "sha256": "fa855e94684f473ba40bcd41b9a0cf78654bbbd7c5f83690122051e7cc9ea102",
+    "resolved": false,
+    "clean_lto": "Fresh output directory required; no existing ThinLTO cache reused"
+  },
+  "local_checks": {
+    "new_preparation_tests": {
+      "passed": 5,
+      "failed": 0
+    },
+    "python_syntax": {
+      "checked_files": 19,
+      "failed": 0
+    },
+    "actions_dispatched": 0,
+    "pull_requests_created": 0,
+    "workflow_syntax": {
+      "checked_files": 7,
+      "failed": 0
+    },
+    "production_guard_and_historical_evidence_bytes": "unchanged_against_cogan_base_commit",
+    "original_input_worktrees": "clean_after_isolated_integration"
+  },
+  "production_file_sha256": {
+    "build.sh": "0f9a59a81082547592d121183d47919dff9e7aa26662b226f494dfea8688d444",
+    "functions.sh": "e84161f68cd40f39dc5931d23f890ca833c171cf37eacce7515ea40fbabb183b",
+    ".github/workflows/build.yml": "68f3755cc3c19d165e607bc363bbf23a385a162537cd962f4d1f9d02793d9631",
+    "configs/ksun-susfs-6.1.lock.json": "47d5d43891e62add850552721f2516558aa2a5cdf9867ff7203f66f270d69098",
+    "docs/validation/ksun-susfs-6.1-partial-build.json": "c300c917e76a8730cddbb493c674750393cffd6fb578246527f0f1470a99ee21"
+  },
+  "preparation_script_sha256": "a1a0fe1b7cdffda431bd6f633b686bc2c5be795a7c9163ce2eb84ee1baa1faaf",
+  "initial_execution_script_sha256": "e1f19a6cacf7f4d6e577e486bcaf9027a6ed722b24ceb0fa445adad86de8665d",
+  "concurrent_commit_preserved": "7dcdef0c783adc3de4b8dbeba33b47ce7be91043",
+  "preparation_command_mode": "--locked-worktrees KERNEL KSUN NEW_DIRECTORY",
+  "source_replay_after_cli_merge": "not_repeated; same locked source inputs, emitted patch bytes and integrated trees preserved",
+  "post_merge_tests": {
+    "archive_interface_tests_passed": 10,
+    "worktree_tests_passed": 5,
+    "first_merge_failure": "helper rename accidentally included subprocess.run; corrected subprocess call, then reran only five affected tests",
+    "final_failures": 0
+  }
+}

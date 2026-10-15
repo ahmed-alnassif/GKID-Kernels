@@ -1,9 +1,10 @@
 # KSUN+SUSFS 6.1 dependency inventory (source audit)
 
-Status: **SOURCE-ONLY / INCOMPLETE / NO BUILD**. NTSync is excluded by owner decision; the historical NTSync provenance pointer is not a replay input. Branch: `dev`. Evidence from `build.sh` and `functions.sh`.
+Status: **SOURCE-ONLY / INCOMPLETE / NO BUILD**. Branch: `dev`. Acquisition audit of shared production scripts; the isolated v2 route does not execute these installers. See `ksun-susfs-6.1-v2-integration.json` for completed core-source integration.
 
 | Dependency | Current acquisition | Risk | Required candidate evidence |
 |---|---|---|---|
+| NTSync | Excluded by owner decision; historical prerequisite references retained only as evidence | Shared `configs/features.config` still requests it | Never import that shared fragment into v2; its dedicated core fragment explicitly disables NTSync |
 | Baseband Guard | `https://github.com/vc-teahouse/Baseband-guard/raw/main/setup.sh` piped into bash | floating executable script | pinned source revision, reviewed script and its transitive downloads, resulting diff and hashes |
 | NoMount | `https://raw.githubusercontent.com/maxsteeel/nomount/refs/heads/dev/kernel/setup.sh` then `bash ... master` | floating dev installer and possible floating master content | pin installer and transitive content; verify source revision and resulting diff |
 | Antman toolchain installer | `https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman` | floating executable installer | pinned installer and compiler archive bytes, version and SHA256 |
@@ -16,4 +17,4 @@ Status: **SOURCE-ONLY / INCOMPLETE / NO BUILD**. NTSync is excluded by owner dec
 5. Do not run new CI, publish artifacts, or flash based on this inventory.
 
 ## Next gate
-The minimal KSUN+SUSFS v2 source bundle is prepared; see `ksun-susfs-6.1-api-review.md`. Next lock Baseband Guard, NoMount and toolchain transitive inputs before a full feature candidate or compilation. NTSync must not be restored; DroidSpaces remains disabled. This document does not claim these remaining inputs have been locked.
+Core KSUN + kernel-patched SUSFS source integration is complete for the distinct v2 candidate. Next investigate pinned NoMount inputs for the requested bundle and the compiler archive, then generate and record the resolved configuration. NTSync and DroidSpaces remain excluded. Baseband Guard remains outside the core v2 replay; no floating installer is executed. This document does not claim these additional inputs have been locked.

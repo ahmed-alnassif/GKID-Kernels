@@ -1,0 +1,10 @@
+{
+  "kernel_commit": "2f858cb292265795dee2807759cec2eb8a7d79b1",
+  "patches": [
+    {
+      "path": "001-offline-version-metadata.patch",
+      "sha256": "5f178ba79ab84fe176d18fc1ab326afd0a0a9e599e42a259de5a8ab7521f13f3",
+      "source": "Remove implicit networking; independently checked immutable version metadata"
+    }
+  ]
+}

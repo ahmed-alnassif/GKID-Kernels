@@ -2,9 +2,11 @@
 
 Scope: **KSUN + SUSFS only**. This document does not authorize a production workflow, release, flash, or removal of the existing KSUN+SUSFS guard.
 
+**V2 continuation (2026-10-15):** the new, explicitly selected source-only candidate has passed API review and isolated core-source integration. Use `ksun-susfs-6.1-work-handoff.md`, `ksun-susfs-6.1-api-review.md` and `ksun-susfs-6.1-v2-integration.json` for that route. The historical recovery gates below remain evidence for the older candidate; do not apply the historical preflight/config/object hashes to v2. Its compilation gates are still pending.
+
 ## Provenance
 
-Use `docs/validation/ksun-susfs-6.1-partial-build.json` as the single source of truth for the exact kernel, KSUN, SUSFS, resolved configuration, object hashes, and toolchain. The prior candidate workspace was recorded as `/workspace/scratch/a01fce1f8f50`; **that path is historical, not proof that the workspace still exists**.
+For the historical candidate only, use `docs/validation/ksun-susfs-6.1-partial-build.json` as the source of truth for the exact kernel, KSUN, SUSFS, resolved configuration, object hashes, and toolchain. The prior candidate workspace was recorded as `/workspace/scratch/a01fce1f8f50`; **that path is historical, not proof that the workspace still exists**.
 
 Do not substitute the normal KSUN `v3.4.2` checkout for the pinned candidate commit: the tested candidate had a different HEAD. Do not reapply SUSFS patches to an already-patched tree or infer that matching Git HEAD alone proves an identical working tree.
 

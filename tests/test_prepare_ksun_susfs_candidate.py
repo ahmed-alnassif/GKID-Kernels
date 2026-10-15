@@ -189,5 +189,59 @@ class CandidateTests(unittest.TestCase):
         self.assertFalse((self.kernel / "fs/susfs.c").exists())
 
 
+class LockedWorktreeTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.tree = self.root / "tree"
+        self.tree.mkdir()
+        subprocess.run(["git", "init", "-q", str(self.tree)], check=True)
+        (self.tree / "existing").write_bytes(b"before\n")
+        subprocess.run(["git", "-C", str(self.tree), "add", "."], check=True)
+        subprocess.run(["git", "-C", str(self.tree), "-c", "user.name=Test",
+                        "-c", "user.email=test@example.invalid", "commit", "-qm", "base"], check=True)
+        self.head = CANDIDATE.offline_git(self.tree, "rev-parse", "HEAD")
+
+    def test_source_pin_and_cleanliness_are_required(self):
+        self.assertEqual(CANDIDATE.verify_checkout(self.tree, self.head), self.tree)
+        with self.assertRaisesRegex(ValueError, "HEAD mismatch"):
+            CANDIDATE.verify_checkout(self.tree, "0" * 40)
+        (self.tree / "unexpected").write_bytes(b"untracked\n")
+        with self.assertRaisesRegex(ValueError, "dirty"):
+            CANDIDATE.verify_checkout(self.tree, self.head)
+
+    def test_reviewed_byte_change_is_rejected(self):
+        raw = b"locked source\n"
+        path = self.tree / "reviewed.c"
+        path.write_bytes(raw)
+        entries = {"reviewed.c": hashlib.sha256(raw).hexdigest()}
+        self.assertEqual(CANDIDATE.verify_files(self.tree, entries)["reviewed.c"], raw)
+        path.write_bytes(b"changed source\n")
+        with self.assertRaisesRegex(ValueError, "SHA256 mismatch"):
+            CANDIDATE.verify_files(self.tree, entries)
+
+    def test_companion_symlink_is_rejected(self):
+        external = self.root / "external.c"
+        external.write_bytes(b"source\n")
+        (self.tree / "companion.c").symlink_to(external)
+        with self.assertRaisesRegex(ValueError, "escapes"):
+            CANDIDATE.verify_files(self.tree, {"companion.c": CANDIDATE.digest(external.read_bytes())})
+
+    def test_generated_patches_preserve_backslashes_and_blank_lines(self):
+        raw = b"void init(void) {\\\n\n}\n"
+        patch = CANDIDATE.text_patch("existing", "before\n", "after\n")
+        patch += CANDIDATE.added_file_patch("fs/susfs.c", raw)
+        subprocess.run(["git", "-C", str(self.tree), "apply", "--check", "-"], input=patch, check=True)
+        subprocess.run(["git", "-C", str(self.tree), "apply", "-"], input=patch, check=True)
+        self.assertEqual((self.tree / "existing").read_bytes(), b"after\n")
+        self.assertEqual((self.tree / "fs/susfs.c").read_bytes(), raw)
+
+    def test_non_text_or_unterminated_companion_is_rejected(self):
+        for raw in (b"missing newline", b"binary\0\n"):
+            with self.assertRaisesRegex(ValueError, "UTF-8"):
+                CANDIDATE.added_file_patch("fs/susfs.c", raw)
+
+
 if __name__ == "__main__":
     unittest.main()

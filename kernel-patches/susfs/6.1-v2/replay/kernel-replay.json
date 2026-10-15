@@ -1,0 +1,23 @@
+{
+  "kernel_commit": "a7ba124af5a535078d3f83b3e145f9cc8ec651b8",
+  "patches": [
+    {
+      "path": "001-driver-integration.patch",
+      "sha256": "1ad475b1c970fefc71f79e7ab5f8d211f58992d0a8f90870f9511ea44c141c56",
+      "source": "Reviewed pinned KSUN setup mechanism; local explicit driver glue"
+    },
+    {
+      "path": "002-susfs-kernel.patch",
+      "sha256": "c9e79c169c42ddae58ce92318a5ae59dcc6b3142849833c79c02059a4d25c46b",
+      "source": {
+        "original_sha256": "57e97f34055608a133594ff723ae5fa436b4559b1473d6e3284093c3ccb22156",
+        "delta_sha256": "6962a4a910ef74c776e7793cf64a064712fd26d71f90529208adbf35d9d88af1"
+      }
+    },
+    {
+      "path": "003-susfs-companions.patch",
+      "sha256": "42bd7b39a4a2e93af152a47414aa0e31719697a2b30f6007003713e74e281058",
+      "source": "Exact v2 companion bytes; source provenance in v2 lock"
+    }
+  ]
+}

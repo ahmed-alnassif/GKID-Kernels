@@ -146,12 +146,14 @@
     "api_status": "selected_source_contracts_pass",
     "preparer": "scripts/prepare_ksun_susfs_candidate.py",
     "bundle_status": "prepared_from_verified_owner_archive",
-    "executable_replay_manifest": "Generated new-bundle/kernel-replay.json, separate from this evidence inventory",
-    "real_complete_kernel_stage_executed": false,
+    "executable_replay_manifest": "kernel-patches/susfs/6.1-v2/replay/kernel-replay.json; KSUN changes in adjacent ksun-replay.json",
+    "real_complete_kernel_stage_executed": true,
     "historical_source_lock_changed": false,
     "historical_susfs_c_hash_changed": false,
     "full_build_ready": false,
-    "boundary": "Source candidate v2 is distinct from the historical partial build. No real complete kernel/KSUN checkout was staged.",
-    "local_validation": "10 candidate staging/rejection tests passed; root matrix/early guard and Python syntax passed; new driver patch checked on two pinned kernel-file fixtures only"
+    "boundary": "Actual complete core-source stage passed in isolated worktrees; new v2 build/config/toolchain/runtime gates remain unverified. Historical partial build not reused.",
+    "local_validation": "Archive interface 10 tests passed after CLI merge; only 5 affected worktree tests rerun after correcting a helper rename, all passed. Actual core source replay and tree hashes reused without rerun.",
+    "offline_worktree_lock": "configs/ksun-susfs-6.1-v2.lock.json",
+    "integration_report": "docs/validation/ksun-susfs-6.1-v2-integration.json"
   }
 }

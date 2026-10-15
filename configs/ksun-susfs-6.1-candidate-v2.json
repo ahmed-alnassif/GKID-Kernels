@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "candidate_id": "ksun-susfs-6.1-source-v2",
-  "status": "source_contracts_reviewed_no_build",
+  "status": "source_integrated_no_build",
   "implementation": "KSUN built-in plus kernel-patched SUSFS",
   "kernel_commit": "a7ba124af5a535078d3f83b3e145f9cc8ec651b8",
   "ksun_commit": "2f858cb292265795dee2807759cec2eb8a7d79b1",
@@ -123,8 +123,6 @@
   },
   "scope": "Minimal source integration only; BBG, NoMount and final feature/config/toolchain inputs are not replayed by this bundle.",
   "remaining_gates": [
-    "Complete clean pinned kernel and nonshallow KSUN checkout stage",
-    "Review KSUN version metadata against immutable v3.4.2 base before compilation",
     "Pin and replay BBG and NoMount for the intended final feature bundle; NTSync excluded, DroidSpaces disabled",
     "Toolchain URL, archive bytes and SHA256",
     "Exact config inputs, clean-LTO choice and resolved .config",
@@ -136,5 +134,13 @@
     "susfs_lkm_allowed": false,
     "run_full_build": false,
     "release_or_flash_allowed": false
+  },
+  "offline_source_stage": {
+    "lock": "configs/ksun-susfs-6.1-v2.lock.json",
+    "report": "docs/validation/ksun-susfs-6.1-v2-integration.json",
+    "preparer_option": "--locked-worktrees",
+    "stage_completed": true,
+    "historical_source_lock_changed": false,
+    "compile_ready": false
   }
 }

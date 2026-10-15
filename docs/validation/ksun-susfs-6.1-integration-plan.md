@@ -1,36 +1,61 @@
 # KSUN + SUSFS 6.1 — isolated candidate plan
 
-Status: **INCOMPLETE / DO NOT BUILD OR FLASH**.
+Status: **V2 CORE SOURCE INTEGRATED / NOT READY FOR COMPILATION OR FLASH**.
 Scope: cogan17/Cogan branch dev, GKI Android 14 / kernel 6.1.
-This is a plan, not a verified full replay or build result. The source-contract review and offline preparer are now recorded in `ksun-susfs-6.1-api-review.md`; use the separate v2 candidate lock for uploaded companion bytes.
 
-## Source locks
-- Kernel: `a7ba124af5a535078d3f83b3e145f9cc8ec651b8`
-- KSUN (pershoot): `2f858cb292265795dee2807759cec2eb8a7d79b1`
-- SUSFS historical lock (unavailable in owner's fetched Git object set): `a9bb4dd3ed248ada636b480bfdff70af704f1463`
-- **Uploaded file provenance**: prior owner evidence attributes the uploaded files to `92aab7f579e9fb440a43e387c13bff519af13462`. Three of four hashes match the historical manifest; `susfs.c` differs. The separately reviewed candidate v2 explicitly locks its observed `5521aa60...` checksum without replacing the historical lock. No fresh upstream GitLab checkout was verified in this review.
-- Evidence inventory: `docs/validation/ksun-susfs-6.1-replay-manifest.json`
+## Source identities
+- Kernel: `a7ba124af5a535078d3f83b3e145f9cc8ec651b8`.
+- KSUN (pershoot): `2f858cb292265795dee2807759cec2eb8a7d79b1`.
+- Historical SUSFS lock: `a9bb4dd3ed248ada636b480bfdff70af704f1463`, not recovered. Its lock and partial-build evidence remain unchanged.
+- V2 explicitly selects the owner-uploaded four-file source set. Three files match historical expected hashes; `susfs.c` instead hashes to `5521aa600f6df698e1d5e31df72e3557a36d33c161bd65dcafe5788fb56a7fa7`. The old expected hash is retained. There was never a verified four-of-four match against the historical manifest.
+- Owner-reported upstream provenance is Simonpunk `92aab7f579e9fb440a43e387c13bff519af13462`; that commit was not independently downloaded this session. Actual v2 input identity is enforced by SHA256 of the preserved uploaded bytes.
+- V2 lock: `configs/ksun-susfs-6.1-v2.lock.json`. API review: `ksun-susfs-6.1-api-review.md`. Actual integration evidence: `ksun-susfs-6.1-v2-integration.json`.
 
-## Required sequence (not yet executed)
-1. Prepare the v2 bundle with `scripts/prepare_ksun_susfs_candidate.py`; then obtain disposable clean sibling `kernel` and `ksun` checkouts at their exact SHAs. KSUN must be nonshallow. The historical workspace is unavailable.
-2. Obtain the exact KSUN and SUSFS commits; assert HEAD and clean status. Never run a floating `setup.sh` or a pull/stash fallback.
-3. Inventory remaining prerequisite kernel modifications (BBG, NoMount) and their ordered patches; NTSync is explicitly excluded following its removal from build.sh and functions.sh. Lock their bytes and SHA256. Existing upstream commit references are provenance, not verified patches.
-4. Reproduce KSUN driver integration in the isolated tree only: symlink `drivers/kernelsu` to the pinned KSUN kernel directory, then add the Kbuild and Kconfig entries only if absent. Verify paths and diff.
-5. Use the explicit candidate-v2 companion hashes (not the unresolved historical `susfs.c` hash); verify SHA256 before copying to `fs/susfs.c`, `include/linux/susfs.h`, and `include/linux/susfs_def.h`.
-6. Verify the original SUSFS kernel patch and companion adjustment hashes, generate the prepared patch, then check its recorded hash and run strict patch preflight on the exact candidate tree.
-7. The preparer generates a distinct `kernel-replay.json` containing the driver patch then prepared main SUSFS patch with local paths and SHA256. This is a minimal source-stage series; finish the locked BBG/NoMount feature series separately before claiming full replay. The evidence inventory is NOT compatible with `scripts/ksun_susfs_replay.py`.
-8. Lock toolchain archive URL and downloaded bytes; record exact kernel configuration inputs and generation commands.
-9. Run isolated compile/link checks, then one full Image build only after all preflights pass. Inspect first failure; avoid repetitive Actions.
-10. Verify artifacts and device compatibility before any release or flashing. Runtime is a separate gate.
+## Completed for v2 — reuse these results
+1. Inspected signatures, linkage, configuration branches and built-in providers. The existing locked adjustment resolves the raw patch's one-argument read hook; setresuid's three-argument SUSFS branch and the credential/init interfaces match. All 14 SUSFS command handlers exist with matching interfaces.
+2. Independently verified the exact clean kernel and KSUN checkouts and uploaded companion hashes. Selected v2 explicitly without overwriting historical provenance.
+3. Prepared the original SUSFS patch using the existing locked delta; original and delta bytes are retained. Prepared SHA256 remains `c9e79c169c42ddae58ce92318a5ae59dcc6b3142849833c79c02059a4d25c46b`.
+4. Created new detached local kernel and KSUN worktrees. Replayed driver Makefile/Kconfig/symlink integration, the prepared main patch, and the three companion files as an ordered three-patch series. The replay preflighted the entire series against a disposable index before applying it. This is a new full core-source integration check, not a repeat of the earlier isolated main-patch check.
+5. Replayed one candidate-only KSUN Kbuild patch removing automatic Git fetch/version discovery. Version 33365 and tag v3.4.2 were independently checked using complete local history and the immutable tag commit.
+6. Recorded kernel tree `7e2b5164757d23fe0fbe3cd81ebec264769a0542` and KSUN tree `2fd43a2d0ef0e1750102348869dd1152d306afb1`, full integration diff hashes, replay manifests and local logs. Five offline worktree preparation tests initially passed; the archive interface and its ten tests from concurrent commit `7dcdef0` are preserved in the same script and suite. No Actions or PR was created.
 
-## Current blockers
-- Complete ordered patch series and historical candidate working-tree diff unavailable. Three of four uploaded files match the historical manifest. Candidate v2 locks all four uploaded file hashes separately; this does not recover the historical dirty tree or full feature replay.
-- Exact full KSUN+SUSFS integrated source tree not independently verified. The offline bundle was prepared; optional real-checkout staging is pending. The new driver patch passed only a pinned two-file fixture check.
-- BBG executes a floating upstream setup script in `build.sh`; pin and verify its transitive inputs for reproducible candidate builds. NTSync must not be reintroduced.
-- Toolchain and .config provenance not locked.
+## Reproducible local preparation
+
+The actual ordered replay manifests and all four emitted patches are preserved under `kernel-patches/susfs/6.1-v2/replay/`. Unlike the older evidence inventory JSON, `kernel-replay.json` and `ksun-replay.json` have the schema accepted by `scripts/ksun_susfs_replay.py`; each applies to its own source tree only. Do not reapply them to the already integrated worktrees.
+
+When the existing v2 worktrees are available, inspect their recorded result and continue from them. If they have been lost, use clean local checkouts at the exact pins with all needed Git objects and complete KSUN history plus the verified tag, then run once from the Cogan root:
+
+```sh
+python3 scripts/prepare_ksun_susfs_candidate.py --locked-worktrees \
+  /absolute/path/to/clean-kernel \
+  /absolute/path/to/clean-ksun \
+  /absolute/path/to/new-candidate-directory
+```
+
+The script is offline, rejects existing output directories, validates reviewed inputs, creates isolated worktrees, preserves the first failure, and never starts a build. An input or replay failure must be investigated before retrying. Original input trees are not patched. The separate historical `ksun_susfs_preflight.py` is not a v2 preflight.
+
+## Remaining compilation gates
+1. Inspect and pin NoMount and its transitive source inputs for the owner's requested bundle. It is not present in this core-source candidate. BBG is also outside this core replay; never execute floating installers to fill either gap.
+2. Pin the compiler archive URL and verify actual downloaded bytes. The historical toolchain checksum alone does not verify a new download.
+3. Generate the new `.config` with the pinned compiler, recording exact commands, configuration inputs, resolved values and hash. `configs/ksun-susfs-6.1-v2.config` is only a proposed core fragment with Full LTO/CFI and NTSync disabled; it is not a resolved configuration or final NoMount bundle. Never import shared `features.config`, which still requests NTSync.
+4. Use a fresh output directory for clean LTO. Record KSUN version/tag flags during the first justified isolated compile, then inspect its first failure before any retry. Full Image/link, BTF, packaging, manager, vendor ABI/KMI and device runtime are later separate gates.
 
 ## Production safety
-- Keep KSUN v3.4.2 production path unchanged.
-- Keep KSUN+SUSFS workflow guard enabled.
-- No LKM SUSFS, release, flashing, or production switch until verified.
-- No new CI run or PR merely to validate this documentation.
+- Production KSUN v3.4.2 code and both KSUN+SUSFS build guards remain unchanged.
+- No SUSFS LKM, NTSync or DroidSpaces integration. No automatic upstream update, Actions dispatch, release, flashing, or production switch.
+- No historical object, config or partial-link success is claimed for v2.
+- Do not rerun green historical Actions or repeat completed source checks without a changed input or concrete failure to investigate.
+
+## Concurrent archive preparation retained
+
+Branch dev received commit `7dcdef0` during this work. Its archive interface
+`python3 scripts/prepare_ksun_susfs_candidate.py SOURCE.zip NEW_BUNDLE` remains
+available, including its optional adjacent-checkout staging and ten tests. Its
+`configs/ksun-susfs-6.1-candidate-v2.json` controls archive packaging; the distinct
+`configs/ksun-susfs-6.1-v2.lock.json` controls the stronger offline worktree route,
+reviewed-file SHA256 checks and version patch. Both select the same exact kernel,
+KSUN and SUSFS file bytes. Use **--locked-worktrees** for the actual integration
+recorded here; do not confuse the earlier two-file fixture with the completed
+full core-source stage. No concurrent commit was overwritten.
+
+Post-merge validation: ten archive-interface tests and five offline worktree tests passed. Only the affected five were rerun after correcting a helper-name merge error. The already successful complete core-source replay was not repeated.
