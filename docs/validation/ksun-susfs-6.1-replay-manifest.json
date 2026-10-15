@@ -124,9 +124,12 @@
     "repository": "https://gitlab.com/simonpunk/susfs4ksu.git",
     "branch": "gki-android14-6.1",
     "matching_commit": "92aab7f579e9fb440a43e387c13bff519af13462",
-    "evidence": "Owner's Termux git history SHA256 comparison; all four source patch/companion hashes match manifest",
-    "verification": "reported_local_hash_match_not_independently_downloaded",
+    "evidence": "Independent checksum verification of owner-uploaded susfs-verified.zip: patch, susfs.h, susfs_def.h match; susfs.c does NOT match manifest.",
+    "verification": "independent_zip_sha256_3_of_4_match",
     "scope": "file content provenance only; no candidate integration or build",
-    "prior_source_lock_note": "Original source_locks.susfs a9bb4dd3ed248ada636b480bfdff70af704f1463 not present in fetched Git object set; do not silently replace lock or claim checkout equivalence"
+    "prior_source_lock_note": "Original source_locks.susfs a9bb4dd3ed248ada636b480bfdff70af704f1463 not present in fetched Git object set; do not silently replace lock or claim checkout equivalence",
+    "susfs_c_observed_sha256": "5521aa600f6df698e1d5e31df72e3557a36d33c161bd65dcafe5788fb56a7fa7",
+    "susfs_c_expected_sha256": "976f6d47a45260bcb0bb17d8ffe8beddeda398f8aba9bba54517ece9daf9e253",
+    "status": "blocked_companion_mismatch"
   }
 }
