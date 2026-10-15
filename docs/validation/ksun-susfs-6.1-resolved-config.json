@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "status": "resolved_config_and_compilation_preflight_passed_compile_not_started",
+  "executed_at": "2026-10-15T12:10:00+00:00",
+  "supersedes_remaining_work_of": "docs/validation/ksun-susfs-6.1-features-stage.json",
+  "workspace": "disposable session scratch directory (reconstructed once; original /workspace/scratch/466d29bc15a5 not available)",
+  "reconstruction": {
+    "kernel": {
+      "repository": "https://github.com/ahmed-alnassif/GKI-Duchamp-6.1.git",
+      "fetched_commit": "a7ba124af5a535078d3f83b3e145f9cc8ec651b8",
+      "method": "git fetch --depth 1 <repo> <commit>",
+      "core_replay": "scripts/ksun_susfs_replay.py --apply kernel kernel-patches/susfs/6.1-v2/replay/kernel-replay.json (3/3 applied)",
+      "core_tree": "7e2b5164757d23fe0fbe3cd81ebec264769a0542",
+      "core_tree_match": true,
+      "snapshot_commit": "3f08838cbc5a94bf877df6a462dabb9118095314",
+      "snapshot_match": true,
+      "feature_replay": "scripts/ksun_susfs_replay.py --apply kernel kernel-patches/susfs/6.1-v2/features/kernel-replay.json (2/2 applied)",
+      "feature_index_tree": "b5db2f3ccc53539083461caa5cb7d1ddb5cd9e81",
+      "feature_index_tree_match": true,
+      "staged_diff_sha256": "c06e6132e8a665b7db9a3a9be52fca22d23405fa2d99b546842d232a3c39f54f",
+      "staged_diff_match": true,
+      "bbg_allow_cache_candidate_applied": false
+    },
+    "ksun": {
+      "repository": "https://github.com/pershoot/KernelSU-Next.git",
+      "fetched_commit": "2f858cb292265795dee2807759cec2eb8a7d79b1",
+      "core_replay": "scripts/ksun_susfs_replay.py --apply ksun kernel-patches/susfs/6.1-v2/replay/ksun-replay.json (1/1 applied)",
+      "core_tree": "2fd43a2d0ef0e1750102348869dd1152d306afb1",
+      "core_tree_match": true,
+      "snapshot_commit": "ce13bc5d783ad2b79409423f1c3343321cf0e304",
+      "snapshot_match": true
+    },
+    "layout": "kernel/ and ksun/ are siblings; drivers/kernelsu -> ../../ksun/kernel"
+  },
+  "toolchain": {
+    "archive_sha256": "531083928c8e37f6b31e324dbfd0b5a8323f989b1c57ff2c1368b889b5b1bd30",
+    "archive_sha256_match": true,
+    "extracted_regular_files": 316,
+    "clang": "Neutron clang version 24.0.0git (https://github.com/llvm/llvm-project.git f42c87ba2c70219b1f4ad1f031a5b6a1ea6603fb)",
+    "lld": "Neutron LLD 24.0.0 (https://github.com/llvm/llvm-project.git f42c87ba2c70219b1f4ad1f031a5b6a1ea6603fb)"
+  },
+  "host_tools": {
+    "host_os": "Ubuntu 24.04.5 LTS, glibc 2.39",
+    "index_verification": "gpgv Good signature (Ubuntu Archive Automatic Signing Key 2018) on noble InRelease; main and universe Packages.xz SHA256 match InRelease; every .deb SHA256 matches the signed index",
+    "install_method": "dpkg-deb -x into a local root; no system package installation",
+    "packages_previously_recorded_and_reverified": ["bc", "bison", "flex", "libbpf1", "libdw1t64", "libelf-dev", "libelf1t64", "pkgconf-bin", "libpkgconf3"],
+    "pahole": {
+      "Version": "1.25-0ubuntu3",
+      "SHA256": "c352a439c4c792397d36c26545d954940370a1147cd91d5a251fff82413a8b70",
+      "resolved_version": "v1.25",
+      "pending_item_closed": true
+    },
+    "added_this_run": {
+      "zstd": {
+        "Version": "1.5.5+dfsg2-2build1",
+        "Filename": "pool/main/libz/libzstd/zstd_1.5.5+dfsg2-2build1_amd64.deb",
+        "SHA256": "bb14385ff3d6df723a686778dc5f87849f720a0add261b5de9bcd4915a490b2a",
+        "reason": "extract the .tar.zst toolchain archive"
+      },
+      "libzstd-dev": {
+        "Version": "1.5.5+dfsg2-2build1",
+        "Filename": "pool/main/libz/libzstd/libzstd-dev_1.5.5+dfsg2-2build1_amd64.deb",
+        "SHA256": "2692254b78b0beeb284cda9bd34883ba470881475bc7c0eefbef479404bcfd23",
+        "reason": "declared dependency of libelf-dev missing from the earlier set; libelf.pc Requires.private libzstd"
+      }
+    },
+    "system_tools_used": ["make", "m4", "perl", "python3", "openssl/libcrypto", "zlib"]
+  },
+  "environment": {
+    "PATH": "<toolchain>/bin:<host-root>/usr/bin:/usr/bin:/bin",
+    "LD_LIBRARY_PATH": "<host-root>/usr/lib/x86_64-linux-gnu",
+    "BISON_PKGDATADIR": "<host-root>/usr/share/bison",
+    "LC_ALL": "C",
+    "PKG_CONFIG_SYSROOT_DIR": "<host-root>",
+    "PKG_CONFIG_PATH": "<host-root>/usr/lib/x86_64-linux-gnu/pkgconfig",
+    "make_args": "ARCH=arm64 LLVM=1 LLVM_IAS=1 O=<fresh-empty-out>",
+    "prepare_extra_args": "HOSTCFLAGS=\"-idirafter <host-root>/usr/include\" HOSTLDFLAGS=\"-L<host-root>/usr/lib/x86_64-linux-gnu -Wl,-rpath,<host-root>/usr/lib/x86_64-linux-gnu\"",
+    "note_hostcflags": "tools/bpf/resolve_btfids builds its bundled libbpf with EXTRA_CFLAGS=$(HOSTCFLAGS) and does not consult pkg-config, so the local libelf headers must come through HOSTCFLAGS"
+  },
+  "configuration": {
+    "commands": [
+      "make $make_args gki_defconfig",
+      "scripts/kconfig/merge_config.sh -m -O <out> <out>/.config configs/ksun-susfs-6.1-features.config",
+      "make $make_args olddefconfig"
+    ],
+    "all_rc_zero": true,
+    "fragment_sha256": "792f1fa18bd85696c94918a5b3175e0baf54a336f66af0c41e1dbc9bb133d1c9",
+    "resolved_config_sha256": "41492e89ba04e6f93b14d2de89d653673195f05d7f3dac26a780ecd80665a92d",
+    "selected": {
+      "CONFIG_CC_VERSION_TEXT": "Neutron clang version 24.0.0git (f42c87ba2c70219b1f4ad1f031a5b6a1ea6603fb)",
+      "CONFIG_PAHOLE_VERSION": "125",
+      "CONFIG_DEBUG_INFO_BTF": "y",
+      "CONFIG_LTO_CLANG_FULL": "y",
+      "CONFIG_CFI_CLANG": "y",
+      "CONFIG_KSU": "y",
+      "CONFIG_KSU_SUSFS": "y (plus all 9 locked sub-options = y)",
+      "CONFIG_BBG": "y (BLOCK_BOOT and BLOCK_RECOVERY not set)",
+      "CONFIG_NOMOUNT": "y",
+      "CONFIG_KEYS": "y",
+      "CONFIG_LSM": "landlock,lockdown,yama,loadpin,safesetid,integrity,selinux,smack,tomoyo,apparmor,bpf,baseband_guard"
+    },
+    "exclusions": "No NTSync or DroidSpaces symbols present in the resolved config",
+    "gate": {
+      "command": "python3 scripts/check_ksun_susfs_resolved_config.py <out>/.config",
+      "first_run": "BLOCKED: Malformed config entry: CONFIG_FONT_8x16=y (validator false positive: Kconfig symbols may contain lowercase letters)",
+      "fix": "symbol regex CONFIG_[A-Za-z0-9_]+ for both assignment and 'is not set' lines; 2 regression tests added; 21 validator tests pass",
+      "second_run": "PASS: locked fragment flags, required/forbidden options, and complete CONFIG_LSM"
+    }
+  },
+  "compilation_preflight": {
+    "command": "make -j4 $make_args $prepare_extra_args prepare",
+    "first_run": "failed: libbpf.c: fatal error: 'libelf.h' file not found (HOSTCFLAGS not yet provided)",
+    "second_run": "rc=0 in 5 s",
+    "built": ["tools/bpf/resolve_btfids/resolve_btfids", "scripts/mod/modpost", "scripts/sign-file", "include/generated/asm-offsets.h"],
+    "config_unchanged_after_prepare": true
+  },
+  "not_verified": [
+    "Full kernel compilation, LTO link, Image, BTF generation, KCFI, ABI/KMI",
+    "BBG allow-cache spinlock candidate (not part of this tree)",
+    "Boot, root manager and SUSFS runtime behaviour"
+  ],
+  "guards": {
+    "production_enabled": false,
+    "run_full_build": false,
+    "release_allowed": false,
+    "flash_allowed": false,
+    "lkm_allowed": false
+  },
+  "actions_started": 0,
+  "pull_requests_created": 0,
+  "next_gate": "Owner decision: start one isolated full compile (vmlinux/Image) with exactly this tree, toolchain, host root and .config SHA256; decide first whether the BBG allow-cache candidate is included"
+}

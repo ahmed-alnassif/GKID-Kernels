@@ -189,6 +189,14 @@ class ResolvedConfigTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Malformed config entry"):
             self.check(GOOD + "# CONFIG_NTSYNC is not set \n")
 
+    def test_lowercase_kconfig_symbols_accepted(self):
+        self.assertEqual(self.check(GOOD + "CONFIG_FONT_8x16=y\n"
+                                    "# CONFIG_SCSI_DC395x is not set\n"), [])
+
+    def test_malformed_disabled_symbol_rejected(self):
+        with self.assertRaisesRegex(ValueError, "Malformed config entry"):
+            self.check(GOOD + "# CONFIG_BAD-NAME is not set\n")
+
     def test_nomount_module_not_builtin(self):
         self.assertTrue(any("CONFIG_NOMOUNT" in error for error in
                             self.check(GOOD.replace("CONFIG_NOMOUNT=y", "CONFIG_NOMOUNT=m"))))

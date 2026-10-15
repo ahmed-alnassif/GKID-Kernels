@@ -50,7 +50,37 @@ Post-merge validation: ten archive-interface tests and five offline worktree tes
 - Scope: branch `dev`, KSUN + SUSFS kernel 6.1 with locked BBG/NoMount feature staging. Earlier successful source checks and Actions remain evidence; do not repeat them.
 - New isolated candidate: `kernel-patches/susfs/6.1-v2/candidates/bbg-allow-cache-spinlock.patch`, commit `78c97de84e714b37a00d4b3e9980611c7f5b67d9`. Fix targets unsynchronized `allowed_devs` hashtable: one IRQ-safe spinlock for readers/insertion, double-check under lock, allocation/free and logging outside lock. Candidate is **not** included in `features/kernel-replay.json` or any build.
 - Source-only patch hunk check: original BBG source reconstructed from locked `features/001-bbg.patch` has 270 lines; candidate hunk context matches exactly (32 old / 55 new), resulting source 293 lines. This is not a full kernel compile or runtime concurrency test.
-- **Evidence limitation:** Prior conversation reported a local `git apply --check` PASS on a reconstructed source/change, but no reproducible command transcript for applying the exact committed patch to the complete staged source was retained. Treat exact-file `git apply --check` as **pending**, not passed. Avoid repeating structural checks.
+- **Evidence limitation (resolved 2026-10-15):** exact-file `git apply --check` was executed and passed; see *BBG candidate exact-file check* below.
 - Immutable inputs: `features/001-bbg.patch`, `features/002-nomount.patch`, locked manifests, pinned commits/checksums, production guards. Do not modify without a separate reviewed/versioned decision. No manual Actions, PR, build, release or flash was performed for this candidate.
-- Next action (single focused step): materialize the exact committed candidate patch and BBG file extracted from locked original in a disposable tree, execute and capture actual `git apply --check`, apply once, then inspect resulting C locking paths for races/compile concerns. Only after that consider a separately reviewed integration decision. Full pinned kernel/toolchain and resolved config gates remain pending; **not ready for compilation or production**.
+- Next action: owner decision on integrating the candidate (see below). Full pinned kernel/toolchain and resolved config gates remain pending; **not ready for compilation or production**.
 - Owner continuation: reply `Lanjutkan`. Minimize GitHub calls, checkpoints, duplicate tests and documentation churn; stop and checkpoint when user requests or remaining credits approach the agreed threshold (credit percentage cannot be read automatically here).
+
+## BBG candidate exact-file check — 2026-10-15
+
+Disposable git tree (empty base commit), commands run once:
+
+1. `git apply --include='security/baseband-guard/*' features/001-bbg.patch` (SHA256 `b61d26be…a936da15`) → `baseband_guard.c` 270 lines, LF only, SHA256 `07f45991d2233522d24a3e2297fef89e64f99a2aa1c0249284b2e15f5c5ff53e`.
+2. `git apply --check -v candidates/bbg-allow-cache-spinlock.patch` (SHA256 `ef50b027…5fb63eb193`) → **PASS** (exit 0).
+3. `git apply` once → 293 lines, SHA256 `594c041d3ba40893df8cad0e8ab75b92bb30f0cd50842e7fbfe4ea1f9f452f15` (net +26/−3).
+
+Locking review of the result:
+- `allowed_devs` is only touched by `allow_has_locked()` (via `allow_has()` and `allow_add()`); no other iteration, and entries are never deleted.
+- All callers are LSM hooks in process context (`file_permission` with `MAY_WRITE`, `inode_setattr`, `file_ioctl`/`file_ioctl_compat`), only after the `S_ISBLK` check. No lock nesting or recursion: `allow_add()` releases the lock from `allow_has()` before it takes the lock again.
+- Nothing sleeps or logs under the lock: `kmalloc(GFP_ATOMIC)`, `kfree()` and `bb_pr()` all run outside it. The double check under the lock prevents duplicate insertion; the losing allocation is freed.
+- The race being fixed is real: plain `hash_add()` racing with lock-free `hash_for_each_possible()` readers has no publication barrier.
+- Optional, not required: `spin_lock()` would suffice (no IRQ-context users), or RCU readers (`hash_add_rcu`/`hash_for_each_possible_rcu`) would be lock-free because nothing is ever deleted. Neither is needed for correctness.
+- Compile concerns: none found at source level (declarations before statements, `<linux/spinlock.h>` included, no unused symbols). Not compiled; that remains part of the full-build gate.
+
+Status: candidate is correct at source level but still **not** in `features/kernel-replay.json`. Including it is a separate owner decision (proposed: add it as `003-bbg-allow-cache-spinlock.patch` after `001`/`002`, without editing the immutable feature patches).
+
+## Checkpoint 2026-10-15 — resolved config and compilation preflight PASS (latest)
+
+Record: `docs/validation/ksun-susfs-6.1-resolved-config.json`.
+
+- The original workspace was missing, so it was reconstructed once in a disposable directory from the pinned commits. Core and feature replays reproduced every recorded identity exactly: trees `7e2b5164…`/`2fd43a2d…`, snapshots `3f08838c…`/`ce13bc5d…`, feature tree `b5db2f3c…`, staged diff `c06e6132…`.
+- Neutron `06092026` archive SHA256 matches, 316 files, LLVM `f42c87ba`. Host packages were verified through a signed Ubuntu noble index and unpacked locally. **`pahole` v1.25 is now resolved.** `zstd` and `libzstd-dev` were added; the latter is a declared libelf-dev dependency that the earlier set lacked.
+- `gki_defconfig` → `merge_config.sh -m` (locked fragment) → `olddefconfig`, fresh `O=`. Resolved `.config` SHA256 `41492e89ba04e6f93b14d2de89d653673195f05d7f3dac26a780ecd80665a92d`. Gate **PASS** after fixing a validator false positive: lowercase Kconfig symbols such as `CONFIG_FONT_8x16` were rejected. The fix was not a relaxation of any locked flag.
+- `make prepare` **PASS**: resolve_btfids, modpost, sign-file, asm-offsets built; `.config` unchanged. resolve_btfids needs `HOSTCFLAGS="-idirafter <host-root>/usr/include"`.
+- Not done: full compile/link/Image, BTF, KCFI, ABI/KMI, runtime. Guards remain false. No Actions, PR, release or flash.
+- **Next (owner decision):** one isolated full compile with exactly these identities. Decide first whether to include the BBG allow-cache candidate (proposed as `003`); including it changes the feature tree.
+

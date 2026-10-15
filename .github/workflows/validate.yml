@@ -4,6 +4,13 @@ on:
   push:
     branches:
       - '**'
+    # Skip pushes that only touch prose or images. docs/validation/*.json is
+    # read by scripts/ksun_susfs_preflight.py, so it is not ignored. Pull
+    # requests always run so a required check never stays pending.
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+      - 'docs/**.png'
   pull_request:
     branches:
       - '**'
@@ -40,6 +47,7 @@ jobs:
           python3 -m unittest discover -s tests -p 'test_root_provenance.py'
           python3 -m unittest discover -s tests -p 'test_ksun_susfs_preflight.py'
           python3 -m unittest discover -s tests -p 'test_ksun_susfs_replay.py'
+          python3 -m unittest discover -s tests -p 'test_ksun_susfs_resolved_config.py'
           python3 -m unittest discover -s tests -p 'test_prepare_susfs_kernel_patch.py'
           python3 -m unittest discover -s tests -p 'test_prepare_susfs_synthetic.py'
           python3 -m unittest discover -s tests -p 'test_prepare_ksun_susfs_candidate.py'

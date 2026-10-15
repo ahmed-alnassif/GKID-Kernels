@@ -14,18 +14,24 @@ ROOT = Path(__file__).resolve().parents[1]
 LOCK = ROOT / "configs/ksun-susfs-6.1-features.lock.json"
 
 
+# Kconfig symbol names may contain lowercase letters (e.g. CONFIG_FONT_8x16).
+SYMBOL = re.compile(r"CONFIG_[A-Za-z0-9_]+")
+
+
 def audit(config_bytes, lock):
     values = {}
     for raw in config_bytes.decode("utf-8").splitlines():
         if raw.startswith("CONFIG_") and "=" in raw:
             key, value = raw.split("=", 1)
-            if not re.fullmatch(r"CONFIG_[A-Z0-9_]+", key):
+            if not SYMBOL.fullmatch(key):
                 raise ValueError("Malformed config entry: " + raw[:120])
             if key in values:
                 raise ValueError("Duplicate config key: " + key)
             values[key] = value
         elif raw.startswith("# CONFIG_") and raw.endswith(" is not set"):
             key = raw[2:-11]
+            if not SYMBOL.fullmatch(key):
+                raise ValueError("Malformed config entry: " + raw[:120])
             if key in values:
                 raise ValueError("Duplicate config key: " + key)
             values[key] = "n"

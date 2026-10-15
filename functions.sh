@@ -528,6 +528,9 @@ apply_susfs_patches() {
     if ! patch -p1 --fuzz=3 < "$SUSFS_PATCHES/50_add_susfs_in_${SUSFS_PATCH}.patch"; then
         if [ "$KERNEL_KMI" = "android13-5.15" ]; then
             fix_namespace_susfs_mount
+        else
+            error "SUSFS kernel patch failed: ${SUSFS_PATCH}"
+            return 1
         fi
     fi
 
