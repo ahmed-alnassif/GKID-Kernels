@@ -22,17 +22,15 @@ if [[ ! "$KERNEL_NAME" =~ ^[A-Za-z0-9_-]+$ ]]; then
   echo "Invalid CUSTOM_VERSION_NAME: use letters, digits, underscores or hyphens" >&2
   exit 1
 fi
-# The kernel version shows only one build tag: the requested revision (e.g. r1), or
-# the CI run number (-rN) when no revision is given.
-KERNEL_TAG="${RUN_NUM:-}"
+# One build tag everywhere (kernel version, ZIP, banner, release name): the requested
+# revision (e.g. r2), or the CI run number (-rN) when no revision is given. A rebuild
+# with the same revision on the same day reuses the name, so bump the revision.
 if [[ -n "${BUILD_REVISION:-}" ]]; then
   if [[ ! "$BUILD_REVISION" =~ ^r[0-9]+$ ]]; then
     echo "Invalid BUILD_REVISION: expected r followed by digits (e.g. r9)" >&2
     exit 1
   fi
-  # Release and ZIP names keep the revision plus a unique CI run suffix.
-  RUN_NUM="-$BUILD_REVISION${RUN_NUM:-}"
-  KERNEL_TAG="-$BUILD_REVISION"
+  RUN_NUM="-$BUILD_REVISION"
 fi
 # Kernel version line: cogan17@GKID (GKID kept as credit to the base project).
 USER="cogan17"
@@ -416,7 +414,7 @@ fi
 
 if [ "${TODO:-kernel}" = "kernel" ]; then
   LATEST_COMMIT_HASH=$(git rev-parse --short HEAD)
-  SUFFIX="${KERNEL_TAG}-${LATEST_COMMIT_HASH}"
+  SUFFIX="${RUN_NUM}-${LATEST_COMMIT_HASH}"
   config --set-str CONFIG_LOCALVERSION "-${KERNEL_NAME}${SUFFIX}"
   config --disable CONFIG_LOCALVERSION_AUTO
   sed -i 's/echo "+"/# echo "+"/g' scripts/setlocalversion

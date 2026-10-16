@@ -54,9 +54,10 @@ def main():
     assert 'if susfs_included; then' in build_script
     assert 'KSUN+SUSFS supports only kernel 6.1.177 (lts)' in build_script
     assert '+Test' not in build_script  # no longer labelled as a test build
-    # Kernel version line: one build tag (revision, else CI run) and cogan17@GKID.
-    assert 'SUFFIX="${KERNEL_TAG}-${LATEST_COMMIT_HASH}"' in build_script
-    assert 'KERNEL_TAG="-$BUILD_REVISION"' in build_script
+    # One build tag everywhere (revision, else CI run) and cogan17@GKID.
+    assert 'SUFFIX="${RUN_NUM}-${LATEST_COMMIT_HASH}"' in build_script
+    assert 'RUN_NUM="-$BUILD_REVISION"\n' in build_script
+    assert '-$BUILD_REVISION${RUN_NUM' not in build_script
     assert 'USER="cogan17"' in build_script and 'HOST="GKID"' in build_script
     assert 'ahmed-alnassif"' not in build_script.split('ANYKERNEL_REPO')[0]
     assert 'scripts/stage_ksun_susfs_candidate.py' in build_script
