@@ -116,3 +116,11 @@ Record: `docs/validation/ksun-susfs-6.1-local-image.json`. Built in the session 
 - The Neutron toolchain is now pinned for every build (`06092026`, SHA256 checked).
 - Next: the owner runs the workflow once, then tests on a device (boot, root, SUSFS, BBG); then rename the option back to `KernelSU Next + SUSFS`.
 
+
+## Checkpoint 2026-10-16 — sublevels 167–177 (latest)
+
+- The same verified series (core 001–003, frozen snapshot, features 001–005) was replayed strictly on all 18 pinned GKID 6.1 sublevels. **167–177 apply**; 160–166 fail only in `fs/namespace.c` (no `do_new_mount_fc` vendor hook before 6.1.167) and are **not** adapted.
+- Each passing sublevel is locked in `configs/ksun-susfs-6.1-features.lock.json` → `sublevels` (commit, core tree, frozen snapshot, final tree). 177 reproduces the device-tested identities `7e2b5164` / `3f08838c` / `978305ce` exactly.
+- `stage_ksun_susfs_candidate.py KERNEL KSUN SUBLEVEL` checks all three trees; `ksun_susfs_replay.py --kernel-commit`; `scripts/ksun_susfs_sublevel.py resolve|record`. `lts` = newest verified sublevel.
+- Found during the audit: sublevels 162–165 and 168 were pinned to vanilla Linux stable commits (no Android vendor hooks or GKI ABI lists). Repinned; `build.sh` now rejects such sources.
+- Evidence: `docs/validation/ksun-susfs-6.1-sublevels.json`. Remaining: owner build on a sublevel other than 177 and a device test.

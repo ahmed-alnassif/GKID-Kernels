@@ -58,6 +58,28 @@ class BrandTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "unsupported kernel string"):
             ba.brand(PINNED, "Cogan' ; reboot")
 
+    def test_rothko_build_flashes_only_on_rothko(self):
+        result = ba.brand(PINNED, STRING.replace("Cogan ", "Cogan-Rothko "), "SUSFS", "rothko")
+        self.assertIn("do.devicecheck=1\n", result)
+        self.assertIn("device.name1=rothko\n", result)
+        self.assertIn("device.name2=\n", result)
+        self.assertIn('ui_print "Device: Xiaomi 14T Pro (rothko)"\n', result)
+        self.assertLess(result.index("Features: SUSFS"), result.index("Device: Xiaomi"))
+        generic = ba.brand(PINNED, STRING)
+        self.assertIn("do.devicecheck=0\n", generic)
+        self.assertNotIn("Device:", generic)
+        with self.assertRaisesRegex(ValueError, "unsupported device"):
+            ba.brand(PINNED, STRING, "", "poco")
+        with self.assertRaisesRegex(ValueError, "expected one do.devicecheck"):
+            ba.brand(PINNED.replace("do.devicecheck=0\n", ""), STRING, "", "rothko")
+        with tempfile.TemporaryDirectory() as directory:
+            directory = Path(directory)
+            shutil.copy(FIXTURES / "ak3-gkid-anykernel.sh", directory / "anykernel.sh")
+            shutil.copy(FIXTURES / "ak3-gkid-banner", directory / "banner")
+            self.assertEqual(ba.main(["brand", str(directory), STRING, "SUSFS", "--device", "rothko"]), 0)
+            self.assertIn("device.name1=rothko", (directory / "anykernel.sh").read_text())
+            self.assertEqual(ba.main(["brand", str(directory), STRING, "--device"]), 2)
+
     def test_main_rewrites_script_and_banner(self):
         with tempfile.TemporaryDirectory() as directory:
             directory = Path(directory)
@@ -70,7 +92,7 @@ class BrandTests(unittest.TestCase):
     def test_build_passes_the_detected_features_to_the_banner(self):
         build = (ROOT / "build.sh").read_text(encoding="utf-8")
         self.assertIn('scripts/kernel_features.py" "$OUTDIR/.config" "$KSRC"', build)
-        self.assertIn('by Cogan (cogan17)" "$KERNEL_FEATURES" || exit 1', build)
+        self.assertIn('by Cogan (cogan17)" "$KERNEL_FEATURES" "${BRAND_ARGS[@]}" || exit 1', build)
 
     def test_build_uses_the_branding_script_not_the_old_sed(self):
         build = (ROOT / "build.sh").read_text()

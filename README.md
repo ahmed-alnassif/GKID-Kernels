@@ -33,6 +33,7 @@ Kernel generik yang dibangun dari sumber GKI 6.1 ([GKI-Duchamp-6.1](https://gith
 - **Performa**: timer 300 Hz, MGLRU, zRAM LZ4 + writeback, mq-deadline, kompresi F2FS, NTSync
 - **TMPFS**: xattr dan POSIX ACL
 - **Toolchain**: Neutron Clang (versi dikunci) dengan pilihan Full LTO, Thin LTO, atau tanpa LTO
+- **Xiaomi 14T Pro (rothko)**: kernel khusus HP ini dibangun di repo **[cogan17/Xiomi-14t-pro](https://github.com/cogan17/Xiomi-14t-pro)** dengan mesin build Cogan (root KSUN / BakaSU + SUSFS, ZIP yang hanya bisa di-flash di rothko, gate KMI terhadap modul vendor MediaTek/Xiaomi)
 - **Komponen terkunci**: kernel, root manager, SUSFS, NoMount, BBG, AnyKernel3 dan toolchain dipin ke commit tertentu, dan hanya diperbarui lewat **Cogan Manual Update**. Root manager dan NoMount mengikuti **tag rilis resmi**, jadi APK manager dan modul NoMount selalu versi yang sama dengan kernel
 
 ---
@@ -40,7 +41,8 @@ Kernel generik yang dibangun dari sumber GKI 6.1 ([GKI-Duchamp-6.1](https://gith
 ## Perangkat yang didukung
 
 - Perangkat dengan kernel stock **GKI `6.1.x-android14`**. Cek di *Setelan → Tentang ponsel → Spesifikasi lengkap → Versi kernel*.
-- Sublevel tersedia **6.1.160 ke atas**; `lts` = sublevel terbaru. Pilih sublevel yang **sama atau lebih baru** dari kernel stock Anda.
+- Sublevel tersedia **6.1.160 ke atas** (varian SUSFS: **6.1.167 ke atas**); `lts` = sublevel terbaru. Pilih sublevel yang **sama atau lebih baru** dari kernel stock Anda.
+- **Xiaomi 14T Pro (rothko)**: pakai build khusus dari [cogan17/Xiomi-14t-pro](https://github.com/cogan17/Xiomi-14t-pro).
 - Bootloader harus sudah terbuka.
 
 ---
@@ -52,8 +54,9 @@ Kernel generik yang dibangun dari sumber GKI 6.1 ([GKI-Duchamp-6.1](https://gith
 | KernelSU | `KernelSU` | KernelSU | ❌ | |
 | KernelSU + SUSFS | `KernelSU+SuSFS` | KernelSU | ✅ | |
 | KernelSU Next | `KernelSU-Next` | KernelSU Next | ❌ | |
-| KernelSU Next + SUSFS | `KernelSU-Next+SuSFS` | KernelSU Next (fork pershoot) | ✅ | Kernel **6.1.177 yang dikunci**, Full LTO, BBG aktif. BBRv3 dan paket jaringan tambahan **selalu aktif** (centang Networking diabaikan) |
+| KernelSU Next + SUSFS | `KernelSU-Next+SuSFS` | KernelSU Next (fork pershoot) | ✅ | Kernel **6.1.167–6.1.177** (`lts` = 177; tiap sublevel punya tree terkunci), Full LTO, BBG aktif. BBRv3 dan paket jaringan tambahan **selalu aktif** (centang Networking diabaikan) |
 | BakaSU + SUSFS | `BakaSU+SuSFS` | BakaSU | ✅ | |
+| KSUN + SUSFS & BakaSU + SUSFS | `KernelSU-Next+SuSFS` dan `BakaSU+SuSFS` | Keduanya, ZIP terpisah | ✅ | Dua varian di atas dalam satu run (aturan KSUN + SUSFS berlaku) |
 | Vanilla | `Vanilla` | ❌ | ❌ | Tanpa root |
 | All variants (advanced) | Semua varian standar + `Vanilla+NoLTO` + `Compat+…` | | | `Compat` tanpa LTO, untuk perangkat yang tidak mau boot dengan varian standar |
 
@@ -154,7 +157,7 @@ Buka **Actions → Cogan Kernel Builder → Run workflow** di repositori Anda.
 | LTO Package | Full LTO (default), Thin LTO, atau tanpa LTO; NoMount selalu ikut |
 | Kernel Version | Dikunci `6.1` |
 | Build Revision | Opsional, format `r` + angka (mis. `r9`). Dipakai di versi kernel (`6.1.177-Cogan-r9-…`), nama ZIP, banner flasher dan nama rilis; tanpa isian dipakai nomor run. Build ulang di hari yang sama? Naikkan revisinya (`r10`) agar nama rilis tidak bentrok |
-| Kernel Sublevel | `lts` = terbaru, atau angka saja (mis. `177`, bukan `6.1.177`); tersedia 6.1.160 ke atas |
+| Kernel Sublevel | `lts` = terbaru, atau angka saja (mis. `177`, bukan `6.1.177`); tersedia 6.1.160 ke atas, varian SUSFS 6.1.167 ke atas |
 | Build Time | `N` = waktu build asli, atau waktu tetap seperti `Thu Jan 1 00:00:00 UTC 2026` |
 | Networking | BBRv3 dan paket jaringan tambahan (default aktif; KSUN + SUSFS selalu aktif) |
 | BBG | Baseband Guard (default aktif) |
@@ -168,7 +171,7 @@ Buka **Actions → Cogan Kernel Builder → Run workflow** di repositori Anda.
 | `3-MANAGER-SPOOFED_<root manager>_<versi>.apk` | Manager yang sama, nama paket acak (lebih sulit dideteksi), dari build resmi tag yang sama: KernelSU Next dari rilisnya; BakaSU dari run Release tag-nya, disalin ke rilis internal `cogan-mirror` karena artifact Actions kedaluwarsa | Install **salah satu**: 2 atau 3 |
 | `4-NOMOUNT-MODULE_<versi>.zip` | Modul NoMount resmi, versi sama dengan NoMount di kernel | Pasang di manager → Modul |
 
-Artifact `build-…` dan `build-env-…` adalah file internal; abaikan saja. Ringkasan run berisi tabel yang sama beserta SHA256, dan baris **Fitur kernel** (mis. `SUSFS, BBRv3 (default), BBG, NoMount, Full LTO`) yang dibaca dari config hasil build. Baris yang sama muncul di Kernel Flasher saat flash. Semua versi ini dikunci bersama oleh **Cogan Manual Update**. Kalau upstream punya versi yang lebih baru (sublevel kernel GKID 6.1, SUSFS, root manager atau NoMount), ringkasan run menampilkan **🔔 Pengingat**: jalankan Cogan Manual Update (`update` → `kernel-6.1`, `susfs`, `root-managers` atau `nomount`), lalu build ulang. Pengingat SUSFS hanya muncul di varian SUSFS. Varian KSUN + SUSFS tidak mendapat pengingat kernel dan SUSFS karena kernelnya dikunci di 6.1.177.
+Artifact `build-…` dan `build-env-…` adalah file internal; abaikan saja. Ringkasan run berisi tabel yang sama beserta SHA256, dan baris **Fitur kernel** (mis. `SUSFS, BBRv3 (default), BBG, NoMount, Full LTO`) yang dibaca dari config hasil build. Baris yang sama muncul di Kernel Flasher saat flash. Semua versi ini dikunci bersama oleh **Cogan Manual Update**. Kalau upstream punya versi yang lebih baru (sublevel kernel GKID 6.1, SUSFS, root manager atau NoMount), ringkasan run menampilkan **🔔 Pengingat**: jalankan Cogan Manual Update (`update` → `kernel-6.1`, `susfs`, `root-managers` atau `nomount`), lalu build ulang. Pengingat SUSFS hanya muncul di varian SUSFS. Varian KSUN + SUSFS tidak mendapat pengingat kernel dan SUSFS: SUSFS-nya sumber v2 yang dibekukan, dan sublevel kernel baru baru bisa dipakai setelah tree-nya dicatat dengan `scripts/ksun_susfs_sublevel.py record`.
 
 **Memperbarui komponen:** buka **Actions → Cogan Manual Update**.
 - `check` hanya menampilkan laporan versi.

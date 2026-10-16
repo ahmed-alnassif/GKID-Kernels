@@ -97,6 +97,8 @@ def variant_section(env, lock, features_lock, repo):
     maybe = "" if features else " (bila aktif / if enabled)"
 
     lines = [f"### {variant} — Linux {linux}"]
+    if env.get("TARGET_DEVICE") == "rothko":
+        lines.append("- Perangkat / device: Xiaomi 14T Pro (rothko) — ZIP hanya untuk rothko / flashes on rothko only")
     if features:
         lines.append(f"- Fitur / features: {recorded}")
     kernel = env.get("KERNEL_SOURCE_BRANCH", "")

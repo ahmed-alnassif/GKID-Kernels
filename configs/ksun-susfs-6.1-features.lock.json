@@ -231,5 +231,96 @@
     "ksun_snapshot": "ce13bc5d783ad2b79409423f1c3343321cf0e304"
   },
   "integrated_kernel_tree_before_bbrv3": "1246bd4c9a0afc0859ecbc4ad91031dab65aa413",
-  "integrated_kernel_tree_before_bbr3_alias": "8109b744c5b6b3421bd7a70ffa90c24fb6492d02"
+  "integrated_kernel_tree_before_bbr3_alias": "8109b744c5b6b3421bd7a70ffa90c24fb6492d02",
+  "sublevels_note": "Kernel sublevels accepted for KSUN + SUSFS: the same verified series replayed strictly (no fuzz) on each pinned GKID 6.1 commit, with its core tree, frozen snapshot and feature tree locked. Only the GKID-6.1 tip (177) carries the GKID patch stack; older pins are plain android14-6.1-lts, so scripts/gkid_parity.py adds Cogan's GKID-equivalent stack (kernel-patches/common, removal of android/abi_gki_protected_exports_*) and final_kernel_tree locks the result. 177 is the device-tested identity above. Add a sublevel only with scripts/ksun_susfs_sublevel.py record; 160-166 do not apply (fs/namespace.c context) and stay unavailable.",
+  "sublevels": {
+    "167": {
+      "kernel_commit": "188af7e32c7cbacb6b9fad6222c92645de5dde0d",
+      "core_kernel_tree": "7859cdd49da386914e941571bc20ac831f0f0fd3",
+      "kernel_snapshot": "b1fbbda24fe1dc338a75b9a11497b12f81c39ef4",
+      "integrated_kernel_tree": "a7d70ca8fb25a260a95db27d35f9e4e1036b9d10",
+      "gkid_stack": false,
+      "final_kernel_tree": "a4bdaab938dd577c59f425b7ea5de8cec592b883"
+    },
+    "168": {
+      "kernel_commit": "91730563c95d91c019c63e89dee6d14ba4b9d000",
+      "core_kernel_tree": "c507fc77fb95abbf15113c5948c53e00187dea72",
+      "kernel_snapshot": "ddfb78231d8461b8689f942cd6a3013952d50727",
+      "integrated_kernel_tree": "92e979b474fcea11bb1c4e176dc5024d7a122f7f",
+      "gkid_stack": false,
+      "final_kernel_tree": "5f3ac8364e27a67afcf3311ba3b1819938cf3c24"
+    },
+    "169": {
+      "kernel_commit": "bbb1b305ef9dcb2f94dbf0504408032a65b47073",
+      "core_kernel_tree": "9508a75ab1eb3baba6b024e3a8e4f63885550977",
+      "kernel_snapshot": "2ba1723d799527528035134a4f14a0944f181b78",
+      "integrated_kernel_tree": "69ee3dfb87990beb6cf3ef3edc66445dab443cb7",
+      "gkid_stack": false,
+      "final_kernel_tree": "03892a0c0b2a3891f065ed88f8e83e1a3d477d68"
+    },
+    "170": {
+      "kernel_commit": "d7371afb22b1c6589a52e7cea3e2399ae2977412",
+      "core_kernel_tree": "33d0825aa59255f3885cd6248ff22436ba89c43d",
+      "kernel_snapshot": "927dd04ee09b1b8d25c48d45319cfc228a4ea56a",
+      "integrated_kernel_tree": "9d3371972f9388c5d1d40924b01eac61f3ab65ac",
+      "gkid_stack": false,
+      "final_kernel_tree": "e070003d0b80e51eccb0127ae8067f2d81fbadd1"
+    },
+    "171": {
+      "kernel_commit": "dd093409483f8cd5b495dfe6186cdee6713f8300",
+      "core_kernel_tree": "141072b57a0fc15fddb5daed6efda37f75361421",
+      "kernel_snapshot": "070b6c44b044a02853bf35acd44a162e7cb6307e",
+      "integrated_kernel_tree": "eb5fc2b604ebb9ed94ea2b6c9c07e5a4dd83e734",
+      "gkid_stack": false,
+      "final_kernel_tree": "10bfc35306b45f96e5770fa644628e882889a93e"
+    },
+    "172": {
+      "kernel_commit": "fec170e6409ce49bc009a879fddb47f9a1ad9f01",
+      "core_kernel_tree": "b3c54ef56b912ef22706cd244d11566b3f436758",
+      "kernel_snapshot": "74fe44c33a604659585d71604bd6486603ece852",
+      "integrated_kernel_tree": "affd5095ac30e5bf23c05aaaab4b9ecfc031e333",
+      "gkid_stack": false,
+      "final_kernel_tree": "5d0f98a2ad0a0a84942bcf3f17852c2f7d8f5ba6"
+    },
+    "173": {
+      "kernel_commit": "fca9c61b983f49374d193f67cdfeae3f68ec9af8",
+      "core_kernel_tree": "2e433ada73d5cc1205cca6c78c7d5fd3c88715ce",
+      "kernel_snapshot": "79a250f23090cf6182bb06ef49219ade3f3568ba",
+      "integrated_kernel_tree": "6c426170e775b6a22077a85bea5b15642b4ea62f",
+      "gkid_stack": false,
+      "final_kernel_tree": "37ed2eb66f99316ce758012523d5a413f3b803ab"
+    },
+    "174": {
+      "kernel_commit": "ae51c26d207ea801c5346f6d2773878bf0d9036d",
+      "core_kernel_tree": "0021fa16c963a3cbdc1aedf9f974d9c8fca0a59b",
+      "kernel_snapshot": "4618e3c7bd2b7b57b7630a6f57f83e5eab906c0e",
+      "integrated_kernel_tree": "9ec15b6c21f041534e455936ad7ec2fb3525c643",
+      "gkid_stack": false,
+      "final_kernel_tree": "6f07cafb1b4b52c677bd3d097a376707160a31e1"
+    },
+    "175": {
+      "kernel_commit": "bcff58130b54910112d233064b3b41b3c87d868f",
+      "core_kernel_tree": "ac934179928a4cd9f295d6bd7fcfeaf2a749f235",
+      "kernel_snapshot": "71dca68ed6c94c69ff8006465561a0ae39ca1d94",
+      "integrated_kernel_tree": "210d7a3f999a414ff9aaaca6b12862a886e48b24",
+      "gkid_stack": false,
+      "final_kernel_tree": "82fa07d09d7ee1f08c99245a34c8bfd8a4824991"
+    },
+    "176": {
+      "kernel_commit": "f26a1f4f9013533dd2b0de85e6813f948363a4ff",
+      "core_kernel_tree": "7047b2c3fdd682b358bc6ec6b359b2e92239388a",
+      "kernel_snapshot": "b3c6bb536b639ac2fdf3790922f9a58707afec7e",
+      "integrated_kernel_tree": "9ee9748a675fec4c81222f1995e86fab237b29d4",
+      "gkid_stack": false,
+      "final_kernel_tree": "f7d5a65d0b608f7f190ba220ab4b31eae97b9627"
+    },
+    "177": {
+      "kernel_commit": "a7ba124af5a535078d3f83b3e145f9cc8ec651b8",
+      "core_kernel_tree": "7e2b5164757d23fe0fbe3cd81ebec264769a0542",
+      "kernel_snapshot": "3f08838cbc5a94bf877df6a462dabb9118095314",
+      "integrated_kernel_tree": "978305ce758d533ddf72cfb6aac4019bee0954f3",
+      "gkid_stack": true,
+      "final_kernel_tree": "978305ce758d533ddf72cfb6aac4019bee0954f3"
+    }
+  }
 }

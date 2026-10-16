@@ -33,6 +33,7 @@ A generic kernel built from GKI 6.1 sources ([GKI-Duchamp-6.1](https://github.co
 - **Performance**: 300 Hz timer, MGLRU, zRAM LZ4 + writeback, mq-deadline, F2FS compression, NTSync
 - **TMPFS**: xattr and POSIX ACLs
 - **Toolchain**: Neutron Clang (pinned version) with Full LTO, Thin LTO or no LTO
+- **Xiaomi 14T Pro (rothko)**: the kernel for this phone is built in **[cogan17/Xiomi-14t-pro](https://github.com/cogan17/Xiomi-14t-pro)** with the Cogan build engine (KSUN / BakaSU + SUSFS root, a ZIP that flashes on rothko only, a KMI gate against the MediaTek/Xiaomi vendor modules)
 - **Pinned components**: the kernel, root managers, SUSFS, NoMount, BBG, AnyKernel3 and the toolchain are pinned to exact commits and are only updated through **Cogan Manual Update**. Root managers and NoMount follow **official release tags**, so the manager APK and NoMount module always match the kernel
 
 ---
@@ -40,7 +41,8 @@ A generic kernel built from GKI 6.1 sources ([GKI-Duchamp-6.1](https://github.co
 ## Supported devices
 
 - Devices whose stock kernel is **GKI `6.1.x-android14`**. Check *Settings → About phone → Detailed info and specs → Kernel version*.
-- Available sublevels: **6.1.160 and newer**; `lts` = the latest sublevel. Pick the **same or a newer** sublevel than your stock kernel.
+- Available sublevels: **6.1.160 and newer** (SUSFS variants: **6.1.167 and newer**); `lts` = the latest sublevel. Pick the **same or a newer** sublevel than your stock kernel.
+- **Xiaomi 14T Pro (rothko)**: use the dedicated build from [cogan17/Xiomi-14t-pro](https://github.com/cogan17/Xiomi-14t-pro).
 - The bootloader must be unlocked.
 
 ---
@@ -52,8 +54,9 @@ A generic kernel built from GKI 6.1 sources ([GKI-Duchamp-6.1](https://github.co
 | KernelSU | `KernelSU` | KernelSU | ❌ | |
 | KernelSU + SUSFS | `KernelSU+SuSFS` | KernelSU | ✅ | |
 | KernelSU Next | `KernelSU-Next` | KernelSU Next | ❌ | |
-| KernelSU Next + SUSFS | `KernelSU-Next+SuSFS` | KernelSU Next (pershoot fork) | ✅ | **Frozen 6.1.177** kernel, Full LTO, BBG enabled. BBRv3 and extra networking are **always on** (the Networking box is ignored) |
+| KernelSU Next + SUSFS | `KernelSU-Next+SuSFS` | KernelSU Next (pershoot fork) | ✅ | Kernel **6.1.167–6.1.177** (`lts` = 177; every sublevel has locked trees), Full LTO, BBG enabled. BBRv3 and extra networking are **always on** (the Networking box is ignored) |
 | BakaSU + SUSFS | `BakaSU+SuSFS` | BakaSU | ✅ | |
+| KSUN + SUSFS & BakaSU + SUSFS | `KernelSU-Next+SuSFS` and `BakaSU+SuSFS` | Both, separate ZIPs | ✅ | The two variants above in one run (KSUN + SUSFS rules apply) |
 | Vanilla | `Vanilla` | ❌ | ❌ | No root |
 | All variants (advanced) | All standard variants + `Vanilla+NoLTO` + `Compat+…` | | | `Compat` has no LTO, for devices that do not boot the standard variants |
 
@@ -154,7 +157,7 @@ Open **Actions → Cogan Kernel Builder → Run workflow** in your repository.
 | LTO Package | Full LTO (default), Thin LTO or no LTO; NoMount is always included |
 | Kernel Version | Locked to `6.1` |
 | Build Revision | Optional, `r` + digits (e.g. `r9`). Used in the kernel version (`6.1.177-Cogan-r9-…`), the ZIP name, the flasher banner and the release name; when empty, the run number is used. Rebuilding on the same day? Bump the revision (`r10`) so release names do not clash |
-| Kernel Sublevel | `lts` = latest, or just the number (e.g. `177`, not `6.1.177`); 6.1.160 and newer |
+| Kernel Sublevel | `lts` = latest, or just the number (e.g. `177`, not `6.1.177`); 6.1.160 and newer, SUSFS variants 6.1.167 and newer |
 | Build Time | `N` = real build time, or a fixed time such as `Thu Jan 1 00:00:00 UTC 2026` |
 | Networking | BBRv3 and extra networking (enabled by default; always on for KSUN + SUSFS) |
 | BBG | Baseband Guard (enabled by default) |
@@ -168,7 +171,7 @@ Open **Actions → Cogan Kernel Builder → Run workflow** in your repository.
 | `3-MANAGER-SPOOFED_<root manager>_<version>.apk` | The same manager with a random package name (harder to detect), from the official build of the same tag: KernelSU Next from its release; BakaSU from its tag's Release run, copied to the internal `cogan-mirror` release because Actions artifacts expire | Install **one**: 2 or 3 |
 | `4-NOMOUNT-MODULE_<version>.zip` | Official NoMount module, the same version as the NoMount in the kernel | Install in the manager → Modules |
 
-`build-…` and `build-env-…` artifacts are internal; ignore them. The run summary shows the same table with SHA256 values, plus a **Kernel features** line (e.g. `SUSFS, BBRv3 (default), BBG, NoMount, Full LTO`) read from the built config. The same line shows in Kernel Flasher while flashing. **Cogan Manual Update** pins all these versions together. When upstream has something newer (a GKID 6.1 kernel sublevel, SUSFS, a root manager or NoMount), the run summary shows a **🔔 Reminder**: run Cogan Manual Update (`update` → `kernel-6.1`, `susfs`, `root-managers` or `nomount`), then rebuild. The SUSFS reminder only appears on SUSFS variants. The KSUN + SUSFS variant gets no kernel or SUSFS reminder because its kernel is frozen at 6.1.177.
+`build-…` and `build-env-…` artifacts are internal; ignore them. The run summary shows the same table with SHA256 values, plus a **Kernel features** line (e.g. `SUSFS, BBRv3 (default), BBG, NoMount, Full LTO`) read from the built config. The same line shows in Kernel Flasher while flashing. **Cogan Manual Update** pins all these versions together. When upstream has something newer (a GKID 6.1 kernel sublevel, SUSFS, a root manager or NoMount), the run summary shows a **🔔 Reminder**: run Cogan Manual Update (`update` → `kernel-6.1`, `susfs`, `root-managers` or `nomount`), then rebuild. The SUSFS reminder only appears on SUSFS variants. The KSUN + SUSFS variant gets no kernel or SUSFS reminder: its SUSFS is the frozen v2 source, and a new kernel sublevel can only be used after its trees are recorded with `scripts/ksun_susfs_sublevel.py record`.
 
 **Updating components:** open **Actions → Cogan Manual Update**.
 - `check` only reports versions.

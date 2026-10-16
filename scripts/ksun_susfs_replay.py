@@ -28,6 +28,9 @@ def main():
     parser.add_argument("manifest", type=Path)
     parser.add_argument("--apply", action="store_true",
                         help="Apply verified patches; default only verifies inputs")
+    parser.add_argument("--kernel-commit",
+                        help="Expected HEAD instead of the manifest's kernel_commit "
+                             "(another locked sublevel; the patches stay the same)")
     args = parser.parse_args()
     try:
         tree = args.kernel.resolve(strict=True)
@@ -39,7 +42,7 @@ def main():
         if git(tree, "status", "--porcelain", "--untracked-files=all").stdout.strip():
             raise ValueError("kernel checkout is dirty; refusing replay")
         data = json.loads(manifest.read_text(encoding="utf-8"))
-        expected_head = data.get("kernel_commit")
+        expected_head = args.kernel_commit or data.get("kernel_commit")
         if not isinstance(expected_head, str) or not re.fullmatch(r"[0-9a-f]{40}", expected_head):
             raise ValueError("manifest requires immutable kernel_commit SHA")
         actual_head = git(tree, "rev-parse", "HEAD").stdout.strip()

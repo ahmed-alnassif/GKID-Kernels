@@ -76,6 +76,21 @@ class ReplayTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual((self.kernel / "sample.txt").read_text(), "before\n")
 
+    def test_kernel_commit_option_replaces_the_manifest_commit(self):
+        head = json.loads(self.manifest.read_text())["kernel_commit"]
+        data = json.loads(self.manifest.read_text())
+        data["kernel_commit"] = "0" * 40  # another sublevel's commit
+        self.manifest.write_text(json.dumps(data))
+        result = self.run_replay("--apply", "--kernel-commit", head)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((self.kernel / "sample.txt").read_text(), "after\n")
+
+    def test_kernel_commit_option_must_match_head(self):
+        for value in ("1" * 40, "HEAD", "abc"):
+            result = self.run_replay("--apply", "--kernel-commit", value)
+            self.assertNotEqual(result.returncode, 0, value)
+            self.assertEqual((self.kernel / "sample.txt").read_text(), "before\n")
+
     def test_second_patch_failure_leaves_checkout_clean(self):
         second = self.base / "second.patch"
         second.write_text(

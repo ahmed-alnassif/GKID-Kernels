@@ -79,6 +79,10 @@ def generate_matrix() -> Dict[str, List[Dict[str, Any]]]:
 		"KernelSU Next + SUSFS": [config(name="KSUN+SUSFS", KSU="KSUN", KSU_SUSFS="true")],
 		"KernelSU + SUSFS": [config(name="KSU+SUSFS", KSU="KSU", KSU_SUSFS="true")],
 		"BakaSU + SUSFS": [config(name="BSU+SUSFS", KSU="BSU", KSU_SUSFS="true")],
+		"KSUN + SUSFS & BakaSU + SUSFS": [
+			config(name="KSUN+SUSFS", KSU="KSUN", KSU_SUSFS="true"),
+			config(name="BSU+SUSFS", KSU="BSU", KSU_SUSFS="true"),
+		],
 		"Vanilla": [config(name="Vanilla", KSU="no")],
 	}
 	if manager in manager_configs:

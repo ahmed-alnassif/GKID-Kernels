@@ -16,6 +16,7 @@ on:
           - "KernelSU Next"
           - "KernelSU Next + SUSFS"
           - "BakaSU + SUSFS"
+          - "KSUN + SUSFS & BakaSU + SUSFS"
           - "Vanilla"
           - "All variants (advanced)"
 
@@ -48,7 +49,7 @@ on:
         default: ""
 
       KERNEL_SUBLEVEL:
-        description: "Kernel Sublevel: lts = terbaru, atau angka saja (mis. 177, bukan 6.1.177). Tersedia 6.1.160 ke atas"
+        description: "Kernel Sublevel: lts = terbaru, atau angka saja (mis. 177, bukan 6.1.177). Tersedia 6.1.160 ke atas; varian SUSFS 6.1.167 ke atas"
         type: string
         default: "lts"
 
@@ -120,14 +121,12 @@ jobs:
           BBG_INPUT: ${{ inputs.BBG }}
         run: |
           set -euo pipefail
-          if [[ "$ROOT_MANAGER_INPUT" == "KernelSU Next + SUSFS" ]]; then
-            # Built only from the frozen, device-tested candidate (Issue #19): 6.1.177, fullLTO, BBG on.
+          if [[ "$ROOT_MANAGER_INPUT" == "KernelSU Next + SUSFS" || "$ROOT_MANAGER_INPUT" == "KSUN + SUSFS & BakaSU + SUSFS" ]]; then
+            # The device-tested candidate (Issue #19): fullLTO, BBG on, a sublevel whose trees are locked.
             [[ "$KERNEL_VERSION_INPUT" == "6.1" && "${LTO_INPUT:-}" == fullLTO* && "${BBG_INPUT:-true}" == "true" ]] \
               || { echo "::error::KSUN+SUSFS needs kernel 6.1, a fullLTO package and BBG enabled" >&2; exit 1; }
-            case "$(echo "${KERNEL_SUBLEVEL_INPUT:-}" | tr '[:upper:]' '[:lower:]')" in
-              lts|auto|""|177) ;;
-              *) echo "::error::KSUN+SUSFS is built from the device-tested kernel 6.1.177 only (sublevel lts or 177)" >&2; exit 1 ;;
-            esac
+            python3 scripts/ksun_susfs_sublevel.py resolve "${KERNEL_SUBLEVEL_INPUT:-lts}" \
+              || { echo "::error::KSUN+SUSFS is not verified for sublevel ${KERNEL_SUBLEVEL_INPUT}" >&2; exit 1; }
           fi
           # Cogan builds kernel 6.1 only (owner decision 2026-10-16); the form offers nothing else.
           [[ "$KERNEL_VERSION_INPUT" == "6.1" ]] || { echo "::error::Cogan builds kernel 6.1 only" >&2; exit 1; }
@@ -140,6 +139,12 @@ jobs:
             # Available sublevels are the pinned ones in configs/upstream.lock.
             available="$(sed -n 's/^KERNEL_COMMIT_6_1_\([0-9][0-9]*\)=.*/\1/p' configs/upstream.lock | sort -n | tr '\n' ' ')"
             grep -q "^KERNEL_COMMIT_6_1_${SUBLEVEL}=" configs/upstream.lock || { echo "::error::Sublevel 6.1.${SUBLEVEL} is not available. Available: lts ${available}"; exit 1; }
+            # Every SUSFS variant needs 6.1.167+ (SUSFS_MIN_SUBLEVEL in build.sh): older trees
+            # lack the fs/namespace.c context of the SUSFS kernel patch.
+            case "$ROOT_MANAGER_INPUT" in
+              *SUSFS*|"All variants (advanced)")
+                (( SUBLEVEL >= 167 )) || { echo "::error::SUSFS variants need kernel 6.1.167 or newer (requested 6.1.${SUBLEVEL})"; exit 1; } ;;
+            esac
           fi
           if [[ "$BUILD_TIME_INPUT" != "N" ]]; then
             [[ "$BUILD_TIME_INPUT" =~ ^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)[[:space:]](Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[[:space:]][0-9]{1,2}[[:space:]][0-9]{2}:[0-9]{2}:[0-9]{2}[[:space:]]UTC[[:space:]][0-9]{4}$ ]] || { echo "::error::Invalid BUILD_TIME format"; exit 1; }
@@ -168,8 +173,10 @@ jobs:
             if [[ "${VALIDATION_OUTCOME}" != "success" ]]; then
               echo ""
               echo "**Persiapan gagal; kompilasi tidak dijalankan.**"
-              if [[ "${ROOT_MANAGER_INPUT}" == "KernelSU Next + SUSFS" ]]; then
-                echo "KSUN + SUSFS hanya dibangun dari kernel 6.1.177 yang sudah diuji di HP (sublevel lts atau 177), paket fullLTO dan BBG aktif."
+              if [[ "${ROOT_MANAGER_INPUT}" == "KernelSU Next + SUSFS" || "${ROOT_MANAGER_INPUT}" == "KSUN + SUSFS & BakaSU + SUSFS" ]]; then
+                echo "KSUN + SUSFS butuh paket fullLTO, BBG aktif dan sublevel yang sudah diverifikasi: lts atau 167–177."
+              elif [[ "${ROOT_MANAGER_INPUT}" == *SUSFS* || "${ROOT_MANAGER_INPUT}" == "All variants (advanced)" ]]; then
+                echo "Varian SUSFS butuh sublevel lts atau 167 ke atas. Periksa pesan error pertama pada langkah **Validate sublevel, build time and optional features**."
               else
                 echo "Periksa pesan error pertama pada langkah **Validate sublevel, build time and optional features**."
               fi
@@ -189,8 +196,10 @@ jobs:
             if [[ "${VALIDATION_OUTCOME}" != "success" ]]; then
               echo ""
               echo "**Preparation failed; no kernel compilation ran.**"
-              if [[ "${ROOT_MANAGER_INPUT}" == "KernelSU Next + SUSFS" ]]; then
-                echo "KSUN + SUSFS is only built from the device-tested kernel 6.1.177 (sublevel lts or 177), a fullLTO package and BBG enabled."
+              if [[ "${ROOT_MANAGER_INPUT}" == "KernelSU Next + SUSFS" || "${ROOT_MANAGER_INPUT}" == "KSUN + SUSFS & BakaSU + SUSFS" ]]; then
+                echo "KSUN + SUSFS needs a fullLTO package, BBG enabled and a verified sublevel: lts or 167–177."
+              elif [[ "${ROOT_MANAGER_INPUT}" == *SUSFS* || "${ROOT_MANAGER_INPUT}" == "All variants (advanced)" ]]; then
+                echo "SUSFS variants need sublevel lts or 167 and newer. Inspect the first error in **Validate sublevel, build time and optional features**."
               else
                 echo "Inspect the first error in **Validate sublevel, build time and optional features**."
               fi
@@ -282,6 +291,7 @@ jobs:
             echo "<details open><summary>🇮🇩 Bahasa Indonesia</summary>"
             echo ""
             echo "- Root manager: ${ROOT_MANAGER_INPUT}"
+            echo "- Kernel: ${LINUX_VERSION:-belum terbaca}"
             echo "- Networking: ${NETWORKING_INPUT}"
             echo "- BBG: ${BBG_INPUT}"
             echo "- Fitur kernel (dibaca dari config hasil build): ${KERNEL_FEATURES:-tidak terbaca}"
@@ -300,6 +310,7 @@ jobs:
             echo "<details><summary>🇬🇧 English</summary>"
             echo ""
             echo "- Root manager: ${ROOT_MANAGER_INPUT}"
+            echo "- Kernel: ${LINUX_VERSION:-not read}"
             echo "- Networking: ${NETWORKING_INPUT}"
             echo "- BBG: ${BBG_INPUT}"
             echo "- Kernel features (read from the built config): ${KERNEL_FEATURES:-unreadable}"
@@ -354,6 +365,7 @@ jobs:
           ANDROID_RELEASE=${{ env.ANDROID_RELEASE }}
           KERNEL_SOURCE_REPO=${{ env.KERNEL_SOURCE_REPO }}
           KERNEL_SOURCE_BRANCH=${{ env.KERNEL_SOURCE_BRANCH }}
+          TARGET_DEVICE=${{ env.TARGET_DEVICE }}
           EOF
 
           echo "BUILD_VARIANT=${{ matrix.name }}" >> build-env-${{ matrix.name }}.txt
@@ -401,7 +413,7 @@ jobs:
         run: |
           python3 scripts/prepare_downloads.py --ksu "$KSU_INPUT" --susfs "$KSU_SUSFS_INPUT" \
             --variant "$VARIANT" --release "$RELEASE" --linux-version "$LINUX_VERSION" \
-            --artifacts artifacts --out downloads --suffix "$NAME_SUFFIX" \
+            --artifacts artifacts --out downloads --suffix "$NAME_SUFFIX" --name "${KERNEL_LABEL:-Cogan}" \
             --github-output "$GITHUB_OUTPUT" --summary "$GITHUB_STEP_SUMMARY"
 
       - name: Upload 1 - kernel
