@@ -152,7 +152,7 @@ Open **Actions → Cogan Kernel Builder → Run workflow** in your repository.
 | Build Mode | `Standard Build` |
 | LTO Package | Full LTO (default), Thin LTO or no LTO; NoMount is always included |
 | Kernel Version | Locked to `6.1` |
-| Build Revision | Optional, `r` + digits (e.g. `r9`), added to the release name |
+| Build Revision | Optional, `r` + digits (e.g. `r9`). Shown in the kernel version (e.g. `6.1.177-Cogan-r9-…`) and the release name; when empty, the kernel version uses the run number |
 | Kernel Sublevel | `lts` = latest, or just the number (e.g. `177`, not `6.1.177`); 6.1.160 and newer |
 | Build Time | `N` = real build time, or a fixed time such as `Thu Jan 1 00:00:00 UTC 2026` |
 | Networking | BBRv3 and extra networking (enabled by default; always on for KSUN + SUSFS) |

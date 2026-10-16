@@ -152,7 +152,7 @@ Buka **Actions → Cogan Kernel Builder → Run workflow** di repositori Anda.
 | Build Mode | `Standard Build` |
 | LTO Package | Full LTO (default), Thin LTO, atau tanpa LTO; NoMount selalu ikut |
 | Kernel Version | Dikunci `6.1` |
-| Build Revision | Opsional, format `r` + angka (mis. `r9`), ditambahkan ke nama rilis |
+| Build Revision | Opsional, format `r` + angka (mis. `r9`). Muncul di versi kernel (mis. `6.1.177-Cogan-r9-…`) dan nama rilis; tanpa isian, versi kernel memakai nomor run |
 | Kernel Sublevel | `lts` = terbaru, atau angka saja (mis. `177`, bukan `6.1.177`); tersedia 6.1.160 ke atas |
 | Build Time | `N` = waktu build asli, atau waktu tetap seperti `Thu Jan 1 00:00:00 UTC 2026` |
 | Networking | BBRv3 dan paket jaringan tambahan (default aktif; KSUN + SUSFS selalu aktif) |
