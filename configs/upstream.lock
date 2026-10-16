@@ -11,7 +11,8 @@
 # 2026-10-16); *_MANAGER_APK / NOMOUNT_MODULE_ZIP are the assets of that same
 # release, shipped next to the kernel. First values: Manual Update runs
 # 38784986669 (root-managers) and 38785152962 (nomount), spoofed KSUN manager from
-# 38835123605; the ruleset refused the
+# 38835123605, spoofed BakaSU manager (mirrored to cogan-mirror) from 38836697116;
+# the ruleset refused the
 # bot's push, so their proposed pins were applied through a pull request.
 NEUTRON_RELEASE=06092026
 NEUTRON_SHA256=531083928c8e37f6b31e324dbfd0b5a8323f989b1c57ff2c1368b889b5b1bd30
@@ -23,6 +24,8 @@ BSU_COMMIT=239e1e8871b8fcd51a6e5b3002e0ba522fdd99fb
 BSU_REF=v4.2.0-rc3
 BSU_MANAGER_APK=ReSukiSU_v4.2.0-rc3_35171-universal-release.apk
 BSU_MANAGER_SHA256=38a7d56a9c133f5ec4d9d9fbbe8bdc38a12b4d098f6f55884c26019ed4ed56d2
+BSU_SPOOFED_APK=BakaSU-spoofed_ReSukiSU_v4.2.0-rc3_35171-universal-release.apk
+BSU_SPOOFED_SHA256=61fa7db0a0a8f6c1f4ec273e717746112ed0059096025fcd91b940d4af228c70
 KSUN_REF=v3.4.2
 KSUN_COMMIT=4c706b5938665866ebe16944a481a7b91e3396af
 KSUN_MANAGER_APK=KernelSU_Next_v3.4.2_33355-release.apk

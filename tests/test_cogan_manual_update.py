@@ -27,7 +27,8 @@ COMPANION_FIXTURE = {
     "KSUN_SPOOFED_APK": "KernelSU_Next_v3.4.2_33355-spoofed-release.apk", "KSUN_SPOOFED_SHA256": "5" * 64,
     "NOMOUNT_MODULE_ZIP": "NoMount-v2.1.1-release-7046c7a-120.zip", "NOMOUNT_MODULE_SHA256": "4" * 64,
 }
-FULL_LOCK = mu.write_lock(REAL_LOCK, COMPANION_FIXTURE)
+# BakaSU without a spoofed pin, whatever the real lock holds.
+FULL_LOCK = mu.write_lock(REAL_LOCK, {**COMPANION_FIXTURE, "BSU_SPOOFED_APK": None, "BSU_SPOOFED_SHA256": None})
 # The lock before any release-tag update: no optional keys at all.
 BARE_LOCK = "".join(line + "\n" for line in REAL_LOCK.splitlines()
                     if line.split("=", 1)[0] not in mu.ANCHORS)
@@ -256,6 +257,23 @@ class PlanTests(unittest.TestCase):
                                  self.lock["BSU_COMMIT"], "v4.2.0-rc3")])
         self.assertEqual(mu.PENDING_MIRROR[name], data)
         mu.PENDING_MIRROR.clear()
+
+    def test_expired_ci_artifact_keeps_the_mirrored_pin_until_the_tag_moves(self):
+        name = "BakaSU-spoofed_ReSukiSU_v4.2.0-rc3_35171-universal-release.apk"
+        pinned = mu.write_lock(FULL_LOCK, {"BSU_SPOOFED_APK": name, "BSU_SPOOFED_SHA256": "6" * 64})
+        lock = mu.read_lock(pinned)
+        rows, updates = plan(lock, {"root-managers"}, fake_lister(lock_text=pinned))  # artifact gone
+        self.assertEqual(updates, {})
+        self.assertTrue(next(r for r in rows if r[0] == "BakaSU")[-1].startswith("UP TO DATE"))
+        bsu_url = mu.PINS["BSU_COMMIT"][2]
+        lister = fake_lister({"BSU_COMMIT": NEW}, lock_text=pinned)
+        moved = {**lister(bsu_url, options=("--tags",)), "refs/tags/v4.2.0": NEW}
+
+        def moved_lister(url, *patterns, options=()):
+            return moved if url == bsu_url and "--tags" in options else lister(url, *patterns, options=options)
+        _, updates = plan(lock, {"root-managers"}, moved_lister)
+        self.assertEqual(updates["BSU_REF"], "v4.2.0")
+        self.assertIsNone(updates["BSU_SPOOFED_APK"])  # the new release has no spoofed build
 
     def test_ci_artifact_apk_picks_the_tag_push_run_and_the_universal_apk(self):
         commit = "a" * 40

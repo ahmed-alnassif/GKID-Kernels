@@ -529,6 +529,10 @@ def plan(lock, groups, lister=ls_remote, sublevel_of=kernel_sublevel, sha256_of=
         if pinned_assets:
             current_label += " · " + " + ".join(pinned_assets)
         same = commit == current and (tag is None or tag == lock.get(tag_key))
+        if same:
+            # Same tag: an optional asset that cannot be fetched now (an expired CI
+            # artifact, already mirrored) keeps its pin; only a new tag drops it.
+            found = {companion: value for companion, value in found.items() if value}
         for companion, value in found.items():
             same = same and (lock.get(companion.name_key), lock.get(companion.sha_key)) == (value or (None, None))
         if error:
