@@ -642,10 +642,15 @@ verify_pinned_checkout anykernel "$PIN_ANYKERNEL_COMMIT" "AnyKernel3"
 
 AK3_ZIP_NAME=${AK3_ZIP_NAME//REL/$RELEASE}
 sed -i -e "s/supported_kernel=\".*\"/supported_kernel=\"${KERNEL_VERSION}\"/g" "$WORKDIR/anykernel/anykernel.sh"
+# What this build really contains (SUSFS, BBRv3, BBG, NoMount, LTO), read from the
+# resolved config and the source tree; shown in the flasher and the run summary.
+KERNEL_FEATURES="$(python3 "$WORKDIR/scripts/kernel_features.py" "$OUTDIR/.config" "$KSRC" \
+  --github-env "${GITHUB_ENV:-/dev/null}")" || KERNEL_FEATURES=""
+log "Kernel features: ${KERNEL_FEATURES:-unreadable}"
 # Cogan name, banner and upstream credits in the flasher output. Fails closed if the
 # pinned AnyKernel3 layout changes, so the GKID branding can never ship silently.
 python3 "$WORKDIR/scripts/brand_anykernel.py" "$WORKDIR/anykernel" \
-  "${KERNEL_NAME} ${RELEASE} ${LINUX_VERSION} ${VARIANT} by Cogan (cogan17)" || exit 1
+  "${KERNEL_NAME} ${RELEASE} ${LINUX_VERSION} ${VARIANT} by Cogan (cogan17)" "$KERNEL_FEATURES" || exit 1
 
 cd anykernel
 log "Zipping anykernel"

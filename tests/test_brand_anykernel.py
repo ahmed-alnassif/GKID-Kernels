@@ -29,6 +29,19 @@ class BrandTests(unittest.TestCase):
             self.assertIn(line, result)
         self.assertTrue(all(len(line) <= 32 for line in ba.CREDITS))
 
+    def test_features_line_follows_the_cogan_name(self):
+        features = "SUSFS, BBRv3 (default), BBG, NoMount, Full LTO"
+        result = ba.brand(PINNED, STRING, features)
+        self.assertIn('ui_print "github.com/cogan17/Cogan"\nui_print "Features: ' + features + '"\n', result)
+        self.assertNotIn("Features:", ba.brand(PINNED, STRING))
+        with tempfile.NamedTemporaryFile("w", suffix=".sh") as handle:
+            handle.write(result)
+            handle.flush()
+            self.assertEqual(subprocess.run(["bash", "-n", handle.name]).returncode, 0)
+        for bad in ('SUSFS"; reboot', "BBRv3 $(id)", "SUSFS`id`"):
+            with self.assertRaisesRegex(ValueError, "features"):
+                ba.brand(PINNED, STRING, bad)
+
     def test_branded_script_is_valid_shell(self):
         with tempfile.NamedTemporaryFile("w", suffix=".sh") as handle:
             handle.write(ba.brand(PINNED, STRING))
@@ -53,6 +66,11 @@ class BrandTests(unittest.TestCase):
             self.assertEqual(ba.main(["brand", str(directory), STRING]), 0)
             self.assertEqual((directory / "banner").read_text(), ba.BANNER)
             self.assertIn(STRING, (directory / "anykernel.sh").read_text())
+
+    def test_build_passes_the_detected_features_to_the_banner(self):
+        build = (ROOT / "build.sh").read_text(encoding="utf-8")
+        self.assertIn('scripts/kernel_features.py" "$OUTDIR/.config" "$KSRC"', build)
+        self.assertIn('by Cogan (cogan17)" "$KERNEL_FEATURES" || exit 1', build)
 
     def test_build_uses_the_branding_script_not_the_old_sed(self):
         build = (ROOT / "build.sh").read_text()

@@ -7,15 +7,17 @@ Rewrites, fail closed:
   banner        GKID ASCII art -> Cogan ASCII art
 
 The AnyKernel3 line "AnyKernel3 by osm0sis @ xda-developers" comes from
-tools/ak3-core.sh and stays as it is.
+tools/ak3-core.sh and stays as it is. An optional FEATURES line (from
+kernel_features.py, i.e. the built config) is shown under the Cogan name.
 
-Usage: brand_anykernel.py ANYKERNEL_DIR "KERNEL STRING"
+Usage: brand_anykernel.py ANYKERNEL_DIR "KERNEL STRING" ["FEATURES"]
 """
 import re
 import sys
 from pathlib import Path
 
 KERNEL_STRING = re.compile(r"[A-Za-z0-9][A-Za-z0-9 ._+()-]*")
+FEATURES = re.compile(r"[A-Za-z0-9][A-Za-z0-9 ,._+()-]*")
 BANNER = r"""  ___
  / __|___  __ _ __ _ _ _
 | (__/ _ \/ _` / _` | ' \
@@ -45,9 +47,19 @@ BLOCK = [
 UPSTREAM_MARKERS = ("GKID", "t.me/", "Telegram", "Thank you for using", "community")
 
 
-def brand(script, kernel_string):
+def block(features=""):
+    if not features:
+        return BLOCK
+    if not FEATURES.fullmatch(features):
+        raise ValueError(f"unsupported features line: {features!r}")
+    at = BLOCK.index('ui_print "github.com/cogan17/Cogan"\n') + 1
+    return [*BLOCK[:at], f'ui_print "Features: {features}"\n', *BLOCK[at:]]
+
+
+def brand(script, kernel_string, features=""):
     if not KERNEL_STRING.fullmatch(kernel_string):
         raise ValueError(f"unsupported kernel string: {kernel_string!r}")
+    lines_to_insert = block(features)
     lines = script.splitlines(keepends=True)
     names = [i for i, line in enumerate(lines) if line.startswith("kernel.string=")]
     if len(names) != 1:
@@ -57,9 +69,9 @@ def brand(script, kernel_string):
     ends = [i for i, line in enumerate(lines) if "t.me/" in line]
     if len(starts) != 1 or len(ends) != 1 or ends[0] < starts[0]:
         raise ValueError("GKID support/community block not found in anykernel.sh")
-    lines[starts[0]:ends[0] + 1] = BLOCK
+    lines[starts[0]:ends[0] + 1] = lines_to_insert
     result = "".join(lines)
-    credits = set(BLOCK)
+    credits = set(lines_to_insert)
     leftover = [line.strip() for line in result.splitlines(keepends=True)
                 if line not in credits and any(marker in line for marker in UPSTREAM_MARKERS)]
     if leftover:
@@ -70,18 +82,19 @@ def brand(script, kernel_string):
 
 
 def main(argv):
-    if len(argv) != 3:
+    if len(argv) not in (3, 4):
         print(__doc__, file=sys.stderr)
         return 2
     root = Path(argv[1])
+    features = argv[3] if len(argv) == 4 else ""
     try:
         script = root / "anykernel.sh"
-        script.write_text(brand(script.read_text(encoding="utf-8"), argv[2]), encoding="utf-8")
+        script.write_text(brand(script.read_text(encoding="utf-8"), argv[2], features), encoding="utf-8")
         (root / "banner").write_text(BANNER, encoding="utf-8")
     except (OSError, ValueError) as exc:
         print("BLOCKED: AnyKernel3 branding: " + str(exc), file=sys.stderr)
         return 1
-    print(f"AnyKernel3 branded: kernel.string={argv[2]}")
+    print(f"AnyKernel3 branded: kernel.string={argv[2]}" + (f"; features: {features}" if features else ""))
     return 0
 
 
