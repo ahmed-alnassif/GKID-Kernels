@@ -1,0 +1,115 @@
+name: Hapus branch lama (sekali pakai)
+
+# One-time cleanup (owner approval 2026-10-16, W7): deletes only the 22 branches of closed
+# PRs #1-#26 listed in docs/archive/old-branches.tsv, and only while each branch still
+# points at its archived commit and is not the head of an open pull request. The owner
+# turns "Restrict deletions" off in ruleset GW before the run and back on after it.
+# Remove this workflow once the branches are gone.
+
+on:
+  workflow_dispatch:
+    inputs:
+      konfirmasi:
+        description: "Ketik HAPUS untuk benar-benar menghapus branch dari arsip. Kosong = cek saja, tidak ada yang dihapus."
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: delete-old-branches
+  cancel-in-progress: false
+
+jobs:
+  delete-old-branches:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch archive
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 1
+
+      - name: Compare the archive with the repository branches
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          git ls-remote --heads origin > remote-heads.txt
+          gh api --paginate "repos/$REPO/pulls?state=open&per_page=100" --jq '.[].head.ref' > open-pr-heads.txt
+          python3 - <<'PY'
+          import os, re
+          from pathlib import Path
+          # Never touched, even if someone adds them to the archive by mistake.
+          KEEP = {"dev", "master", "feat/optional-sublevel-disable-droidspaces", os.environ["DEFAULT_BRANCH"]}
+          archive = {}
+          for line in Path("docs/archive/old-branches.tsv").read_text().splitlines():
+              if not line or line.startswith("#"):
+                  continue
+              branch, commit = line.split("\t")[:2]
+              if not re.fullmatch(r"[A-Za-z0-9._/-]+", branch) or ".." in branch or not re.fullmatch(r"[0-9a-f]{40}", commit):
+                  raise SystemExit(f"Bad archive line: {line!r}")
+              if branch in KEEP or branch.startswith("claude/"):
+                  raise SystemExit(f"Archive lists a branch that must stay ({branch}); refusing to run")
+              archive[branch] = commit
+          remote = {}
+          for line in Path("remote-heads.txt").read_text().splitlines():
+              sha, ref = line.split("\t")
+              remote[ref[len("refs/heads/"):]] = sha
+          open_heads = set(Path("open-pr-heads.txt").read_text().split())
+          plan, gone, moved, in_pr = [], [], [], []
+          for branch, commit in archive.items():
+              if branch not in remote:
+                  gone.append(branch)
+              elif remote[branch] != commit:
+                  moved.append(f"{branch} ({remote[branch][:8]}, arsip {commit[:8]})")
+              elif branch in open_heads:
+                  in_pr.append(branch)
+              else:
+                  plan.append(branch)
+          Path("delete-plan.txt").write_text("".join(b + "\n" for b in plan))
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
+              summary.write("## Hapus branch lama\n\n")
+              summary.write(f"- Di arsip: {len(archive)}\n- Akan dihapus: **{len(plan)}**\n")
+              summary.write(f"- Sudah tidak ada: {len(gone)}\n")
+              summary.write(f"- Dilewati, commit berubah: {len(moved)}" + (": " + ", ".join(moved) if moved else "") + "\n")
+              summary.write(f"- Dilewati, masih dipakai PR terbuka: {len(in_pr)}"
+                            + (": " + ", ".join(in_pr) if in_pr else "") + "\n")
+          print(f"{len(plan)} to delete, {len(gone)} already gone, {len(moved)} moved, {len(in_pr)} in open PRs")
+          PY
+
+      - name: Delete the planned branches
+        if: inputs.konfirmasi == 'HAPUS'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          deleted=0 failed=0
+          while IFS= read -r branch; do
+            if gh api -X DELETE "repos/$REPO/git/refs/heads/$branch" > /dev/null 2> error.txt; then
+              deleted=$((deleted + 1))
+            else
+              failed=$((failed + 1))
+              echo "::warning::$branch: $(head -c 200 error.txt)"
+            fi
+          done < delete-plan.txt
+          {
+            echo "- **Terhapus: $deleted**, gagal: $failed"
+            if [ "$failed" -gt 0 ]; then
+              echo "- Gagal biasanya karena aturan *Restrict deletions* di ruleset GW masih aktif: matikan sementara, lalu jalankan lagi."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          [ "$failed" -eq 0 ]
+
+      - name: Check only
+        if: inputs.konfirmasi != 'HAPUS'
+        run: echo "- Cek saja; tidak ada yang dihapus. Jalankan lagi dengan konfirmasi HAPUS." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Reminder
+        if: always()
+        run: echo "- ⚠️ Setelah selesai, nyalakan lagi **Restrict deletions** di Settings → Rules → Rulesets → GW." >> "$GITHUB_STEP_SUMMARY"

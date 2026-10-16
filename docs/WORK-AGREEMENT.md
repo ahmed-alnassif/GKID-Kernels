@@ -112,6 +112,8 @@ git push origin --delete \
 
 Semua branch diproteksi ruleset; bila ditolak, nonaktifkan sementara aturan *Restrict deletions* di Settings → Rules, atau hapus satu per satu di halaman Branches.
 
+**Workflow sekali pakai (2026-10-16):** owner mematikan *Restrict deletions* di ruleset GW, lalu **Actions → Hapus branch lama (sekali pakai)**: isian kosong = cek saja, `HAPUS` = hapus. Daftar + commit ujung ada di `docs/archive/old-branches.tsv`; branch yang commit-nya berubah atau masih dipakai PR terbuka dilewati, dan `dev`, `master`, `claude/*`, `feat/optional-sublevel-disable-droidspaces` membuat workflow menolak jalan. **Setelah itu nyalakan lagi *Restrict deletions*.** Workflow dihapus setelah dipakai.
+
 ## G. Hapus tag rilis lama milik Ahmed (W15, dijalankan owner)
 
 ```sh

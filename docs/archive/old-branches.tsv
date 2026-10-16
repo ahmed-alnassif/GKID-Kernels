@@ -1,0 +1,25 @@
+# Branch lama PR #1-#26 (sudah ditutup) yang dihapus owner lewat workflow sekali pakai (W7, 2026-10-16).
+# Commit tetap tersimpan di refs/pull/<N>/head. Pulihkan satu branch: git push origin <commit>:refs/heads/<branch>
+# branch<TAB>commit
+fix/susfs-config-strict-issue-19	d4ee78f9ca66581cdcfac7be7846c2220601ad75
+fix/susfs-patch-fail-fast-issue-19	a6c7d22c3838e392584c24c7c8fb802c4bd4f03a
+fix/ksun-pin-verified-tag	6e568c4229343b15b7fdd6a06f341e144131b799
+fix/ksun-checkout-provenance	a0344e744ac97b60b74fe09ca2209b214124e77a
+fix/log-ksun-installed-revision	a9c96b48ea6a9ae480e78edfe344fb77e1b09ff4
+fix/root-installer-download-safety	d9f5e6087496021e23fcc1d7f4b3a060de964786
+test/ksun-susfs-safety-gate	fa8786d2690ef444e7ec04093d851e61800bacf7
+ui/root-manager-first	ee48b4975deb88df9ea7b79c4904361a0332e2fb
+feature/root-manager-dropdown	e61faafdcab4615f92bb312352180741d90d6e48
+ci/safer-mobile-build-defaults	414ee987d6a907ac3db087961a7cf5d0edad35fd
+feature/cogan-build-identity	46dfac125d3bbff74b2c2f1c1f353e4d880436d8
+cleanup/remove-unused-nethunter-assets	fb382d28db606b7f58293212b1d8ea149664b734
+cleanup/remove-nethunter-wirelessksu	4079d49d95cb810fa3889a5d5d05d608a4cdacb7
+cleanup/remove-telegram-actions	b152e8b5bac00798a731b94613fa5c45f8e270c2
+fix/release-success-gate	dbfd513c377bc5df236c49e6ed7bc54fe98aab5b
+fix/cache-release-build-order	6b0cdabe34cefb23512b6b0dcfd8caba6a7d31da
+ci/manual-upstream-provenance	7ffa33a5f8dc45874e9c4a6b604318981fb5fca8
+feat/upstream-provenance-collector	819601d8c4714d7525a641dbf73b42c9d9c8fcd5
+docs/root-manager-upstream-baseline	d3d2bbb67054e0e9f63db17956fcece2d4623a75
+test/root-matrix-regression	1663ab0138ad378b561cc55cf1e0e2ff09b093f7
+fix/disable-optional-notifications	dc60a3c66ad7f6a931b12eb18b880897a4e2f4c6
+feature/ksun-optional-build	123bf54220786f8980cb4d55d45e3ee95d7e05e1
