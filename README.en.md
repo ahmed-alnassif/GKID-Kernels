@@ -92,12 +92,16 @@ Open **Actions → Cogan Kernel Builder → Run workflow** in your repository.
 | Networking | BBRv3 and extra networking (enabled by default) |
 | BBG | Baseband Guard (enabled by default) |
 
-**Build output:** a green run lists three artifacts you can download directly (no extraction needed):
-- `Cogan-<variant>-….zip`: the kernel (AnyKernel3 ZIP), flashed with Kernel Flasher;
-- `Cogan-<variant>-<manager APK>.apk`: the official root manager from the same release tag as the kernel;
-- `Cogan-<variant>-NoMount-….zip`: the official NoMount module, the same version as the NoMount in the kernel.
+**Build output:** a green run lists numbered artifacts you can download directly (no extraction needed):
 
-All SHA256 values are in the run summary. **Cogan Manual Update** pins these three versions together. When upstream publishes a newer release, the run summary shows a **🔔 Reminder**: run Cogan Manual Update (`update` → `root-managers` or `nomount`), then rebuild so the kernel, root manager and NoMount move up together.
+| File | What | How to use |
+|---|---|---|
+| `1-KERNEL_Cogan-6.1.x_<variant>_<release>.zip` | Kernel (AnyKernel3 ZIP) | Flash with Kernel Flasher |
+| `2-MANAGER_<root manager>_<version>.apk` | Official root manager, same release tag as the kernel | Install the APK |
+| `3-MANAGER-SPOOFED_<root manager>_<version>.apk` | The same manager with a random package name (harder to detect); only when the official release publishes one, currently KernelSU Next | Install **one**: 2 or 3 |
+| `4-NOMOUNT-MODULE_<version>.zip` | Official NoMount module, the same version as the NoMount in the kernel | Install in the manager → Modules |
+
+`build-…` and `build-env-…` artifacts are internal; ignore them. The run summary shows the same table with SHA256 values. **Cogan Manual Update** pins all these versions together. When upstream publishes a newer release, the run summary shows a **🔔 Reminder**: run Cogan Manual Update (`update` → `root-managers` or `nomount`), then rebuild so the kernel, root manager and NoMount move up together.
 
 **Updating components:** open **Actions → Cogan Manual Update**.
 - `check` only reports versions.

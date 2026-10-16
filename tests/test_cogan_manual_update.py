@@ -17,6 +17,8 @@ COMPANION_FIXTURE = {
     "KSU_MANAGER_APK": "KernelSU_v3.3.1_32211-release.apk", "KSU_MANAGER_SHA256": "1" * 64,
     "BSU_MANAGER_APK": "BakaSU_v4.2.0-rc3_35222-release.apk", "BSU_MANAGER_SHA256": "2" * 64,
     "KSUN_MANAGER_APK": "KernelSU_Next_v3.4.2_33355-release.apk", "KSUN_MANAGER_SHA256": "3" * 64,
+    # KernelSU Next publishes a spoofed manager; this BakaSU release does not.
+    "KSUN_SPOOFED_APK": "KernelSU_Next_v3.4.2_33355-spoofed-release.apk", "KSUN_SPOOFED_SHA256": "5" * 64,
     "NOMOUNT_MODULE_ZIP": "NoMount-v2.1.1-release-7046c7a-120.zip", "NOMOUNT_MODULE_SHA256": "4" * 64,
 }
 FULL_LOCK = mu.write_lock(REAL_LOCK, COMPANION_FIXTURE)
@@ -56,16 +58,24 @@ def fake_lister(overrides=None, tags=None, neutron=None, lock_text=None):
 
 
 def fake_assets(drop=()):
-    """Release assets: the recorded companion plus a spoofed APK and a bare binary."""
+    """Release assets: the recorded companions plus a debug APK and a bare binary.
+
+    drop names pin keys (whole release missing) or asset keys (that asset missing).
+    """
     def assets_of(repo, tag):
-        for key, companion in mu.COMPANIONS.items():
-            if companion.repo == repo and key not in drop:
+        assets = []
+        for key, companions in mu.COMPANIONS.items():
+            for companion in companions:
+                if companion.repo != repo or key in drop or companion.name_key in drop \
+                        or companion.name_key not in COMPANION_FIXTURE:
+                    continue
                 name = COMPANION_FIXTURE[companion.name_key]
-                return [{"name": name, "url": "https://example.invalid/" + name,
-                         "digest": "sha256:" + COMPANION_FIXTURE[companion.sha_key]},
-                        {"name": "spoofed_" + name, "url": "https://example.invalid/s", "digest": ""},
-                        {"name": "ksud-aarch64-linux-android", "url": "https://example.invalid/k", "digest": ""}]
-        return []
+                assets.append({"name": name, "url": "https://example.invalid/" + name,
+                               "digest": "sha256:" + COMPANION_FIXTURE[companion.sha_key]})
+        if assets:
+            assets += [{"name": "manager-debug.apk", "url": "https://example.invalid/d", "digest": ""},
+                       {"name": "ksud-aarch64-linux-android", "url": "https://example.invalid/k", "digest": ""}]
+        return assets
     return assets_of
 
 
@@ -126,7 +136,9 @@ class PlanTests(unittest.TestCase):
     def test_everything_up_to_date_proposes_nothing(self):
         rows, updates = plan(self.lock, set(mu.GROUPS), fake_lister())
         self.assertEqual(updates, {})
-        self.assertTrue(all(row[-1] == "UP TO DATE" for row in rows))
+        self.assertTrue(all(row[-1].startswith("UP TO DATE") for row in rows), rows)
+        bakasu = next(row for row in rows if row[0] == "BakaSU")
+        self.assertIn("no usable spoofed .apk", bakasu[-1])  # noted, never blocking
 
     def test_update_limited_to_selected_group(self):
         lister = fake_lister({"KSU_COMMIT": NEW, "SUSFS_COMMIT_6_1": NEW})
@@ -185,6 +197,30 @@ class PlanTests(unittest.TestCase):
         row = next(row for row in rows if row[0] == "NoMount source")
         self.assertIn("no usable .zip", row[-1])
 
+    def test_spoofed_manager_is_pinned_only_when_the_release_publishes_it(self):
+        bare = mu.read_lock(BARE_LOCK)
+        _, updates = plan(bare, {"root-managers"}, fake_lister(lock_text=BARE_LOCK))
+        self.assertEqual(updates["KSUN_SPOOFED_APK"], COMPANION_FIXTURE["KSUN_SPOOFED_APK"])
+        self.assertEqual(updates["KSUN_SPOOFED_SHA256"], "5" * 64)
+        self.assertNotIn("BSU_SPOOFED_APK", updates)
+        lines = mu.write_lock(BARE_LOCK, updates).splitlines()
+        start = lines.index("KSUN_COMMIT=" + bare["KSUN_COMMIT"])
+        self.assertEqual([line.split("=")[0] for line in lines[start + 1:start + 5]],
+                         ["KSUN_MANAGER_APK", "KSUN_MANAGER_SHA256", "KSUN_SPOOFED_APK", "KSUN_SPOOFED_SHA256"])
+
+    def test_spoofed_manager_dropped_by_a_new_release_is_removed(self):
+        tags = {"refs/tags/v3.4.3": NEW}
+        _, updates = plan(self.lock, {"root-managers"}, fake_lister(tags=tags),
+                          assets_of=fake_assets(drop=("KSUN_SPOOFED_APK",)))
+        self.assertEqual(updates["KSUN_REF"], "v3.4.3")
+        self.assertIsNone(updates["KSUN_SPOOFED_APK"])
+        self.assertIsNone(updates["KSUN_SPOOFED_SHA256"])
+        written = mu.read_lock(mu.write_lock(FULL_LOCK, updates))
+        self.assertNotIn("KSUN_SPOOFED_APK", written)
+        self.assertEqual(written["KSUN_MANAGER_APK"], COMPANION_FIXTURE["KSUN_MANAGER_APK"])
+        with self.assertRaisesRegex(ValueError, "Only optional keys"):
+            mu.write_lock(FULL_LOCK, {"KSU_COMMIT": None})
+
     def test_new_manager_asset_on_same_tag_is_an_update(self):
         lister = fake_lister()
         assets = lambda repo, tag: [{"name": "KernelSU_v3.3.1_32212-release.apk", "url": "u",
@@ -199,6 +235,8 @@ class PlanTests(unittest.TestCase):
             "KernelSU_Next_v3.4.2_33355-spoofed-release.apk", "KernelSU_Next_v3.4.2_33355-debug.apk",
             "KernelSU_Next_v3.4.2_33355-release.apk", "KernelSU_Next_v3.4.2_33355.apk", "AnyKernel3-x.zip")]
         self.assertEqual(mu.pick_asset(assets, ".apk")["name"], "KernelSU_Next_v3.4.2_33355-release.apk")
+        self.assertEqual(mu.pick_asset(assets, ".apk", spoofed=True)["name"],
+                         "KernelSU_Next_v3.4.2_33355-spoofed-release.apk")
         # BakaSU v4.2.0-rc3 as published: per-ABI splits plus a universal APK.
         bakasu = [{"name": f"ReSukiSU_v4.2.0-rc3_35171-{abi}-release.apk", "url": "u", "digest": ""}
                   for abi in ("arm64-v8a", "armeabi-v7a", "universal", "x86_64")]

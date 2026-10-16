@@ -1,0 +1,163 @@
+#!/usr/bin/env python3
+"""Offline tests for prepare_downloads.py: clear names, matching manager/NoMount, summary."""
+import hashlib
+import tempfile
+import unittest
+from pathlib import Path
+from unittest import mock
+
+from scripts import prepare_downloads as pd
+
+ROOT = Path(__file__).resolve().parents[1]
+# The real pins without any recorded release tags/assets; each test adds its own.
+REAL_LOCK = "".join(line + "\n" for line in (ROOT / "configs/upstream.lock").read_text().splitlines()
+                    if line.split("=", 1)[0] not in pd.mu.ANCHORS)
+APK, SPOOFED, ZIP = b"official manager apk", b"official spoofed apk", b"official nomount module"
+FIXTURE = {
+    "KSU_REF": "v3.3.1", "KSU_MANAGER_APK": "KernelSU_v3.3.1_32680-release.apk",
+    "KSU_MANAGER_SHA256": hashlib.sha256(APK).hexdigest(),
+    "BSU_REF": "v4.2.0-rc3", "BSU_MANAGER_APK": "ReSukiSU_v4.2.0-rc3_35171-universal-release.apk",
+    "BSU_MANAGER_SHA256": hashlib.sha256(APK).hexdigest(),
+    "KSUN_MANAGER_APK": "KernelSU_Next_v3.4.2_33355-release.apk",
+    "KSUN_MANAGER_SHA256": hashlib.sha256(APK).hexdigest(),
+    "KSUN_SPOOFED_APK": "KernelSU_Next_v3.4.2_33355-spoofed-release.apk",
+    "KSUN_SPOOFED_SHA256": hashlib.sha256(SPOOFED).hexdigest(),
+    "NOMOUNT_REF": "v2.1.1", "NOMOUNT_MODULE_ZIP": "NoMount-v2.1.1-release-7046c7a-555.zip",
+    "NOMOUNT_MODULE_SHA256": hashlib.sha256(ZIP).hexdigest(),
+}
+
+
+class PrepareDownloadsTests(unittest.TestCase):
+    def run_main(self, ksu, susfs="false", variant="BakaSU+SuSFS", lock_updates=FIXTURE, tags=None,
+                 files=None, upstream=None, suffix="", kernel=True):
+        lock_text = pd.mu.write_lock(REAL_LOCK, dict(lock_updates))
+        lock = pd.mu.read_lock(lock_text)
+        tags = tags or {"tiann/KernelSU": lock["KSU_COMMIT"], "Baka-SU/BakaSU": lock["BSU_COMMIT"],
+                        "KernelSU-Next/KernelSU-Next": lock["KSUN_COMMIT"],
+                        "maxsteeel/nomount": lock["NOMOUNT_COMMIT"]}
+        files = files or {}
+        fetched = []
+        pinned_tags = {pd.mu.PINS[key][2]: (lock.get(tag_key), lock[key])
+                       for key, tag_key in pd.mu.TAG_KEYS.items()}
+
+        def lister(url, *patterns, options=()):
+            if "--tags" in options:  # upstream release list: the pinned tag plus any newer one
+                tag, commit = pinned_tags[url]
+                return {**({f"refs/tags/{tag}": commit} if tag else {}), **(upstream or {}).get(url, {})}
+            repo = url[len("https://github.com/"):-len(".git")]
+            return {patterns[0]: tags[repo]}
+
+        def fetch(url):
+            fetched.append(url)
+            name = url.rsplit("/", 1)[1]
+            if name in files:
+                return files[name]
+            return ZIP if name.endswith(".zip") else SPOOFED if "spoofed" in name else APK
+
+        with tempfile.TemporaryDirectory() as directory:
+            directory = Path(directory)
+            (directory / "upstream.lock").write_text(lock_text)
+            artifacts = directory / "artifacts"
+            artifacts.mkdir()
+            if kernel:
+                (artifacts / f"Cogan-{variant}-v26.10.16-r15-6.1.177.zip").write_bytes(b"kernel")
+            (artifacts / "build.log").write_text("log")
+            output, summary = directory / "out.txt", directory / "summary.md"
+            with mock.patch.object(pd.mu, "LOCK", directory / "upstream.lock"):
+                status = pd.main(["--ksu", ksu, "--susfs", susfs, "--variant", variant,
+                                  "--release", "v26.10.16-r15", "--linux-version", "6.1.177",
+                                  "--artifacts", str(artifacts), "--out", str(directory / "downloads"),
+                                  "--suffix", suffix, "--github-output", str(output), "--summary", str(summary)],
+                                 lister=lister, fetch=fetch)
+            outputs = dict(line.split("=", 1) for line in output.read_text().splitlines()) if output.exists() else {}
+            saved = sorted(p.name for p in (directory / "downloads").glob("*")) \
+                if (directory / "downloads").exists() else []
+            return status, outputs, saved, summary.read_text(), fetched
+
+    def test_bakasu_downloads_are_numbered_and_named_by_what_they_are(self):
+        status, outputs, saved, summary, fetched = self.run_main("BSU")
+        self.assertEqual(status, 0, summary)
+        self.assertEqual(saved, ["1-KERNEL_Cogan-6.1.177_BakaSU+SuSFS_v26.10.16-r15.zip",
+                                 "2-MANAGER_BakaSU_v4.2.0-rc3.apk",
+                                 "4-NOMOUNT-MODULE_v2.1.1.zip"])
+        self.assertEqual(set(outputs), {"kernel", "manager", "nomount"})
+        self.assertIn("| 1 | `1-KERNEL_Cogan-6.1.177_BakaSU+SuSFS_v26.10.16-r15.zip` |", summary)
+        self.assertIn("Kernel Flasher", summary)
+        self.assertIn("rilis resmi tidak menyertakan manager spoofed", summary)  # BakaSU publishes none
+        self.assertIn("https://github.com/Baka-SU/BakaSU/releases/download/v4.2.0-rc3/"
+                      "ReSukiSU_v4.2.0-rc3_35171-universal-release.apk", fetched)
+        self.assertIn("Abaikan / ignore `build-…`", summary)
+
+    def test_kernelsu_next_ships_normal_and_spoofed_manager(self):
+        status, outputs, saved, summary, _ = self.run_main("KSUN", variant="KernelSU-Next")
+        self.assertEqual(status, 0, summary)
+        self.assertEqual(saved, ["1-KERNEL_Cogan-6.1.177_KernelSU-Next_v26.10.16-r15.zip",
+                                 "2-MANAGER_KernelSU-Next_v3.4.2.apk",
+                                 "3-MANAGER-SPOOFED_KernelSU-Next_v3.4.2.apk",
+                                 "4-NOMOUNT-MODULE_v2.1.1.zip"])
+        self.assertEqual(set(outputs), {"kernel", "manager", "spoofed", "nomount"})
+        self.assertIn("pilih 2 **atau** 3", summary)
+
+    def test_multi_variant_runs_get_a_suffix_so_names_never_collide(self):
+        _, _, saved, _, _ = self.run_main("KSU", variant="KernelSU+SuSFS", suffix="_6.1-KSU+SUSFS")
+        self.assertIn("2-MANAGER_KernelSU_v3.3.1_6.1-KSU+SUSFS.apk", saved)
+        self.assertIn("4-NOMOUNT-MODULE_v2.1.1_6.1-KSU+SUSFS.zip", saved)
+
+    def test_wrong_checksum_fails_but_the_kernel_is_still_prepared(self):
+        status, outputs, saved, summary, _ = self.run_main(
+            "KSU", variant="KernelSU", files={"KernelSU_v3.3.1_32680-release.apk": b"tampered"})
+        self.assertEqual(status, 1)
+        self.assertIn("kernel", outputs)
+        self.assertNotIn("manager", outputs)
+        self.assertNotIn("2-MANAGER_KernelSU_v3.3.1.apk", saved)
+        self.assertIn("does not match the pinned", summary)
+
+    def test_moved_tag_fails_before_download(self):
+        lock = pd.mu.read_lock(REAL_LOCK)
+        status, _, _, summary, fetched = self.run_main(
+            "KSU", variant="KernelSU", tags={"tiann/KernelSU": "f" * 40, "maxsteeel/nomount": lock["NOMOUNT_COMMIT"]})
+        self.assertEqual(status, 1)
+        self.assertIn("now points at", summary)
+        self.assertFalse(any("tiann/KernelSU" in url for url in fetched))
+
+    def test_vanilla_gets_only_the_kernel(self):
+        status, outputs, saved, summary, fetched = self.run_main("no", variant="Vanilla")
+        self.assertEqual((status, list(outputs), fetched), (0, ["kernel"], []))
+        self.assertEqual(saved, ["1-KERNEL_Cogan-6.1.177_Vanilla_v26.10.16-r15.zip"])
+        self.assertIn("Vanilla", summary)
+
+    def test_pins_without_assets_are_skipped_with_a_hint(self):
+        status, outputs, _, summary, fetched = self.run_main("BSU", lock_updates={})
+        self.assertEqual((status, list(outputs), fetched), (0, ["kernel"], []))
+        self.assertIn("**Cogan Manual Update** → `update` → `root-managers`", summary)
+
+    def test_test_build_gets_official_ksun_managers_without_tag_check(self):
+        lock = pd.mu.read_lock(REAL_LOCK)
+        status, outputs, _, summary, _ = self.run_main(
+            "KSUN", susfs="true", variant="KernelSU-Next+SuSFS+Test",
+            tags={"maxsteeel/nomount": lock["NOMOUNT_COMMIT"]})
+        self.assertEqual(status, 0, summary)
+        self.assertIn("fork pershoot", summary)
+        self.assertEqual(set(outputs), {"kernel", "manager", "spoofed", "nomount"})
+        self.assertEqual(pd.candidate_nomount_commit(), lock["NOMOUNT_COMMIT"])
+
+    def test_summary_credits_manual_update_and_reminds_about_newer_releases(self):
+        status, _, _, summary, _ = self.run_main("BSU")
+        self.assertIn("dikunci bersama oleh **Cogan Manual Update**", summary)
+        self.assertNotIn("Pengingat", summary)
+        newer = {pd.mu.PINS["BSU_COMMIT"][2]: {"refs/tags/v4.2.0": "e" * 40},
+                 pd.mu.PINS["NOMOUNT_COMMIT"][2]: {"refs/tags/v2.2.0": "f" * 40}}
+        status, outputs, _, summary, _ = self.run_main("BSU", upstream=newer)
+        self.assertEqual(status, 0, summary)  # a reminder never fails the build
+        self.assertIn("BakaSU v4.2.0 tersedia", summary)
+        self.assertIn("`update` → `root-managers`", summary)
+        self.assertIn("NoMount v2.2.0 tersedia", summary)
+
+    def test_missing_kernel_zip_is_reported(self):
+        status, outputs, _, summary, _ = self.run_main("BSU", kernel=False)
+        self.assertNotIn("kernel", outputs)
+        self.assertIn("expected one ZIP", summary)
+
+
+if __name__ == "__main__":
+    unittest.main()

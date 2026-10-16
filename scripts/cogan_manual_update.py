@@ -66,24 +66,32 @@ REQUIRED = [*PINS, "KSUN_REF", "NEUTRON_RELEASE", "NEUTRON_SHA256"]
 # Tag-pinned sources: commit key -> lock key holding the tag.
 TAG_KEYS = {"KSU_COMMIT": "KSU_REF", "BSU_COMMIT": "BSU_REF",
             "KSUN_COMMIT": "KSUN_REF", "NOMOUNT_COMMIT": "NOMOUNT_REF"}
-# Release asset shipped next to the kernel, from the same tag as the pinned source.
+# Release assets shipped next to the kernel, from the same tag as the pinned source.
 # required: without the asset the pin is not moved (a manager must match the kernel).
-Companion = collections.namedtuple("Companion", "repo name_key sha_key suffix required")
+# spoofed: the developers' own spoofed-package build of the same manager (optional;
+# only shipped when the official release publishes one).
+Companion = collections.namedtuple("Companion", "repo name_key sha_key suffix required spoofed")
 COMPANIONS = {
-    "KSU_COMMIT": Companion("tiann/KernelSU", "KSU_MANAGER_APK", "KSU_MANAGER_SHA256", ".apk", True),
-    "BSU_COMMIT": Companion("Baka-SU/BakaSU", "BSU_MANAGER_APK", "BSU_MANAGER_SHA256", ".apk", True),
-    "KSUN_COMMIT": Companion("KernelSU-Next/KernelSU-Next", "KSUN_MANAGER_APK", "KSUN_MANAGER_SHA256", ".apk", True),
-    "NOMOUNT_COMMIT": Companion("maxsteeel/nomount", "NOMOUNT_MODULE_ZIP", "NOMOUNT_MODULE_SHA256", ".zip", False),
+    "KSU_COMMIT": (
+        Companion("tiann/KernelSU", "KSU_MANAGER_APK", "KSU_MANAGER_SHA256", ".apk", True, False),),
+    "BSU_COMMIT": (
+        Companion("Baka-SU/BakaSU", "BSU_MANAGER_APK", "BSU_MANAGER_SHA256", ".apk", True, False),
+        Companion("Baka-SU/BakaSU", "BSU_SPOOFED_APK", "BSU_SPOOFED_SHA256", ".apk", False, True)),
+    "KSUN_COMMIT": (
+        Companion("KernelSU-Next/KernelSU-Next", "KSUN_MANAGER_APK", "KSUN_MANAGER_SHA256", ".apk", True, False),
+        Companion("KernelSU-Next/KernelSU-Next", "KSUN_SPOOFED_APK", "KSUN_SPOOFED_SHA256", ".apk", False, True)),
+    "NOMOUNT_COMMIT": (
+        Companion("maxsteeel/nomount", "NOMOUNT_MODULE_ZIP", "NOMOUNT_MODULE_SHA256", ".zip", False, False),),
 }
-ASSET_EXCLUDE = ("spoof", "debug")
 # Optional lock keys (added by an update) -> the pin line they are written after.
 ANCHORS = {}
 for _pin, _tag_key in TAG_KEYS.items():
     if _tag_key not in REQUIRED:
         ANCHORS[_tag_key] = _pin
-for _pin, _companion in COMPANIONS.items():
-    ANCHORS[_companion.name_key] = _pin
-    ANCHORS[_companion.sha_key] = _pin
+for _pin, _companions in COMPANIONS.items():
+    for _companion in _companions:
+        ANCHORS[_companion.name_key] = _pin
+        ANCHORS[_companion.sha_key] = _pin
 OPTIONAL = list(ANCHORS)
 LOCAL_FINGERPRINTS = [
     ("Networking / BBRv3", ["kernel-patches/bbrv3/bbrv3.patch", "configs/custom.config"]),
@@ -137,20 +145,25 @@ def write_lock(text, updates):
 
     A new KERNEL_COMMIT_6_1_<sublevel> key is inserted after the last sublevel
     line, and a new optional key (release tag, companion asset) after its pin
-    line; any other key absent from the lock is an error.
+    line; any other key absent from the lock is an error. An optional key set
+    to None is removed (an asset the new release no longer publishes).
     """
+    removed = [key for key, value in updates.items() if value is None]
+    if any(key not in ANCHORS for key in removed):
+        raise ValueError("Only optional keys can be removed: " + ", ".join(sorted(removed)))
     out, seen, last_sublevel = [], set(), None
     for raw in text.splitlines():
         match = LINE.fullmatch(raw)
         if match and match.group(1) in updates:
             key = match.group(1)
-            out.append(f"{key}={updates[key]}")
+            if updates[key] is not None:
+                out.append(f"{key}={updates[key]}")
             seen.add(key)
         else:
             out.append(raw)
         if match and SUBLEVEL_KEY.fullmatch(match.group(1)):
             last_sublevel = len(out)
-    added = sorted(set(updates) - seen, key=lambda key: (len(key), key))
+    added = sorted(set(updates) - seen - set(removed), key=lambda key: (len(key), key))
     unknown = [key for key in added if not SUBLEVEL_KEY.fullmatch(key) and key not in ANCHORS]
     if unknown:
         raise ValueError("Cannot update keys absent from lock: " + ", ".join(unknown))
@@ -254,10 +267,14 @@ def release_assets(repo, tag, opener=urllib.request.urlopen):
              "digest": asset.get("digest") or ""} for asset in data.get("assets", [])]
 
 
-def pick_asset(assets, suffix):
-    """The single official asset ending in suffix (spoofed/debug builds excluded)."""
+def pick_asset(assets, suffix, spoofed=False):
+    """The single official asset ending in suffix: the normal build, or the spoofed one.
+
+    Debug builds are always excluded.
+    """
     candidates = [asset for asset in assets if asset["name"].lower().endswith(suffix)
-                  and not any(word in asset["name"].lower() for word in ASSET_EXCLUDE)]
+                  and "debug" not in asset["name"].lower()
+                  and ("spoof" in asset["name"].lower()) == spoofed]
     # Narrow step by step: release builds, then the universal APK of per-ABI splits
     # (BakaSU ships arm64-v8a, armeabi-v7a, x86_64 and universal).
     for word in ("release", "universal"):
@@ -285,17 +302,17 @@ def asset_sha256(asset, opener=urllib.request.urlopen):
     return hasher.hexdigest()
 
 
-def companion_for(key, tag, assets_of=release_assets, sha_of=asset_sha256):
-    """(name, sha256, None) for the release asset next to a tag pin, or (None, None, reason)."""
-    companion = COMPANIONS[key]
+def companion_for(companion, tag, assets_of=release_assets, sha_of=asset_sha256):
+    """(name, sha256, None) for one release asset next to a tag pin, or (None, None, reason)."""
+    kind = "spoofed " + companion.suffix if companion.spoofed else companion.suffix
     try:
-        asset = pick_asset(assets_of(companion.repo, tag), companion.suffix)
+        asset = pick_asset(assets_of(companion.repo, tag), companion.suffix, companion.spoofed)
         digest = sha_of(asset)
         if not SHA256.fullmatch(digest):
             raise ValueError("bad digest")
         return asset["name"], digest, None
     except (OSError, ValueError, KeyError) as exc:
-        return None, None, f"no usable {companion.suffix} in release {tag}: {exc}"
+        return None, None, f"no usable {kind} in release {tag}: {exc}"
 
 
 def kernel_sublevel(commit, fetch=fetch_url):
@@ -353,19 +370,30 @@ def plan(lock, groups, lister=ls_remote, sublevel_of=kernel_sublevel, sha256_of=
     for key, (group, label, url, ref) in PINS.items():
         current = lock[key]
         commit, tag, error = resolve(url, ref, lister)
-        tag_key, companion = TAG_KEYS.get(key), COMPANIONS.get(key)
-        new_sublevel, asset, digest, note = None, None, None, ""
+        tag_key, companions = TAG_KEYS.get(key), COMPANIONS.get(key, ())
+        new_sublevel, found, notes = None, {}, []
         if key == "KERNEL_COMMIT_6_1" and not error and commit != current:
             try:
                 new_sublevel = sublevel_of(commit)
             except (OSError, ValueError) as exc:
                 error = "Sublevel unreadable (" + type(exc).__name__ + ")"
-        if companion and tag and not error and group in groups:
-            asset, digest, reason = companion_for(key, tag, assets_of, asset_sha_of)
-            if reason and companion.required:
-                error = reason  # never pin a kernel source whose manager APK is missing
-            elif reason:
-                note = " (" + reason + ")"
+        if companions and tag and not error and group in groups:
+            cache = {}
+
+            def assets_once(repo, release, cache=cache):  # one release API call per pin
+                if (repo, release) not in cache:
+                    cache[(repo, release)] = assets_of(repo, release)
+                return cache[(repo, release)]
+
+            for companion in companions:
+                name, digest, reason = companion_for(companion, tag, assets_once, asset_sha_of)
+                if reason and companion.required:
+                    error = reason  # never pin a kernel source whose manager APK is missing
+                    break
+                if reason:
+                    notes.append(reason)
+                found[companion] = None if reason else (name, digest)
+        note = " (" + "; ".join(notes) + ")" if notes else ""
         shown_ref = tag or ref.replace("refs/heads/", "")
         if tag_key:
             current_label = f"{lock.get(tag_key, '-')} {current[:12]}"
@@ -373,11 +401,12 @@ def plan(lock, groups, lister=ls_remote, sublevel_of=kernel_sublevel, sha256_of=
             current_label = f"6.1.{current_sublevel(lock)} {current[:12]}"
         else:
             current_label = current[:12]
-        if companion and lock.get(companion.name_key):
-            current_label += " · " + lock[companion.name_key]
+        pinned_assets = [lock[c.name_key] for c in companions if lock.get(c.name_key)]
+        if pinned_assets:
+            current_label += " · " + " + ".join(pinned_assets)
         same = commit == current and (tag is None or tag == lock.get(tag_key))
-        if asset:
-            same = same and (lock.get(companion.name_key), lock.get(companion.sha_key)) == (asset, digest)
+        for companion, value in found.items():
+            same = same and (lock.get(companion.name_key), lock.get(companion.sha_key)) == (value or (None, None))
         if error:
             status = "UNAVAILABLE: " + error
         elif same:
@@ -388,17 +417,18 @@ def plan(lock, groups, lister=ls_remote, sublevel_of=kernel_sublevel, sha256_of=
                 proposal = {key: commit}
                 if tag_key and tag:
                     proposal[tag_key] = tag
-                if asset:
-                    proposal[companion.name_key] = asset
-                    proposal[companion.sha_key] = digest
+                for companion, value in found.items():
+                    # None removes an asset the new release no longer publishes.
+                    proposal[companion.name_key], proposal[companion.sha_key] = value or (None, None)
                 if new_sublevel is not None:
                     proposal[f"KERNEL_COMMIT_6_1_{new_sublevel}"] = commit
                 updates.update({name: value for name, value in proposal.items() if lock.get(name) != value})
         latest = f"{tag} {commit[:12]}" if tag and commit else (commit or "-")[:12]
         if new_sublevel is not None:
             latest = f"6.1.{new_sublevel} {latest}"
-        if asset:
-            latest += " · " + asset
+        found_assets = [value[0] for value in found.values() if value]
+        if found_assets:
+            latest += " · " + " + ".join(found_assets)
         rows.append((label, group, shown_ref, current_label, latest, status))
     rows.append(plan_toolchain(lock, groups, updates, lister, sha256_of))
     return rows, updates
@@ -456,7 +486,8 @@ def report(rows, fingerprints, mode, groups, updates, lock_keys=()):
     if mode == "update":
         if updates:
             lines.append("**Proposed pin changes** (pull request to `dev`; review, merge, then run a build):")
-            lines += [f"- `{key}` → `{value}`" for key, value in sorted(updates.items())]
+            lines += [f"- `{key}` → `{value}`" if value is not None else f"- `{key}` → removed"
+                      for key, value in sorted(updates.items())]
         else:
             lines.append("**No pin changes**: the selected components are already up to date.")
     lines += ["", "A newer upstream revision is not proof of compatibility. "
@@ -502,7 +533,8 @@ def main(argv=None):
         LOCK.write_text(write_lock(text, updates), encoding="utf-8")
     if args.changes:
         Path(args.changes).write_text(
-            "".join(f"{key}={value}\n" for key, value in sorted(updates.items()))
+            "".join(f"{key}={value}\n" if value is not None else f"{key} (removed)\n"
+                    for key, value in sorted(updates.items()))
             if args.mode == "update" else "", encoding="utf-8")
     return 0
 

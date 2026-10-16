@@ -106,14 +106,20 @@ def main():
     other = prepare(ROOT_MANAGER_INPUT="KernelSU", KERNEL_VERSION_INPUT="6.6")
     assert other.returncode == 1 and "kernel 6.1 only" in other.stderr, other.stderr
     assert prepare(ROOT_MANAGER_INPUT="KernelSU").returncode == 0
-    # The flashable ZIP is uploaded as-is (no ZIP-in-ZIP); bundle jobs only take build-* artifacts.
+    # Kernel, manager, spoofed manager and NoMount are uploaded as-is (no ZIP-in-ZIP) under
+    # numbered names; the release job only takes build-* artifacts.
     build_steps = workflow["jobs"]["build"]["steps"]
-    direct = next(step for step in build_steps if step.get("name") == "Upload flashable ZIP (direct download)")
-    assert direct["with"]["archive"] is False and "name" not in direct["with"]
-    for job in ("upload-all", "release"):
-        downloads = [step for step in workflow["jobs"][job]["steps"]
-                     if str(step.get("uses", "")).startswith("actions/download-artifact")]
-        assert downloads and all(step["with"].get("pattern") == "build-*" for step in downloads), job
+    uploads = {step["name"]: step for step in build_steps if str(step.get("name", "")).startswith("Upload ")
+               and step["name"][7:8].isdigit()}
+    assert sorted(uploads) == ["Upload 1 - kernel", "Upload 2 - root manager",
+                               "Upload 3 - spoofed root manager", "Upload 4 - NoMount module"], sorted(uploads)
+    for step in uploads.values():
+        assert step["with"]["archive"] is False and "name" not in step["with"], step
+        assert step["if"].startswith("always() && steps.downloads.outputs."), step
+    assert "upload-all" not in workflow["jobs"]
+    downloads = [step for step in workflow["jobs"]["release"]["steps"]
+                 if str(step.get("uses", "")).startswith("actions/download-artifact")]
+    assert downloads and all(step["with"].get("pattern") == "build-*" for step in downloads)
     assert 'GKI_RELEASES_REPO="https://github.com/${GITHUB_REPOSITORY:-cogan17/Cogan}"' in build_script
     assert len(entries(matrix(manager="All variants (advanced)"))) == 10
     assert len(entries(matrix(version="All", manager="All variants (advanced)"))) == 50

@@ -92,12 +92,16 @@ Buka **Actions → Cogan Kernel Builder → Run workflow** di repositori Anda.
 | Networking | BBRv3 dan paket jaringan tambahan (default aktif) |
 | BBG | Baseband Guard (default aktif) |
 
-**Hasil build:** saat run hijau, halaman run berisi tiga artifact yang bisa langsung diunduh (tidak perlu diekstrak):
-- `Cogan-<varian>-….zip`: kernel (ZIP AnyKernel3), di-flash dengan Kernel Flasher;
-- `Cogan-<varian>-<APK manager>.apk`: root manager resmi dari tag rilis yang sama dengan kernel;
-- `Cogan-<varian>-NoMount-….zip`: modul NoMount resmi dengan versi yang sama dengan NoMount di kernel.
+**Hasil build:** saat run hijau, artifact bernomor bisa langsung diunduh (tidak perlu diekstrak):
 
-SHA256 semuanya tertulis di ringkasan run. Ketiga versi ini dikunci bersama oleh **Cogan Manual Update**. Kalau upstream sudah merilis versi yang lebih baru, ringkasan run menampilkan **🔔 Pengingat**: jalankan Cogan Manual Update (`update` → `root-managers` atau `nomount`), lalu build ulang supaya kernel, root manager dan NoMount naik bersama.
+| File | Isi | Cara pakai |
+|---|---|---|
+| `1-KERNEL_Cogan-6.1.x_<varian>_<rilis>.zip` | Kernel (ZIP AnyKernel3) | Flash dengan Kernel Flasher |
+| `2-MANAGER_<root manager>_<versi>.apk` | Root manager resmi, tag rilis sama dengan kernel | Install APK |
+| `3-MANAGER-SPOOFED_<root manager>_<versi>.apk` | Manager yang sama, nama paket acak (lebih sulit dideteksi); hanya jika rilis resminya menyediakan, saat ini KernelSU Next | Install **salah satu**: 2 atau 3 |
+| `4-NOMOUNT-MODULE_<versi>.zip` | Modul NoMount resmi, versi sama dengan NoMount di kernel | Pasang di manager → Modul |
+
+Artifact `build-…` dan `build-env-…` adalah file internal; abaikan saja. Ringkasan run berisi tabel yang sama beserta SHA256. Semua versi ini dikunci bersama oleh **Cogan Manual Update**. Kalau upstream sudah merilis versi yang lebih baru, ringkasan run menampilkan **🔔 Pengingat**: jalankan Cogan Manual Update (`update` → `root-managers` atau `nomount`), lalu build ulang supaya kernel, root manager dan NoMount naik bersama.
 
 **Memperbarui komponen:** buka **Actions → Cogan Manual Update**.
 - `check` hanya menampilkan laporan versi.

@@ -382,85 +382,55 @@ jobs:
           path: artifacts/
           retention-days: 1
 
-      # The flashable AnyKernel3 ZIP as its own artifact, uploaded as-is (archive: false):
-      # downloading it gives the ZIP directly, not a ZIP wrapped in another ZIP.
-      - name: Find flashable ZIP
-        id: flashable
-        if: success()
-        run: |
-          shopt -s nullglob
-          zips=(artifacts/*.zip)
-          if [ "${#zips[@]}" -ne 1 ]; then
-            echo "::warning::Expected exactly one flashable ZIP in artifacts/, found ${#zips[@]}; skipping the direct download"
-            exit 0
-          fi
-          echo "path=${zips[0]}" >> "$GITHUB_OUTPUT"
-          {
-            echo "### 📦 Flashable ZIP"
-            echo ""
-            echo "🇮🇩 Unduh artifact **$(basename "${zips[0]}")**: langsung berupa ZIP AnyKernel3, tidak perlu diekstrak lagi."
-            echo "🇬🇧 Download the **$(basename "${zips[0]}")** artifact: it is the AnyKernel3 ZIP itself, no extra extraction needed."
-            echo ""
-            echo "SHA256: \`$(sha256sum "${zips[0]}" | cut -d' ' -f1)\`"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Upload flashable ZIP (direct download)
-        if: success() && steps.flashable.outputs.path != ''
-        uses: actions/upload-artifact@v7.0.1
-        with:
-          path: ${{ steps.flashable.outputs.path }}
-          archive: false
-          retention-days: 7
-
-      # Official root manager APK and NoMount module from the same release tag the
-      # kernel was built from (pins and SHA256 recorded by Cogan Manual Update).
-      - name: Fetch matching root manager and NoMount module
-        id: companions
+      # Direct downloads, uploaded as-is (archive: false) under names that say what they are:
+      #   1-KERNEL_…zip  2-MANAGER_…apk  3-MANAGER-SPOOFED_…apk  4-NOMOUNT-MODULE_…zip
+      # Manager and NoMount come from the same release tag the kernel was built from
+      # (pins and SHA256 recorded by Cogan Manual Update). One table goes to the summary.
+      - name: Prepare downloads
+        id: downloads
         if: success()
         env:
           KSU_INPUT: ${{ matrix.KSU }}
           KSU_SUSFS_INPUT: ${{ matrix.KSU_SUSFS }}
+          # Several variants in one run: append the variant so names never collide.
+          NAME_SUFFIX: ${{ strategy.job-total > 1 && format('_{0}', matrix.name) || '' }}
         run: |
-          python3 scripts/fetch_companions.py --ksu "$KSU_INPUT" --susfs "$KSU_SUSFS_INPUT" \
-            --prefix "$BASE_NAME" --out companions \
+          python3 scripts/prepare_downloads.py --ksu "$KSU_INPUT" --susfs "$KSU_SUSFS_INPUT" \
+            --variant "$VARIANT" --release "$RELEASE" --linux-version "$LINUX_VERSION" \
+            --artifacts artifacts --out downloads --suffix "$NAME_SUFFIX" \
             --github-output "$GITHUB_OUTPUT" --summary "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload root manager APK (direct download)
-        if: success() && steps.companions.outputs.manager != ''
+      - name: Upload 1 - kernel
+        if: always() && steps.downloads.outputs.kernel != ''
         uses: actions/upload-artifact@v7.0.1
         with:
-          path: ${{ steps.companions.outputs.manager }}
+          path: ${{ steps.downloads.outputs.kernel }}
           archive: false
           retention-days: 7
 
-      - name: Upload NoMount module (direct download)
-        if: success() && steps.companions.outputs.nomount != ''
+      - name: Upload 2 - root manager
+        if: always() && steps.downloads.outputs.manager != ''
         uses: actions/upload-artifact@v7.0.1
         with:
-          path: ${{ steps.companions.outputs.nomount }}
+          path: ${{ steps.downloads.outputs.manager }}
           archive: false
           retention-days: 7
 
-  upload-all:
-    needs: build
-    if: ${{ needs.build.result == 'success' }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: downloaded-artifacts
-          pattern: build-*
-          merge-multiple: true
-
-      - name: Upload combined artifacts
+      - name: Upload 3 - spoofed root manager
+        if: always() && steps.downloads.outputs.spoofed != ''
         uses: actions/upload-artifact@v7.0.1
         with:
-          name: all-builds-${{ github.run_number }}
+          path: ${{ steps.downloads.outputs.spoofed }}
+          archive: false
           retention-days: 7
-          path: |
-            downloaded-artifacts/artifacts/*.txt
-            downloaded-artifacts/artifacts/*.zip
+
+      - name: Upload 4 - NoMount module
+        if: always() && steps.downloads.outputs.nomount != ''
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          path: ${{ steps.downloads.outputs.nomount }}
+          archive: false
+          retention-days: 7
 
   release:
     needs: build
