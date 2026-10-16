@@ -375,7 +375,8 @@ jobs:
           path: |
             build-env-${{ matrix.name }}.txt
             rejected-patches-${{ matrix.name }}/
-          retention-days: 1
+          # Tiny, and Manual Release reads it: kept as long as the downloads (7 days).
+          retention-days: 7
 
       - name: Upload build artifacts
         if: always()

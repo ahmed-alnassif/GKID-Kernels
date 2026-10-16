@@ -99,6 +99,24 @@ class ReleaseNotesTests(unittest.TestCase):
         self.assertIn('contents/configs/$file?ref=$SOURCE_SHA', release)
         self.assertIn("persist-credentials: false", release)
 
+    def test_release_files_table_matches_the_build_downloads(self):
+        names = ["checksums.txt", "4-NOMOUNT-MODULE_v2.1.1.zip", "2-MANAGER_KernelSU-Next_v3.4.2.apk",
+                 "1-KERNEL_Cogan-6.1.177_KernelSU-Next+SuSFS_v26.10.16-r3.zip",
+                 "3-MANAGER-SPOOFED_KernelSU-Next_v3.4.2.apk", "unexpected.bin"]
+        table = rn.files_section(names)
+        self.assertEqual(table[0], "## Isi rilis / Release files")
+        rows = [row for row in table if row.startswith("| `")]
+        self.assertEqual([row.split("`")[1] for row in rows], sorted(n for n in names if n != "unexpected.bin"))
+        self.assertIn("Kernel Flasher", rows[0])
+        self.assertIn("pilih 2 **atau** 3", rows[1])
+        self.assertIn("pilih 2 **atau** 3", rows[2])
+        self.assertNotIn("pilih 2", rows[3])
+        self.assertNotIn("pilih 2", "\n".join(rn.files_section(["2-MANAGER_KernelSU_v3.3.1.apk"])))
+        self.assertEqual(rn.files_section([]), [])
+        build = (ROOT / ".github/workflows/build.yml").read_text()
+        self.assertIn("# Tiny, and Manual Release reads it: kept as long as the downloads (7 days).\n"
+                      "          retention-days: 7", build)
+
     def test_unsafe_values_are_dropped(self):
         values = rn.read_values("# c\nA=ok 1.2\nB=`x`\nC=[link](http://x)\nD=\n")
         self.assertEqual(values, {"A": "ok 1.2"})

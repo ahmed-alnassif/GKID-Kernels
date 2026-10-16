@@ -10,9 +10,10 @@ root manager APK of the same release so users install a matching manager.
 
 Builds made before KERNEL_FEATURES was saved still get every line; BBG and
 NoMount are then marked "if enabled" because the build did not record them.
+With --files, a table of the attached files (1-KERNEL_, 2-MANAGER_, ...) comes first.
 
 Usage: release_notes.py --lock FILE --features-lock FILE --source-sha SHA
-           --repo OWNER/NAME --env-dir DIR
+           --repo OWNER/NAME --env-dir DIR [--files DIR]
 """
 import argparse
 import json
@@ -119,8 +120,36 @@ def variant_section(env, lock, features_lock, repo):
     return lines
 
 
-def notes(envs, lock, features_lock, source_sha, repo):
-    lines = ["## Versi komponen / Component versions", ""]
+# Numbered downloads of a build (prepare_downloads.py) -> what the file is, how to use it.
+FILE_ROLES = (
+    ("1-KERNEL_", "Kernel (ZIP AnyKernel3)", "Flash dengan / with **Kernel Flasher**"),
+    ("2-MANAGER_", "Root manager resmi, rilis sama dengan kernel / official manager, same release",
+     "Install APK"),
+    ("3-MANAGER-SPOOFED_", "Manager yang sama, nama paket acak / same manager, random package name",
+     "Install APK"),
+    ("4-NOMOUNT-MODULE_", "Modul / module NoMount", "Pasang di manager → Modul / install in manager → Modules"),
+    ("checksums.txt", "SHA256 semua file / of every file", "Cocokkan sebelum flash / check before flashing"),
+)
+
+
+def files_section(names):
+    """Table of the attached files, same order and roles as the build summary."""
+    rows = []
+    spoofed = any(name.startswith("3-MANAGER-SPOOFED_") for name in names)
+    for name in sorted(names):
+        role = next((r for r in FILE_ROLES if name.startswith(r[0])), None)
+        if not role or not SAFE.fullmatch(name):
+            continue
+        how = role[2] + (" (pilih 2 **atau** 3 / pick 2 **or** 3)" if spoofed and role[0][0] in "23" else "")
+        rows.append(f"| `{name}` | {role[1]} | {how} |")
+    if not rows:
+        return []
+    return ["## Isi rilis / Release files", "", "| File | Isi / What | Cara pakai / How |", "|---|---|---|",
+            *rows, ""]
+
+
+def notes(envs, lock, features_lock, source_sha, repo, names=()):
+    lines = files_section(names) + ["## Versi komponen / Component versions", ""]
     for env in envs:
         lines += variant_section(env, lock, features_lock, repo) + [""]
     lines.append(f"Pin dari / pins from `configs/upstream.lock` @ `{short(source_sha)}`; "
@@ -135,6 +164,7 @@ def main(argv=None):
     parser.add_argument("--source-sha", required=True)
     parser.add_argument("--repo", required=True)
     parser.add_argument("--env-dir", type=Path, required=True)
+    parser.add_argument("--files", type=Path, help="directory of the files attached to the release")
     args = parser.parse_args(argv)
     if not HEX.fullmatch(args.source_sha) or not re.fullmatch(r"[\w.-]+/[\w.-]+", args.repo):
         print("bad --source-sha or --repo", file=sys.stderr)
@@ -144,13 +174,14 @@ def main(argv=None):
         features_lock = json.loads(args.features_lock.read_text(encoding="utf-8"))
         files = sorted(args.env_dir.rglob("build-env-*.txt"))
         envs = [read_values(path.read_text(encoding="utf-8")) for path in files]
+        names = [path.name for path in args.files.iterdir()] if args.files else []
     except (OSError, ValueError) as exc:
         print("release notes inputs unreadable: " + str(exc), file=sys.stderr)
         return 1
     if not envs:
         print("no build-env-*.txt under " + str(args.env_dir), file=sys.stderr)
         return 1
-    sys.stdout.write(notes(envs, lock, features_lock, args.source_sha, args.repo))
+    sys.stdout.write(notes(envs, lock, features_lock, args.source_sha, args.repo, names))
     return 0
 
 

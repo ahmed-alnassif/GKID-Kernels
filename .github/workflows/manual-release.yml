@@ -15,6 +15,10 @@ on:
           - "Draft"
           - "Pre-release"
           - "Release"
+      ganti_rilis:
+        description: "Ganti rilis yang tag-nya sama (rilis lama + tag-nya dihapus, lalu dibuat ulang dari run ini)"
+        type: boolean
+        default: false
 
 permissions:
   actions: read
@@ -24,7 +28,7 @@ jobs:
   manual-release:
     runs-on: ubuntu-latest
     steps:
-      # Only for scripts/release_notes.py; the release itself is built from the run's artifacts.
+      # Only for scripts/release_notes.py; the release files come from the run's downloads.
       - name: Checkout release scripts
         uses: actions/checkout@v7.0.1
         with:
@@ -56,7 +60,7 @@ jobs:
           print("Validated build run", data["id"], data["head_sha"])
           PY
 
-      - name: Download kernel build artifacts only
+      - name: Download the build's files (kernel, manager, NoMount)
         env:
           GH_TOKEN: ${{ github.token }}
           SOURCE_RUN: ${{ inputs.run_id }}
@@ -65,50 +69,58 @@ jobs:
           set -euo pipefail
           mkdir -p release-files
           gh api --paginate "repos/$REPO/actions/runs/$SOURCE_RUN/jobs?per_page=100" --jq '.jobs[] | select(.name | startswith("build (")) | [.name, .conclusion] | @tsv' > build-jobs.tsv
-          gh api --paginate "repos/$REPO/actions/runs/$SOURCE_RUN/artifacts?per_page=100" --jq '.artifacts[] | select(.expired == false and (.name | startswith("build-") and (startswith("build-env-") | not))) | .name' > artifact-names.txt
+          gh api --paginate "repos/$REPO/actions/runs/$SOURCE_RUN/artifacts?per_page=100" --jq '.artifacts[] | select(.expired == false) | [.id, .name, (.digest // "")] | @tsv' > run-artifacts.tsv
           python3 - <<'PY'
+          import re
           from pathlib import Path
           jobs = [line.split("\t") for line in Path("build-jobs.tsv").read_text().splitlines() if line.strip()]
-          artifacts = Path("artifact-names.txt").read_text().splitlines()
-          if not jobs or not artifacts:
-              raise SystemExit("Missing build matrix jobs or unexpired build artifacts")
+          if not jobs:
+              raise SystemExit("No build matrix jobs in the source run")
           failed = [name for name, result in jobs if result != "success"]
           if failed:
               raise SystemExit("Unsuccessful kernel build jobs: " + ", ".join(failed))
           # GitHub matrix job name lists every matrix value, the variant first:
           #   build (6.1-KSUN+SUSFS, KSUN, false, true, false, false, 6.1)
-          # Artifact name: build-6.1-KSUN+SUSFS-<run_number>
           variants = [name[len("build ("):-1].split(", ")[0] for name, _ in jobs if name.endswith(")")]
           if len(variants) != len(jobs) or len(set(variants)) != len(variants):
               raise SystemExit("Unexpected or duplicate matrix job names")
-          if len(artifacts) != len(variants):
-              raise SystemExit("Build artifact count does not match matrix job count")
-          run_number = str(__import__("json").load(open("source-run.json"))["run_number"])
-          expected = {"build-" + variant + "-" + run_number for variant in variants}
-          if set(artifacts) != expected:
-              raise SystemExit(f"Artifact mismatch: expected {sorted(expected)}, got {sorted(artifacts)}")
-          print("Verified", len(variants), "successful matrix build(s) and matching artifacts")
+          # The numbered direct downloads of the build (prepare_downloads.py), the same files
+          # the run summary lists: 1-KERNEL_, 2-MANAGER_, 3-MANAGER-SPOOFED_, 4-NOMOUNT-MODULE_.
+          numbered = re.compile(r"[1-4]-(KERNEL|MANAGER|MANAGER-SPOOFED|NOMOUNT-MODULE)_[A-Za-z0-9._+-]+\.(zip|apk)")
+          picked = []
+          for line in Path("run-artifacts.tsv").read_text().splitlines():
+              artifact_id, name, digest = (line.split("\t") + [""])[:3]
+              if not numbered.fullmatch(name):
+                  continue
+              if not re.fullmatch(r"\d+", artifact_id) or not re.fullmatch(r"sha256:[0-9a-f]{64}", digest):
+                  raise SystemExit(f"{name}: no artifact id or SHA256 digest")
+              picked.append((artifact_id, name, digest[len("sha256:"):]))
+          kernels = [name for _, name, _ in picked if name.startswith("1-KERNEL_")]
+          if len(kernels) != len(variants):
+              raise SystemExit(f"Expected one 1-KERNEL_ download per variant ({len(variants)}), found {len(kernels)}; "
+                               "downloads expire 7 days after the build")
+          Path("numbered.tsv").write_text("".join("\t".join(item) + "\n" for item in picked))
+          print("Verified", len(variants), "successful matrix build(s);", len(picked), "download(s) to release")
           PY
-          while IFS= read -r name; do
-            gh run download "$SOURCE_RUN" --repo "$REPO" --name "$name" --dir "downloads/$name"
-          done < artifact-names.txt
+          while IFS=$'\t' read -r artifact_id name digest; do
+            gh api "repos/$REPO/actions/artifacts/$artifact_id/zip" > "release-files/$name"
+          done < numbered.tsv
           python3 - <<'PY'
+          import hashlib, io, zipfile
           from pathlib import Path
-          import shutil
-          roots = sorted(Path("downloads").glob("build-*"))
-          if not roots:
-              raise SystemExit("No build artifacts downloaded")
-          seen = set()
-          for root in roots:
-              zips = list(root.rglob("*.zip"))
-              if len(zips) != 1:
-                  raise SystemExit(f"{root.name}: expected exactly one kernel ZIP, found {len(zips)}")
-              source = zips[0]
-              if source.name in seen:
-                  raise SystemExit(f"Duplicate ZIP filename: {source.name}")
-              seen.add(source.name)
-              shutil.copy2(source, Path("release-files") / source.name)
-          print(f"Selected {len(seen)} distinct kernel ZIP(s)")
+          for line in Path("numbered.tsv").read_text().splitlines():
+              _, name, digest = line.split("\t")
+              path = Path("release-files") / name
+              data = path.read_bytes()
+              # An unarchived artifact may still arrive wrapped in a ZIP holding only itself.
+              if hashlib.sha256(data).hexdigest() != digest and zipfile.is_zipfile(io.BytesIO(data)):
+                  with zipfile.ZipFile(io.BytesIO(data)) as wrapper:
+                      if wrapper.namelist() == [name]:
+                          data = wrapper.read(name)
+                          path.write_bytes(data)
+              if hashlib.sha256(data).hexdigest() != digest:
+                  raise SystemExit(f"{name}: SHA256 does not match the build's artifact digest {digest}")
+              print("Verified", name)
           PY
 
       - name: Validate flash ZIPs and generate checksums
@@ -117,22 +129,24 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import zipfile
-          zips=list(Path("release-files").glob("*.zip"))
-          if not zips:
-              raise SystemExit("No ZIP to release")
-          for path in zips:
-              with zipfile.ZipFile(path) as archive:
-                  names=archive.namelist()
-                  if "anykernel.sh" not in names or "Image" not in names:
-                      raise SystemExit(f"{path.name}: invalid AnyKernel root")
-                  if any(n.lower().endswith((".zip",".7z",".rar")) for n in names):
-                      raise SystemExit(f"{path.name}: nested archive detected")
+          files = sorted(Path("release-files").iterdir())
+          if not any(path.name.startswith("1-KERNEL_") for path in files):
+              raise SystemExit("No kernel ZIP to release")
+          for path in files:
+              with zipfile.ZipFile(path) as archive:  # .zip and .apk are both ZIP files
+                  names = archive.namelist()
+                  if path.name.startswith("1-KERNEL_"):
+                      if "anykernel.sh" not in names or "Image" not in names:
+                          raise SystemExit(f"{path.name}: invalid AnyKernel root")
+                      if any(n.lower().endswith((".zip", ".7z", ".rar")) for n in names):
+                          raise SystemExit(f"{path.name}: nested archive detected")
                   if archive.testzip():
                       raise SystemExit(f"{path.name}: corrupt archive")
               print("Validated", path.name)
           PY
           cd release-files
-          sha256sum -- *.zip > checksums.txt
+          sha256sum -- * > ../checksums.txt
+          mv ../checksums.txt checksums.txt
 
       - name: Read release name from the build
         env:
@@ -187,13 +201,20 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           SOURCE_RUN: ${{ inputs.run_id }}
           RELEASE_TYPE: ${{ inputs.release_type }}
+          REPLACE: ${{ inputs.ganti_rilis }}
           REPO: ${{ github.repository }}
           SERVER: ${{ github.server_url }}
         run: |
           set -euo pipefail
+          replaced="no"
           if gh release view "$RELEASE_TAG" --repo "$REPO" >/dev/null 2>&1; then
-            echo "::error::Release $RELEASE_TAG already exists"
-            exit 1
+            if [ "$REPLACE" != "true" ]; then
+              echo "::error::Release $RELEASE_TAG already exists; tick 'ganti_rilis' to replace it"
+              exit 1
+            fi
+            # Owner chose to replace it: the old release and its tag go, the new one is created below.
+            gh release delete "$RELEASE_TAG" --repo "$REPO" --cleanup-tag --yes
+            replaced="yes"
           fi
           case "$RELEASE_TYPE" in
             Draft) mode=(--draft --prerelease); shown="Draft (belum tampil / not published)" ;;
@@ -227,9 +248,9 @@ jobs:
             echo ""
             python3 scripts/release_notes.py --lock source-pins/upstream.lock \
               --features-lock source-pins/ksun-susfs-6.1-features.lock.json \
-              --source-sha "$SOURCE_SHA" --repo "$REPO" --env-dir build-env
+              --source-sha "$SOURCE_SHA" --repo "$REPO" --env-dir build-env --files release-files
           } > release-notes.md
-          gh release create "$RELEASE_TAG" release-files/*.zip release-files/checksums.txt \
+          gh release create "$RELEASE_TAG" release-files/* \
             --repo "$REPO" --target "$target" "${mode[@]}" \
             --title "$RELEASE_TITLE" --notes-file release-notes.md
           {
@@ -237,5 +258,7 @@ jobs:
             echo "- Tag: \`$RELEASE_TAG\` — $RELEASE_TITLE"
             echo "- Jenis / type: **$shown**"
             echo "- Tag di commit / tagged at \`${target:0:8}\`, kernel dari / built from \`${SOURCE_SHA:0:8}\`"
+            echo "- Rilis lama diganti / replaced an existing release: $replaced"
+            echo "- File: $(cd release-files && ls | sed 's/^/`/; s/$/`/' | paste -sd ' ' -)"
             echo "- Sumber / source run: $SOURCE_RUN (belum diuji di perangkat / not device-tested)"
           } >> "$GITHUB_STEP_SUMMARY"
