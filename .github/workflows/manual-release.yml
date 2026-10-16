@@ -7,6 +7,13 @@ on:
         description: "Successful Cogan build run ID"
         required: true
         type: string
+      release_type:
+        description: "Draft = belum tampil, cek dulu lalu publish sendiri; Pre-release = langsung tampil dengan label Pre-release"
+        type: choice
+        default: "Draft"
+        options:
+          - "Draft"
+          - "Pre-release"
 
 permissions:
   actions: read
@@ -118,21 +125,67 @@ jobs:
           cd release-files
           sha256sum -- *.zip > checksums.txt
 
-      - name: Create draft release for manual approval
+      - name: Read release name from the build
         env:
           GH_TOKEN: ${{ github.token }}
           SOURCE_RUN: ${{ inputs.run_id }}
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          TAG="cogan-manual-run-$SOURCE_RUN"
-          if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
-            echo "::error::Release for this run already exists"
+          # Every matrix job writes the same RELEASE (vYY.MM.DD-rN) to its build-env artifact.
+          env_name="$(gh api --paginate "repos/$REPO/actions/runs/$SOURCE_RUN/artifacts?per_page=100" \
+            --jq '.artifacts[] | select(.expired == false and (.name | startswith("build-env-"))) | .name' | head -n 1)"
+          [ -n "$env_name" ] || { echo "::error::No unexpired build-env artifact in run $SOURCE_RUN"; exit 1; }
+          gh run download "$SOURCE_RUN" --repo "$REPO" --name "$env_name" --dir build-env
+          python3 - <<'PY'
+          import os, re
+          from pathlib import Path
+          files = sorted(Path("build-env").rglob("build-env-*.txt"))
+          if not files:
+              raise SystemExit("build-env file missing")
+          values = dict(line.split("=", 1) for line in files[0].read_text().splitlines() if "=" in line)
+          release, name = values.get("RELEASE", ""), values.get("RELEASE_NAME", "")
+          # Tags like v26.10.16-r15 keep the README release badge (filter v*) pointing at real releases.
+          if not re.fullmatch(r"v\d{2}\.\d{2}\.\d{2}(-r\d+)+", release):
+              raise SystemExit(f"Unexpected RELEASE value {release!r}")
+          if not re.fullmatch(r"[A-Za-z0-9 ._+()-]+", name):
+              raise SystemExit(f"Unexpected RELEASE_NAME value {name!r}")
+          with open(os.environ["GITHUB_ENV"], "a") as env:
+              env.write(f"RELEASE_TAG={release}\nRELEASE_TITLE={name}\n")
+          print("Release", release, "-", name)
+          PY
+
+      - name: Create release (draft or pre-release)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN: ${{ inputs.run_id }}
+          RELEASE_TYPE: ${{ inputs.release_type }}
+          REPO: ${{ github.repository }}
+          SERVER: ${{ github.server_url }}
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" --repo "$REPO" >/dev/null 2>&1; then
+            echo "::error::Release $RELEASE_TAG already exists"
             exit 1
           fi
-          gh release create "$TAG" release-files/*.zip release-files/checksums.txt \
-            --repo "$REPO" --target "$SOURCE_SHA" --draft --prerelease \
-            --title "Cogan build run $SOURCE_RUN (UNTESTED)" \
-            --notes "Built from GitHub Actions run $SOURCE_RUN. ZIP structure validated only. Device boot, partition compatibility, and recovery have NOT been verified. Do not publish or flash without device-specific testing."
-          echo "## Manual release" >> "$GITHUB_STEP_SUMMARY"
-          echo "Draft release created for run $SOURCE_RUN. **Not published; not device-tested.**" >> "$GITHUB_STEP_SUMMARY"
+          case "$RELEASE_TYPE" in
+            Draft) mode=(--draft --prerelease); shown="Draft (belum tampil / not published)" ;;
+            Pre-release) mode=(--prerelease); shown="Pre-release (tampil / published as pre-release)" ;;
+            *) echo "::error::Unknown release type $RELEASE_TYPE"; exit 1 ;;
+          esac
+          {
+            echo "Dibangun dari / built from run [$SOURCE_RUN]($SERVER/$REPO/actions/runs/$SOURCE_RUN)."
+            echo ""
+            echo "> [!CAUTION]"
+            echo "> 🇮🇩 Hanya struktur ZIP yang divalidasi; boot di perangkat **belum diuji**. Simpan \`boot.img\` stock sebelum flash: [Panduan Bootloop]($SERVER/$REPO/blob/HEAD/docs/bootloop.md)."
+            echo "> 🇬🇧 Only the ZIP structure was validated; device boot is **not tested**. Keep your stock \`boot.img\` before flashing: [Bootloop Guide]($SERVER/$REPO/blob/HEAD/docs/bootloop.en.md)."
+          } > release-notes.md
+          gh release create "$RELEASE_TAG" release-files/*.zip release-files/checksums.txt \
+            --repo "$REPO" --target "$SOURCE_SHA" "${mode[@]}" \
+            --title "$RELEASE_TITLE" --notes-file release-notes.md
+          {
+            echo "## Manual release"
+            echo "- Tag: \`$RELEASE_TAG\` — $RELEASE_TITLE"
+            echo "- Jenis / type: **$shown**"
+            echo "- Sumber / source run: $SOURCE_RUN (belum diuji di perangkat / not device-tested)"
+          } >> "$GITHUB_STEP_SUMMARY"
