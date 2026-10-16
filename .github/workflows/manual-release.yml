@@ -8,12 +8,13 @@ on:
         required: true
         type: string
       release_type:
-        description: "Draft = belum tampil, cek dulu lalu publish sendiri; Pre-release = langsung tampil dengan label Pre-release"
+        description: "Draft = belum tampil, cek dulu lalu publish sendiri; Pre-release = langsung tampil berlabel Pre-release; Release = langsung tampil sebagai rilis resmi (Latest)"
         type: choice
         default: "Draft"
         options:
           - "Draft"
           - "Pre-release"
+          - "Release"
 
 permissions:
   actions: read
@@ -155,7 +156,7 @@ jobs:
           print("Release", release, "-", name)
           PY
 
-      - name: Create release (draft or pre-release)
+      - name: Create release (draft, pre-release or release)
         env:
           GH_TOKEN: ${{ github.token }}
           SOURCE_RUN: ${{ inputs.run_id }}
@@ -171,6 +172,7 @@ jobs:
           case "$RELEASE_TYPE" in
             Draft) mode=(--draft --prerelease); shown="Draft (belum tampil / not published)" ;;
             Pre-release) mode=(--prerelease); shown="Pre-release (tampil / published as pre-release)" ;;
+            Release) mode=(--latest); shown="Release (tampil sebagai rilis resmi / published as latest release)" ;;
             *) echo "::error::Unknown release type $RELEASE_TYPE"; exit 1 ;;
           esac
           {
