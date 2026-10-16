@@ -19,10 +19,13 @@ With --files, a table of the attached files (1-KERNEL_, 2-MANAGER_, ...) comes f
 (build-env KERNEL_FEATURES, else the "Features:" line of its kernel ZIP), the
 repository highlights (--highlights), the news, and a dropdown with the same text in
 plain form for Telegram (no links, no Markdown), also written to --telegram-out.
+"⬆️ Diperbarui" lists the components (kernel, manager, SUSFS, NoMount, BBG, Neutron)
+whose version differs from the previous release of the same variant; every release
+records its versions in a hidden "cogan-components" marker (--previous-notes).
 
 Usage: release_notes.py --lock FILE --features-lock FILE --source-sha SHA
            --repo OWNER/NAME --env-dir DIR [--files DIR] [--whats-new-file FILE]
-           [--commit-log FILE] [--highlights FILE]
+           [--commit-log FILE] [--highlights FILE] [--previous-notes FILE]
            [--title T --release-type R --telegram-out FILE]
 """
 import argparse
@@ -159,18 +162,19 @@ def files_section(names):
             *rows, ""]
 
 
-KINDS = ("Baru", "Diperbaiki")
-NEWS_LINE = re.compile(r"(Baru|Diperbaiki):\s*(\S.*)")
+KINDS = ("Baru", "Diperbaiki", "Diperbarui")
+ICONS = {"Baru": "✨", "Diperbaiki": "🔧", "Diperbarui": "⬆️"}
+NEWS_LINE = re.compile(r"(Baru|Diperbaiki|Diperbarui):\s*(\S.*)")
 MAX_ITEMS = 8  # per kind: the news stays short
 
 
 def whats_new(override_text="", commit_log=""):
-    """{"Baru": [...], "Diperbaiki": [...]}: the per-release file wins over commit lines."""
+    """{"Baru": [...], "Diperbaiki": [...], "Diperbarui": [...]}: the per-release file wins over commit lines."""
     found = []
     if override_text:
         kind = None
         for line in override_text.splitlines():
-            heading = re.fullmatch(r"#+\s*(Baru|Diperbaiki)\s*", line.strip())
+            heading = re.fullmatch(r"#+\s*(Baru|Diperbaiki|Diperbarui)\s*", line.strip())
             if heading:
                 kind = heading.group(1)
             elif kind and line.strip().startswith("- "):
@@ -190,10 +194,67 @@ def whats_new_section(items):
     if not any(items.values()):
         return []
     lines = ["## Yang baru / What's new", ""]
-    for kind, icon in zip(KINDS, ("✨", "🔧")):
-        if items[kind]:
+    for kind, icon in ICONS.items():
+        if items.get(kind):
             lines += [f"**{icon} {kind}**", *[f"- {text}" for text in items[kind]], ""]
     return lines
+
+
+COMPONENTS_MARK = re.compile(r"<!-- cogan-components: (\{.*?\}) -->")
+
+
+def components(env, lock, features_lock):
+    """Versions users care about, {name: [identity, shown]}, recorded in every release.
+
+    Compared with the previous release of the same variant for "⬆️ Diperbarui"."""
+    ksu, susfs = env.get("KSU", ""), env.get("KSU_SUSFS") == "true"
+    candidate = ksu == "KSUN" and susfs
+    found = {}
+    if env.get("LINUX_VERSION"):
+        found["Kernel"] = [env["LINUX_VERSION"]] * 2
+    if ksu in pd.MANAGERS:
+        label, pin_key = pd.MANAGERS[ksu]
+        tag = lock.get(mu.TAG_KEYS[pin_key], "")
+        if tag:
+            found[f"Manager {label}"] = [tag, tag]
+    if susfs and HEX.fullmatch(env.get("SUSFS_SHA", "")):
+        commit, version = short(env["SUSFS_SHA"]), env.get("SUSFS_VERSION", "")
+        found["SUSFS"] = [commit, f"{version} ({commit})" if version else commit]
+    nomount = feature_commit(features_lock, "nomount") if candidate else lock.get("NOMOUNT_COMMIT", "")
+    if nomount:
+        shown = lock.get("NOMOUNT_REF", "") if nomount == lock.get("NOMOUNT_COMMIT") else ""
+        found["NoMount"] = [short(nomount), shown or short(nomount)]
+    bbg = feature_commit(features_lock, "bbg") if candidate else lock.get("BBG_COMMIT", "")
+    if bbg and "BBG" in (env.get("KERNEL_FEATURES") or "BBG"):
+        found["Baseband Guard"] = [short(bbg)] * 2
+    if lock.get("NEUTRON_RELEASE"):
+        found["Neutron Clang"] = [lock["NEUTRON_RELEASE"]] * 2
+    return found
+
+
+def read_previous_components(notes_text):
+    """{variant: components} from the hidden marker of the previous release's notes."""
+    match = COMPONENTS_MARK.search(notes_text or "")
+    try:
+        data = json.loads(match.group(1)) if match else {}
+    except ValueError:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def updates(previous, current):
+    """"Kernel 6.1.177 → 6.1.180" for every component whose identity changed."""
+    lines = []
+    for name, (identity, shown) in current.items():
+        old = previous.get(name)
+        if isinstance(old, list) and len(old) == 2 and old[0] != identity:
+            lines.append(f"{name} {old[1]} → {shown}")
+    return lines
+
+
+def components_marker(by_variant):
+    text = json.dumps(by_variant, separators=(",", ":"), ensure_ascii=False)
+    return f"<!-- cogan-components: {text} -->" if "--" not in text else ""
 
 
 def variant_label(env):
@@ -248,8 +309,8 @@ def telegram_text(title, release_type, envs, names, items, features=(), highligh
     best = [*features, *highlights]
     if best:
         lines += ["", "⭐ Fitur unggulan", *[f"• {plain(text)}" for text in best]]
-    for kind, icon in zip(KINDS, ("✨", "🔧")):
-        if items[kind]:
+    for kind, icon in ICONS.items():
+        if items.get(kind):
             lines += ["", f"{icon} {kind}", *[f"• {plain(text)}" for text in items[kind]]]
     parts = []
     if any(name.startswith("1-KERNEL_") for name in names):
@@ -274,16 +335,17 @@ def frame(title, envs, features, highlights, items, telegram):
     best = [*features, *highlights]
     if best:
         body += ["**Fitur unggulan**", *[f"- {text}" for text in best], ""]
-    for kind, icon in zip(KINDS, ("✨", "🔧")):
-        if items[kind]:
+    for kind, icon in ICONS.items():
+        if items.get(kind):
             body += [f"**{icon} {kind}**", *[f"- {text}" for text in items[kind]], ""]
     body += ["<details>", "<summary>📋 Salin untuk grup Telegram</summary>", "", "```text",
              *telegram.rstrip("\n").splitlines(), "```", "", "</details>"]
     return ["> [!TIP]", *[f"> {line}" if line else ">" for line in body], ""]
 
 
-def notes(envs, lock, features_lock, source_sha, repo, names=(), items=None, top=None):
-    """top: the frame lines; without it the news section stands alone (older callers)."""
+def notes(envs, lock, features_lock, source_sha, repo, names=(), items=None, top=None, marker=""):
+    """top: the frame lines; without it the news section stands alone (older callers).
+    marker: the hidden component record the next release compares against."""
     news = top if top is not None else whats_new_section(items or {kind: [] for kind in KINDS})
     lines = news + files_section(names)
     # Component versions are for those who want them: folded, so the page stays short.
@@ -293,6 +355,8 @@ def notes(envs, lock, features_lock, source_sha, repo, names=(), items=None, top
     lines.append(f"Pin dari / pins from `configs/upstream.lock` @ `{short(source_sha)}`; "
                  "naik versi hanya lewat / updated only via **Cogan Manual Update**.")
     lines += ["", "</details>"]
+    if marker:
+        lines += ["", marker]
     return "\n".join(lines) + "\n"
 
 
@@ -310,6 +374,7 @@ def main(argv=None):
     parser.add_argument("--release-type", default="")
     parser.add_argument("--telegram-out", type=Path)
     parser.add_argument("--highlights", type=Path, help="repository highlights (docs/whats-new/highlights.md)")
+    parser.add_argument("--previous-notes", type=Path, help="notes of the previous release (component marker)")
     args = parser.parse_args(argv)
     if not HEX.fullmatch(args.source_sha) or not re.fullmatch(r"[\w.-]+/[\w.-]+", args.repo):
         print("bad --source-sha or --repo", file=sys.stderr)
@@ -327,6 +392,8 @@ def main(argv=None):
         highlights = read_highlights(args.highlights.read_text(encoding="utf-8")
                                      if args.highlights and args.highlights.is_file() else "")
         kernels = sorted(p for p in args.files.iterdir() if p.name.startswith("1-KERNEL_")) if args.files else []
+        previous = read_previous_components(args.previous_notes.read_text(encoding="utf-8", errors="replace")
+                                            if args.previous_notes and args.previous_notes.is_file() else "")
     except (OSError, ValueError) as exc:
         print("release notes inputs unreadable: " + str(exc), file=sys.stderr)
         return 1
@@ -342,13 +409,18 @@ def main(argv=None):
             match = [k for k in kernels if len(kernels) == 1 or k.stem.endswith("_" + env.get("BUILD_VARIANT", "?"))]
             recorded = features_from_zip(match[0]) if match else ""
         features += [item for item in feature_items(recorded) if item not in features]
+    # "⬆️ Diperbarui": component versions against the previous release of the same variant.
+    current = {env.get("BUILD_VARIANT", "?"): components(env, lock, features_lock) for env in envs}
+    automatic = [line for variant, found in current.items() for line in updates(previous.get(variant, {}), found)]
+    items["Diperbarui"] = list(dict.fromkeys(automatic + items["Diperbarui"]))[:MAX_ITEMS]
     top = None
     if args.title:
         message = telegram_text(args.title, args.release_type, envs, names, items, features, highlights)
         top = frame(args.title, envs, features, highlights, items, message)
         if args.telegram_out:
             args.telegram_out.write_text(message, encoding="utf-8")
-    sys.stdout.write(notes(envs, lock, features_lock, args.source_sha, args.repo, names, items, top))
+    sys.stdout.write(notes(envs, lock, features_lock, args.source_sha, args.repo, names, items, top,
+                           components_marker(current)))
     return 0
 
 

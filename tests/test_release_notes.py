@@ -139,7 +139,8 @@ class ReleaseNotesTests(unittest.TestCase):
                 self.assertEqual(rn.main(args[:4] + ["--source-sha", "nothex"] + args[6:]), 1)
             text = out.getvalue()
             self.assertTrue(text.startswith("<details>\n<summary>Versi komponen / Component versions</summary>\n"))
-            self.assertTrue(text.endswith("</details>\n"))
+            self.assertTrue(text.endswith("</details>\n\n" + rn.components_marker(
+                {env["BUILD_VARIANT"]: rn.components(env, LOCK, FEATURES_LOCK) for env in (KSUN, CANDIDATE)}) + "\n"))
             self.assertEqual(text.count("\n### "), 2)
             self.assertIn("@ `aaaaaaaa`", text)
 
@@ -181,9 +182,9 @@ class ReleaseNotesTests(unittest.TestCase):
         log = ("fix: something (#80)\n\nBaru: BBRv3 juga bernama bbr3\nDiperbaiki:   Rilis berisi   manager\n"
                "  Baru: BBRv3 juga bernama bbr3\nCo-Authored-By: x\nbukan Baru: ini\n")
         self.assertEqual(rn.whats_new("", log), {"Baru": ["BBRv3 juga bernama bbr3"],
-                                                 "Diperbaiki": ["Rilis berisi manager"]})
-        override = "### Baru\n- dari file\n"
-        self.assertEqual(rn.whats_new(override, log), {"Baru": ["dari file"], "Diperbaiki": []})
+                                                 "Diperbaiki": ["Rilis berisi manager"], "Diperbarui": []})
+        override = "### Baru\n- dari file\n### Diperbarui\n- manual\n"
+        self.assertEqual(rn.whats_new(override, log), {"Baru": ["dari file"], "Diperbaiki": [], "Diperbarui": ["manual"]})
         self.assertEqual(rn.whats_new_section(rn.whats_new("", "")), [])
         many = "".join(f"Baru: item {i}\n" for i in range(20))
         self.assertEqual(len(rn.whats_new("", many)["Baru"]), rn.MAX_ITEMS)
@@ -217,6 +218,59 @@ class ReleaseNotesTests(unittest.TestCase):
                                                  'ui_print "Features: SUSFS, BBRv3 (default, also bbr3), Full LTO"\n')
             self.assertEqual(rn.features_from_zip(kernel), "SUSFS, BBRv3 (default, also bbr3), Full LTO")
             self.assertEqual(rn.features_from_zip(Path(directory) / "missing.zip"), "")
+
+    def test_components_per_variant(self):
+        ksun = rn.components(KSUN, LOCK, FEATURES_LOCK)
+        self.assertEqual(ksun["Kernel"], ["6.1.177", "6.1.177"])
+        self.assertEqual(ksun["Manager KernelSU-Next"], [LOCK["KSUN_REF"], LOCK["KSUN_REF"]])
+        self.assertEqual(ksun["NoMount"], [LOCK["NOMOUNT_COMMIT"][:8], LOCK["NOMOUNT_REF"]])
+        self.assertEqual(ksun["Neutron Clang"], [LOCK["NEUTRON_RELEASE"]] * 2)
+        self.assertNotIn("SUSFS", ksun)
+        candidate = rn.components(dict(CANDIDATE, SUSFS_VERSION="v2.3.0"), LOCK, FEATURES_LOCK)
+        self.assertEqual(candidate["SUSFS"], ["99999999", "v2.3.0 (99999999)"])
+        self.assertEqual(candidate["Baseband Guard"][0], rn.feature_commit(FEATURES_LOCK, "bbg")[:8])
+        no_bbg = rn.components(dict(KSUN, KERNEL_FEATURES="NoMount, Full LTO"), LOCK, FEATURES_LOCK)
+        self.assertNotIn("Baseband Guard", no_bbg)
+
+    def test_updates_against_the_previous_release(self):
+        previous = {"Kernel": ["6.1.177", "6.1.177"], "Manager KernelSU-Next": ["v3.4.2", "v3.4.2"],
+                    "SUSFS": ["5369359d", "v2.3.0 (5369359d)"], "Gone": ["x", "x"]}
+        current = {"Kernel": ["6.1.180", "6.1.180"], "Manager KernelSU-Next": ["v3.4.2", "v3.4.2"],
+                   "SUSFS": ["abcdef12", "v2.4.0 (abcdef12)"], "New": ["y", "y"]}
+        self.assertEqual(rn.updates(previous, current),
+                         ["Kernel 6.1.177 → 6.1.180", "SUSFS v2.3.0 (5369359d) → v2.4.0 (abcdef12)"])
+        self.assertEqual(rn.updates({}, current), [])
+        marker = rn.components_marker({"6.1-KSUN": current})
+        self.assertEqual(rn.read_previous_components("text\n" + marker + "\n"), {"6.1-KSUN": current})
+        self.assertEqual(rn.read_previous_components("no marker"), {})
+        self.assertEqual(rn.read_previous_components("<!-- cogan-components: {bad} -->"), {})
+        self.assertEqual(rn.components_marker({"a": {"b": ["--", "x"]}}), "")
+
+    def test_cli_lists_updates_in_the_box_and_telegram(self):
+        with tempfile.TemporaryDirectory() as directory:
+            directory = Path(directory)
+            (directory / "env").mkdir()
+            (directory / "env" / "build-env-6.1-KSUN.txt").write_text(
+                "".join(f"{key}={value}\n" for key, value in dict(KSUN, LINUX_VERSION="6.1.180").items()))
+            old = rn.components(KSUN, LOCK, FEATURES_LOCK)
+            old["Manager KernelSU-Next"] = ["v3.4.1", "v3.4.1"]
+            (directory / "previous.md").write_text("> [!TIP]\n...\n" + rn.components_marker({"6.1-KSUN": old}) + "\n")
+            telegram = directory / "telegram.txt"
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                self.assertEqual(rn.main(["--lock", str(ROOT / "configs/upstream.lock"),
+                                          "--features-lock", str(ROOT / "configs/ksun-susfs-6.1-features.lock.json"),
+                                          "--source-sha", SHA, "--repo", REPO, "--env-dir", str(directory / "env"),
+                                          "--previous-notes", str(directory / "previous.md"),
+                                          "--title", "Cogan v26.10.20-r4", "--release-type", "Release",
+                                          "--telegram-out", str(telegram)]), 0)
+            text = out.getvalue()
+            box = text[:text.index("\n\n<details>\n<summary>Versi komponen")]
+            self.assertIn("> **⬆️ Diperbarui**\n> - Kernel 6.1.177 → 6.1.180\n"
+                          f"> - Manager KernelSU-Next v3.4.1 → {LOCK['KSUN_REF']}", box)
+            self.assertIn(f"⬆️ Diperbarui\n• Kernel 6.1.177 → 6.1.180\n• Manager KernelSU-Next v3.4.1 → {LOCK['KSUN_REF']}",
+                          telegram.read_text())
+            self.assertIn('"Kernel":["6.1.180","6.1.180"]', text)  # recorded for the next release
 
     def test_highlights_file_is_short(self):
         highlights = rn.read_highlights((ROOT / "docs/whats-new/highlights.md").read_text())

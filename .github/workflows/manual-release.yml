@@ -208,8 +208,10 @@ jobs:
             --jq '.[] | select((.tag_name | startswith("v")) and (.draft | not)) | [.created_at, .tag_name] | @tsv' \
             | awk -F'\t' -v tag="$RELEASE_TAG" '$2 != tag' | sort -r | head -n 1 | cut -f2)"
           prev_source=""
+          : > previous-notes.md
           if [ -n "$prev_tag" ]; then
             body="$(gh api "repos/$REPO/releases/tags/$prev_tag" --jq '.body // ""')"
+            printf '%s\n' "$body" > previous-notes.md  # its cogan-components marker feeds "Diperbarui"
             prev_source="$(sed -nE 's/.*cogan-source: ([0-9a-f]{40}).*/\1/p' <<<"$body" | head -n 1)"
             if [ -z "$prev_source" ]; then
               short="$(sed -nE 's/.*commit `([0-9a-f]{8})`.*/\1/p' <<<"$body" | head -n 1)"
@@ -224,7 +226,7 @@ jobs:
           else
             : > commit-log.txt  # unknown range: only docs/whats-new/<tag>.md can add news
           fi
-          echo "Previous release: ${prev_tag:-none} (${prev_source:0:8}); $(grep -cE '^(Baru|Diperbaiki):' commit-log.txt || true) news line(s)"
+          echo "Previous release: ${prev_tag:-none} (${prev_source:0:8}); $(grep -cE '^(Baru|Diperbaiki|Diperbarui):' commit-log.txt || true) news line(s)"
 
       - name: Create release (draft, pre-release or release)
         env:
@@ -268,7 +270,7 @@ jobs:
               --features-lock source-pins/ksun-susfs-6.1-features.lock.json \
               --source-sha "$SOURCE_SHA" --repo "$REPO" --env-dir build-env --files release-files \
               --whats-new-file "docs/whats-new/$RELEASE_TAG.md" --commit-log commit-log.txt \
-              --highlights docs/whats-new/highlights.md \
+              --highlights docs/whats-new/highlights.md --previous-notes previous-notes.md \
               --title "$RELEASE_TITLE" --release-type "$RELEASE_TYPE" --telegram-out telegram.txt
             echo ""
             echo "> [!CAUTION]"
