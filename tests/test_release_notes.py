@@ -51,6 +51,11 @@ class ReleaseNotesTests(unittest.TestCase):
     def test_rothko_build_names_its_device(self):
         self.assertIn("Perangkat / device: Xiaomi 14T Pro (rothko)", section(dict(CANDIDATE, TARGET_DEVICE="rothko")))
         self.assertNotIn("Perangkat / device", section(dict(CANDIDATE, TARGET_DEVICE="generic")))
+
+    def test_stock_source_build_says_so(self):
+        stock = section(dict(CANDIDATE, TARGET_DEVICE="rothko", KERNEL_SOURCE="stock"))
+        self.assertIn("kernel bawaan HP, ACK resmi / the phone's stock kernel source, official ACK", stock)
+        self.assertNotIn("kernel bawaan HP", section(dict(CANDIDATE, TARGET_DEVICE="rothko", KERNEL_SOURCE="gkid")))
         self.assertNotIn("Perangkat / device", section(CANDIDATE))  # build-env written before the option
 
     def test_candidate_uses_its_own_bbg_nomount_and_susfs(self):

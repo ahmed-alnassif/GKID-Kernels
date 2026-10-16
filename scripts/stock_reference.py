@@ -7,6 +7,8 @@ include/trace/hooks/, Makefile and modules.bzl - a sparse, shallow, blob-less fe
 about 10 MB. Fails unless HEAD is the pinned commit and the Makefile is the stock version.
 
 Usage: stock_reference.py --device rothko DEST
+       stock_reference.py --device rothko --pin   (prints: REPOSITORY COMMIT VERSION)
+The same pin is the kernel source of KERNEL_SOURCE=stock builds (build.sh).
 """
 import argparse
 import subprocess
@@ -46,9 +48,16 @@ def fetch(device, dest, repo=None):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--device", required=True, choices=sorted(d for d in DEVICES if "stock" in DEVICES[d]))
-    parser.add_argument("dest", type=Path)
+    parser.add_argument("dest", type=Path, nargs="?")
     parser.add_argument("--repo", help="override the source repository (a local mirror for tests)")
+    parser.add_argument("--pin", action="store_true", help="print the pinned repository, commit and version")
     args = parser.parse_args(argv)
+    if args.pin:
+        stock = DEVICES[args.device]["stock"]
+        print(stock["repo"], stock["commit"], stock["version"])
+        return 0
+    if args.dest is None:
+        parser.error("DEST is required unless --pin is given")
     try:
         stock = fetch(args.device, args.dest, args.repo)
     except (OSError, ValueError, subprocess.CalledProcessError) as exc:

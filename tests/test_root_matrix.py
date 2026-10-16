@@ -57,7 +57,7 @@ def main():
     assert 'elif [ "$KSU" = "KSUN" ]; then' in build_script
     assert 'if susfs_included; then' in build_script
     assert 'KSUN+SUSFS supports only kernel 6.1, fullLTO' in build_script
-    assert 'stage_ksun_susfs_candidate.py" "$KSRC" "$WORKDIR/ksun" "$KSUN_SUSFS_SUBLEVEL"' in build_script
+    assert 'stage_ksun_susfs_candidate.py" "$KSRC" "$WORKDIR/ksun" "$KSUN_SUSFS_TARGET"' in build_script
     assert '+Test' not in build_script  # no longer labelled as a test build
     # One build tag everywhere (revision, else CI run) and cogan17@GKID.
     assert 'SUFFIX="${RUN_NUM}-${LATEST_COMMIT_HASH}"' in build_script
@@ -115,6 +115,19 @@ def main():
         assert 'SUSFS variants need kernel 6.1.167 or newer' in rejected.stderr, rejected.stderr
     rejected = early(TARGET_DEVICE="poco", KSU="BSU", KSU_SUSFS="true")
     assert rejected.returncode == 1 and 'Unknown TARGET_DEVICE' in rejected.stderr, rejected.stderr
+    # The stock kernel source (official ACK) exists only for a device and has one sublevel.
+    for variables, message in (
+            ({"KERNEL_SOURCE": "stock", "KSU": "BSU", "KSU_SUSFS": "true"}, "KERNEL_SOURCE=stock needs a device"),
+            ({"KERNEL_SOURCE": "ack", "TARGET_DEVICE": "rothko"}, "Unknown KERNEL_SOURCE"),
+            ({"KERNEL_SOURCE": "stock", "TARGET_DEVICE": "rothko", "KSU": "BSU", "KSU_SUSFS": "true",
+              "KERNEL_SUBLEVEL": "177"}, "The rothko stock kernel source is 6.1.138: sublevel must be lts or 138"),
+            ({"KERNEL_SOURCE": "stock", "TARGET_DEVICE": "rothko", "KSU": "KSUN", "KSU_SUSFS": "true",
+              "KERNEL_SUBLEVEL": "167"}, "The rothko stock kernel source is 6.1.138")):
+        rejected = early(**variables)
+        assert rejected.returncode == 1, (variables, rejected.stderr)
+        assert message in rejected.stderr, rejected.stderr
+        assert 'command not found' not in rejected.stderr, rejected.stderr
+    assert 'KERNEL_NAME="${KERNEL_NAME}-ACK"' in build_script
     assert 'KERNEL_NAME="${KERNEL_NAME}-Rothko"' in build_script
     assert 'BRAND_ARGS=(--device rothko)' in build_script
     # The workflow checks the same rules in prepare, before cache/dependency jobs.

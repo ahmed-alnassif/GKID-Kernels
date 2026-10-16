@@ -366,6 +366,7 @@ jobs:
           KERNEL_SOURCE_REPO=${{ env.KERNEL_SOURCE_REPO }}
           KERNEL_SOURCE_BRANCH=${{ env.KERNEL_SOURCE_BRANCH }}
           TARGET_DEVICE=${{ env.TARGET_DEVICE }}
+          KERNEL_SOURCE=${{ env.KERNEL_SOURCE }}
           EOF
 
           echo "BUILD_VARIANT=${{ matrix.name }}" >> build-env-${{ matrix.name }}.txt

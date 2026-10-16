@@ -127,6 +127,18 @@ class KmiCompatTests(unittest.TestCase):
         line = kc.summary(report)
         self.assertIn("BSP: generation 11, exported GKI 1/1, mtk 1/1, xiaomi 0/0, config =y not enabled 1 (reviewed)", line)
 
+    def test_module_scmversion_is_a_reviewed_exception_for_both_references(self):
+        # build.sh turns LOCALVERSION_AUTO off (Cogan version name), so MODULE_SCMVERSION goes too.
+        for kind in ("bsp", "stock"):
+            self.assertIn("CONFIG_MODULE_SCMVERSION", kc.DEVICES["rothko"][f"{kind}_config_exceptions"])
+        build = (ROOT / "build.sh").read_text()
+        self.assertIn("config --disable CONFIG_LOCALVERSION_AUTO", build)
+
+    def test_summary_names_unreviewed_config_options(self):
+        status, report = self.run_reference(self.make_bsp(config="CONFIG_A=y\nCONFIG_INTERCONNECT=y\n"))
+        self.assertEqual(status, 1)
+        self.assertIn("config =y not enabled 1 (1 NOT REVIEWED)", kc.summary(report))
+
     def test_bsp_reference_failures(self):
         for change, message in (({"generation": "8"}, "BSP KMI generation 8"),
                                 ({"mtk": "bsp_only_symbol"}, "BSP abi_gki_aarch64_mtk: 1 symbol(s) not exported"),

@@ -13,6 +13,11 @@ ACK versions). This module applies it, strictly (plain git apply, no fuzz), so t
 result can be locked as a tree.
 
 The stack is present when kernel/module/version.c has the force-load message.
+
+The rothko stock kernel source (official ACK, not GKID) gets only the compatibility
+part (compat=True): module force-load and the removal of the protected exports. It
+stays as close to the stock kernel as possible: the GKID performance patches change
+KMI types (e.g. 0005 aligns struct file) and two of them do not apply there.
 """
 import re
 import subprocess
@@ -23,6 +28,7 @@ PATCH_DIR = ROOT / "kernel-patches/common"
 VERSION_C = "kernel/module/version.c"
 MARKER = re.compile(r"disagrees about version of symbol.*but ignore")
 PROTECTED = "android/*protected_exports*"
+FORCE_LOAD = "0003-kernel-module.c-Force-loading-of-modules-that-fail-s.patch"
 
 
 def patches():
@@ -46,10 +52,14 @@ def git(repo, *args, env=None, data=None):
     return result.stdout.decode().strip()
 
 
-def apply(repo, cached=False, env=None):
-    """Apply the stack to the work tree (or only the index) and drop the protected exports."""
+def apply(repo, cached=False, env=None, compat=False):
+    """Apply the stack to the work tree (or only the index) and drop the protected exports.
+
+    compat: only the module force-load patch (stock ACK sources)."""
     mode = ["--cached"] if cached else []
     for name, raw in patches():
+        if compat and name != FORCE_LOAD:
+            continue
         try:
             git(repo, "apply", *mode, "--check", "-", env=env, data=raw)
             git(repo, "apply", *mode, "-", env=env, data=raw)

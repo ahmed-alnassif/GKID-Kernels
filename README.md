@@ -33,7 +33,7 @@ Kernel generik yang dibangun dari sumber GKI 6.1 ([GKI-Duchamp-6.1](https://gith
 - **Performa**: timer 300 Hz, MGLRU, zRAM LZ4 + writeback, mq-deadline, kompresi F2FS, NTSync
 - **TMPFS**: xattr dan POSIX ACL
 - **Toolchain**: Neutron Clang (versi dikunci) dengan pilihan Full LTO, Thin LTO, atau tanpa LTO
-- **Xiaomi 14T Pro (rothko)**: kernel khusus HP ini dibangun di repo **[cogan17/Xiomi-14t-pro](https://github.com/cogan17/Xiomi-14t-pro)** dengan mesin build Cogan (root KSUN / BakaSU + SUSFS, ZIP yang hanya bisa di-flash di rothko, gate KMI terhadap modul vendor MediaTek/Xiaomi dengan acuan kernel bawaan rothko 6.1.138 dan BSP Xiaomi)
+- **Xiaomi 14T Pro (rothko)**: kernel khusus HP ini dibangun di repo **[cogan17/Xiomi-14t-pro](https://github.com/cogan17/Xiomi-14t-pro)** dengan mesin build Cogan (root KSUN / BakaSU + SUSFS, ZIP yang hanya bisa di-flash di rothko, gate KMI terhadap modul vendor MediaTek/Xiaomi dengan acuan kernel bawaan rothko 6.1.138 dan BSP Xiaomi). Sumber kernel bisa dipilih: GKID 6.1 atau kernel bawaan rothko (ACK resmi 6.1.138)
 - **Komponen terkunci**: kernel, root manager, SUSFS, NoMount, BBG, AnyKernel3 dan toolchain dipin ke commit tertentu, dan hanya diperbarui lewat **Cogan Manual Update**. Root manager dan NoMount mengikuti **tag rilis resmi**, jadi APK manager dan modul NoMount selalu versi yang sama dengan kernel
 
 ---

@@ -1,5 +1,29 @@
 #!/usr/bin/env bash
 
+build_dir="."; [[ "${BASH_SOURCE[0]}" == */* ]] && build_dir="${BASH_SOURCE[0]%/*}"
+# Kernel source: gkid (GKI-Duchamp-6.1 by Ahmed Al-Nassif, default) or stock (the device's
+# own stock kernel source, official Android Common Kernel; rothko: 6.1.138, tag
+# android14-6.1-2025-06_r11). The stock source has one fixed sublevel and only the
+# compatibility part of the GKID stack (module force-load, protected exports removed).
+KERNEL_SOURCE="${KERNEL_SOURCE:-gkid}"
+case "$KERNEL_SOURCE" in
+  gkid) ;;
+  stock)
+    if [ "${TARGET_DEVICE:-generic}" != "rothko" ]; then
+      echo "KERNEL_SOURCE=stock needs a device with a known stock kernel source (TARGET_DEVICE=rothko)" >&2
+      exit 1
+    fi
+    # Pin (repository, commit, version) kept with the device's KMI gate data (kmi_compat.DEVICES).
+    STOCK_PIN="$(python3 "$build_dir/scripts/stock_reference.py" --device "$TARGET_DEVICE" --pin)" || exit 1
+    read -r STOCK_REPO STOCK_COMMIT STOCK_VERSION <<< "$STOCK_PIN"
+    case "${KERNEL_SUBLEVEL:-lts}" in
+      [Ll][Tt][Ss]|[Aa][Uu][Tt][Oo]|"${STOCK_VERSION##*.}") KERNEL_SUBLEVEL="${STOCK_VERSION##*.}" ;;
+      *) echo "The $TARGET_DEVICE stock kernel source is $STOCK_VERSION: sublevel must be lts or ${STOCK_VERSION##*.}" >&2
+         exit 1 ;;
+    esac ;;
+  *) echo "Unknown KERNEL_SOURCE: $KERNEL_SOURCE (gkid or stock)" >&2; exit 1 ;;
+esac
+
 # KSUN + SUSFS builds only the validated, device-tested isolated candidate (Issue #19),
 # on a kernel sublevel whose patched trees are locked (configs/ksun-susfs-6.1-features.lock.json).
 # Reject other combinations before downloads, installers, or host changes.
@@ -11,17 +35,23 @@ if [[ "${KSU:-}" == "KSUN" && "${KSU_SUSFS:-false}" == "true" ]]; then
     exit 1
   fi
   # lts = the newest sublevel verified for KSUN+SUSFS; a number must be a verified one.
-  build_dir="."; [[ "${BASH_SOURCE[0]}" == */* ]] && build_dir="${BASH_SOURCE[0]%/*}"
-  KSUN_SUSFS_SUBLEVEL="$(python3 "$build_dir/scripts/ksun_susfs_sublevel.py" resolve "${KERNEL_SUBLEVEL:-lts}")" || exit 1
-  echo "KSUN+SUSFS kernel sublevel: 6.1.${KSUN_SUSFS_SUBLEVEL} (form value: ${KERNEL_SUBLEVEL:-lts})"
+  # The stock kernel source has its own locked trees ("stock_sources") and fixed sublevel.
+  KSUN_SUSFS_STOCK=()
+  [ "$KERNEL_SOURCE" = "stock" ] && KSUN_SUSFS_STOCK=(--stock "$TARGET_DEVICE")
+  KSUN_SUSFS_SUBLEVEL="$(python3 "$build_dir/scripts/ksun_susfs_sublevel.py" resolve "${KERNEL_SUBLEVEL:-lts}" \
+    "${KSUN_SUSFS_STOCK[@]}")" || exit 1
+  echo "KSUN+SUSFS kernel sublevel: 6.1.${KSUN_SUSFS_SUBLEVEL} (form value: ${KERNEL_SUBLEVEL:-lts}, source: $KERNEL_SOURCE)"
   KERNEL_SUBLEVEL="$KSUN_SUSFS_SUBLEVEL"
+  KSUN_SUSFS_TARGET="$KSUN_SUSFS_SUBLEVEL"
+  [ "$KERNEL_SOURCE" = "stock" ] && KSUN_SUSFS_TARGET="stock:$TARGET_DEVICE"
   KSUN_SUSFS_CANDIDATE=true
 fi
-# Every SUSFS variant needs 6.1.167 or newer: older GKID trees lack the fs/namespace.c
-# context (trace/hooks/blk.h include) that the SUSFS kernel patch expects, so the patch
-# would fail after minutes of setup. Patches are never adapted to fit.
+# Every SUSFS variant on GKID needs 6.1.167 or newer: older GKID trees lack the
+# fs/namespace.c context (trace/hooks/blk.h include) that the SUSFS kernel patch (with
+# GKID's namespace fix) expects, so the patch would fail after minutes of setup. Patches
+# are never adapted to fit. The stock ACK source takes the SUSFS patch as published.
 SUSFS_MIN_SUBLEVEL=167
-if [[ "${KSU_SUSFS:-false}" == "true" && "${KERNEL_SUBLEVEL:-}" =~ ^[0-9]+$ ]] \
+if [[ "$KERNEL_SOURCE" == "gkid" && "${KSU_SUSFS:-false}" == "true" && "${KERNEL_SUBLEVEL:-}" =~ ^[0-9]+$ ]] \
     && (( 10#$KERNEL_SUBLEVEL < SUSFS_MIN_SUBLEVEL )); then
   echo "SUSFS variants need kernel 6.1.${SUSFS_MIN_SUBLEVEL} or newer (requested 6.1.${KERNEL_SUBLEVEL})" >&2
   exit 1
@@ -50,6 +80,8 @@ case "$TARGET_DEVICE" in
     KERNEL_NAME="${KERNEL_NAME}-Rothko" ;;
   *) echo "Unknown TARGET_DEVICE: $TARGET_DEVICE (generic or rothko)" >&2; exit 1 ;;
 esac
+# A build from the stock kernel source is named apart from the GKID-based one.
+[ "$KERNEL_SOURCE" = "stock" ] && KERNEL_NAME="${KERNEL_NAME}-ACK"
 # One build tag everywhere (kernel version, ZIP, banner, release name): the requested
 # revision (e.g. r2), or the CI run number (-rN) when no revision is given. A rebuild
 # with the same revision on the same day reuses the name, so bump the revision.
@@ -60,9 +92,11 @@ if [[ -n "${BUILD_REVISION:-}" ]]; then
   fi
   RUN_NUM="-$BUILD_REVISION"
 fi
-# Kernel version line: cogan17@GKID (GKID kept as credit to the base project).
+# Kernel version line: cogan17@GKID (GKID kept as credit to the base project), or
+# cogan17@ACK for a build from the stock kernel source (official ACK).
 USER="cogan17"
 HOST="GKID"
+[ "$KERNEL_SOURCE" = "stock" ] && HOST="ACK"
 TIMEZONE="Asia/Damascus"
 ANYKERNEL_REPO="https://github.com/ahmed-alnassif/AK3-GKID"
 
@@ -98,7 +132,11 @@ case "${KERNEL_SUBLEVEL:-Auto}" in
 esac
 
 # Verified upstream Makefile sublevels; historical commits are not build-tested.
-if [ "$KERNEL_VERSION" = "6.1" ]; then
+if [ "$KERNEL_SOURCE" = "stock" ]; then
+  # Checked and fixed to the stock sublevel at the top (STOCK_PIN).
+  KERNEL_REPO="$STOCK_REPO"
+  KERNEL_BRANCH="$STOCK_COMMIT"
+elif [ "$KERNEL_VERSION" = "6.1" ]; then
   case "${KERNEL_SUBLEVEL:-Auto}" in
     # Every selectable 6.1 commit comes from the upstream lock (Cogan Manual Update).
     Auto|"") KERNEL_BRANCH="$PIN_KERNEL_COMMIT_6_1" ;;
@@ -125,6 +163,7 @@ echo "RELEASE_REPO=$(simplify_gh_url "$GKI_RELEASES_REPO")" >> $GITHUB_ENV
 echo "KERNEL_NAME=${KERNEL_NAME}${RUN_NUM}" >> $GITHUB_ENV
 echo "KERNEL_LABEL=$KERNEL_NAME" >> $GITHUB_ENV
 echo "TARGET_DEVICE=$TARGET_DEVICE" >> $GITHUB_ENV
+echo "KERNEL_SOURCE=$KERNEL_SOURCE" >> $GITHUB_ENV
 echo "RELEASE_NAME=$KERNEL_NAME $RELEASE" >> $GITHUB_ENV
 echo "RELEASE=$RELEASE" >> $GITHUB_ENV
 
@@ -171,7 +210,7 @@ fi
 
 if [ "$KSUN_SUSFS_CANDIDATE" = "true" ]; then
   log "Staging the validated KSUN + SUSFS candidate (replay + frozen core + features)"
-  python3 "$WORKDIR/scripts/stage_ksun_susfs_candidate.py" "$KSRC" "$WORKDIR/ksun" "$KSUN_SUSFS_SUBLEVEL" || exit 1
+  python3 "$WORKDIR/scripts/stage_ksun_susfs_candidate.py" "$KSRC" "$WORKDIR/ksun" "$KSUN_SUSFS_TARGET" || exit 1
 fi
 
 cd "$KSRC" || exit 1
@@ -216,7 +255,9 @@ git log --pretty=format:"- [%h](https://${SUSFS_URL#https://}/commit/%H) %s" -5 
 > "$RELEASE_DIR/susfs_changelog-${KERNEL_VERSION}.txt"
 cd ..
 
-if kernel_version_eq "$KERNEL_VERSION" "6.1"; then
+if [ "$KERNEL_SOURCE" = "stock" ]; then
+  generate_gh_changelog "$(simplify_gh_url "$KERNEL_REPO")" "$KERNEL_BRANCH" 10 "$RELEASE_DIR/android_kernel-6.1_changelog.txt"
+elif kernel_version_eq "$KERNEL_VERSION" "6.1"; then
   generate_gh_changelog "ahmed-alnassif/GKI-Duchamp-6.1" "$KERNEL_BRANCH" 10 "$RELEASE_DIR/android_kernel-6.1_changelog.txt"
 else
   echo "No changelog generator wired up yet for $KERNEL_VERSION" \
@@ -271,9 +312,16 @@ if ! kernel_version_eq "$KERNEL_VERSION" "6.1"; then
 elif ! grep -qE "disagrees about version of symbol.*but ignore" kernel/module/version.c; then
   # Only the GKID-6.1 tip carries the GKID patch stack; older sublevels are plain
   # android14-6.1-lts. Give them the same stack (scripts/gkid_parity.py explains why);
-  # KSUN+SUSFS already got it, strictly and tree-checked, while staging.
-  log "Sublevel without the GKID patch stack: applying Cogan's GKID-equivalent patches"
-  apply_kernel_patches || warning "Some GKID-equivalent performance patches did not apply"
+  # KSUN+SUSFS already got it, strictly and tree-checked, while staging. The stock
+  # kernel source (official ACK) gets only its compatibility part, no performance patches.
+  if [ "$KERNEL_SOURCE" = "stock" ]; then
+    log "Stock kernel source: module force-load + protected exports removal (no GKID performance patches)"
+    apply_patch_file "$KERNEL_PATCHES/common/0003-kernel-module.c-Force-loading-of-modules-that-fail-s.patch" \
+      || { error "Module force-load patch failed on the stock kernel source"; exit 1; }
+  else
+    log "Sublevel without the GKID patch stack: applying Cogan's GKID-equivalent patches"
+    apply_kernel_patches || warning "Some GKID-equivalent performance patches did not apply"
+  fi
   cleanup_abi_gki_protected_exports
   if ! grep -qE "disagrees about version of symbol.*but ignore" kernel/module/version.c \
       || compgen -G "android/*protected_exports*" >/dev/null; then
@@ -287,10 +335,14 @@ if [ "$KSUN_SUSFS_CANDIDATE" = "true" ]; then
   log "KSUN+SUSFS: BBRv3 comes from candidate feature patches 004 (+ bbr3 name, 005); networking extras from the locked fragment"
 elif [ "${NETWORKING:-true}" = "true" ]; then
   log "Applying BBRv3 patch (Networking enabled)"
-  if apply_patch_file "$KERNEL_PATCHES/bbrv3/bbrv3.patch"; then
-    # The same BBRv3 also registered as "bbr3" (TCP Optimiser looks for that name).
-    apply_patch_file "$KERNEL_PATCHES/bbrv3/bbr3-alias.patch" || { error "bbr3 name patch failed on top of BBRv3"; exit 1; }
-  fi
+  # The stock kernel source predates an LTS tcp_input.c change: it takes the same BBRv3
+  # changes combined into one diff with its own context. A failure stops the build: the
+  # fuzz fallback cannot dry-run this multi-commit series, so it would only skip BBRv3.
+  BBRV3_PATCH="$KERNEL_PATCHES/bbrv3/bbrv3.patch"
+  [ "$KERNEL_SOURCE" = "stock" ] && BBRV3_PATCH="$KERNEL_PATCHES/susfs/6.1-v2/features/stock-$STOCK_VERSION/004-bbrv3.patch"
+  apply_patch_file "$BBRV3_PATCH" || { error "BBRv3 patch failed (Networking enabled)"; exit 1; }
+  # The same BBRv3 also registered as "bbr3" (TCP Optimiser looks for that name).
+  apply_patch_file "$KERNEL_PATCHES/bbrv3/bbr3-alias.patch" || { error "bbr3 name patch failed on top of BBRv3"; exit 1; }
 else
   log "Skipping optional BBRv3 patch (Networking disabled)"
 fi

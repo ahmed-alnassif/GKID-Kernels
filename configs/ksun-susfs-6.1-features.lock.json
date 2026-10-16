@@ -322,5 +322,20 @@
       "gkid_stack": true,
       "final_kernel_tree": "978305ce758d533ddf72cfb6aac4019bee0954f3"
     }
+  },
+  "stock_sources_note": "KSUN + SUSFS on a device's stock kernel source (official ACK, not GKID): the same series with manifests whose core 002 and BBRv3 patches carry the context of that ACK release (same changes, checked per file), then only the compatibility part of the GKID-equivalent stack (module force-load, protected exports removed). Locked like the sublevels; recorded with scripts/ksun_susfs_sublevel.py record KERNEL_REPO COMMIT --stock DEVICE.",
+  "stock_sources": {
+    "rothko": {
+      "kernel_commit": "6ab8c9a86a331cece499c7edac062ceffbe2e320",
+      "sublevel": "138",
+      "tag": "android14-6.1-2025-06_r11",
+      "kernel_manifest": "replay/kernel-replay.stock-6.1.138.json",
+      "feature_manifest": "features/kernel-replay.stock-6.1.138.json",
+      "core_kernel_tree": "35f9e84b2fa33aed9aef3dfb169924f176ed352e",
+      "kernel_snapshot": "6e2dd05105528f4a037a65064c49964804383e62",
+      "integrated_kernel_tree": "a8875c056a98f0c6e41e7ef211ee0d08edf696c1",
+      "gkid_stack": false,
+      "final_kernel_tree": "1e8dcb49db2e482001d0a357ed197c0e27d62d7b"
+    }
   }
 }

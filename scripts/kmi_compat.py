@@ -46,6 +46,10 @@ import re
 import sys
 from pathlib import Path
 
+# Reviewed 2026-10-16 after the first rothko builder run (Xiomi-14t-pro run 38934173981).
+SCMVERSION = ("only the modinfo/sysfs scmversion attribute (struct module keeps the field, so module "
+              "layout is unchanged); depends on LOCALVERSION_AUTO, which build.sh turns off for the "
+              "Cogan version name, as in the device-tested r2/r3 kernels")
 DEVICES = {
     # Xiaomi 14T Pro: MediaTek MT6989; stock kernel 6.1.138-android14-11.
     "rothko": {"name": "Xiaomi 14T Pro (rothko)", "generation": "11",
@@ -55,6 +59,7 @@ DEVICES = {
                "bsp_config_exceptions": {
                    "CONFIG_DEBUG_STACK_USAGE": "debug statistics only",
                    "CONFIG_MEDIA_CEC_RC": "HDMI-CEC remote control keys; no HDMI-CEC on the phone",
+                   "CONFIG_MODULE_SCMVERSION": SCMVERSION,
                    "CONFIG_UAPI_HEADER_TEST": "build-time header test, not in the kernel",
                },
                # Stock kernel 6.1.138-android14-11-g6ab8c9a86a33-ab14396278 = this ACK commit.
@@ -66,6 +71,7 @@ DEVICES = {
                "stock_config_exceptions": {
                    "CONFIG_MEMFD_ASHMEM_SHIM": "removed from android14-6.1 by Google (ACK 8e481acd, "
                                                "2026-03-10: only needed on 6.12+); exports no symbol",
+                   "CONFIG_MODULE_SCMVERSION": SCMVERSION,
                    "CONFIG_UAPI_HEADER_TEST": "build-time header test, not in the kernel",
                }},
 }
@@ -250,8 +256,10 @@ def summary(report):
     for kind, ref in report.get("references", {}).items():
         label = REFERENCES[kind]
         name = f"{label} {ref['version']}" if kind == "stock" and ref["version"] else label
+        unreviewed = sum(why == "NOT REVIEWED" for why in ref["config_not_enabled"].values())
         line += (f"; {name}: generation {ref['kmi_generation']}, exported {exported(ref['lists'])}, "
-                 f"config =y not enabled {len(ref['config_not_enabled'])} (reviewed), "
+                 f"config =y not enabled {len(ref['config_not_enabled'])} "
+                 f"({f'{unreviewed} NOT REVIEWED' if unreviewed else 'reviewed'}), "
                  f"{label}-only vendor hooks {len(ref['hooks_absent'])} (unused)")
         if "crc_differences" in ref:
             line += f", CRC differs {len(ref['crc_differences'])}"

@@ -104,6 +104,8 @@ def variant_section(env, lock, features_lock, repo):
     kernel = env.get("KERNEL_SOURCE_BRANCH", "")
     source = env.get("KERNEL_SOURCE_REPO", "")
     lines.append(f"- Kernel: {source + ' ' if source else ''}`{short(kernel) or '?'}`"
+                 + (" — kernel bawaan HP, ACK resmi / the phone's stock kernel source, official ACK"
+                    if env.get("KERNEL_SOURCE") == "stock" else "")
                  + (" (kandidat beku / frozen candidate)" if candidate else ""))
     if ksu in pd.MANAGERS and env.get("ROOT_MANAGER_REPO"):
         label, pin_key = pd.MANAGERS[ksu]

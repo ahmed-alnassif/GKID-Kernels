@@ -1,0 +1,21 @@
+{
+  "kernel_commit": "6ab8c9a86a331cece499c7edac062ceffbe2e320",
+  "base": "rothko stock kernel source: ACK android14-6.1-2025-06_r11 (6.1.138)",
+  "patches": [
+    {
+      "path": "001-driver-integration.patch",
+      "sha256": "1ad475b1c970fefc71f79e7ab5f8d211f58992d0a8f90870f9511ea44c141c56",
+      "source": "Reviewed pinned KSUN setup mechanism; local explicit driver glue"
+    },
+    {
+      "path": "stock-6.1.138/002-susfs-kernel.patch",
+      "sha256": "d696296bdbe5130657ccfb6718b68a74757dd08cc0b6c84b88119b6bef013173",
+      "source": "002-susfs-kernel.patch with the include context of ACK 6.1.138 (same changes)"
+    },
+    {
+      "path": "003-susfs-companions.patch",
+      "sha256": "42bd7b39a4a2e93af152a47414aa0e31719697a2b30f6007003713e74e281058",
+      "source": "Exact v2 companion bytes; source provenance in v2 lock"
+    }
+  ]
+}

@@ -1428,6 +1428,27 @@
     "gate_summary_6.1.167": "KMI Xiaomi 14T Pro (rothko): OK; generation 11; exported GKI 2/2, mtk 3688/3688, xiaomi 528/528 (3 via GKI modules); CRC differs 561 (force-load on); BSP: generation 11, exported GKI 2/2, mtk 3353/3353, xiaomi 308/308, config =y not enabled 3 (reviewed), BSP-only vendor hooks 8 (unused); stock 6.1.138: generation 11, exported GKI 2/2, mtk 3596/3596, xiaomi 455/455, config =y not enabled 2 (reviewed), stock-only vendor hooks 6 (unused), CRC differs 538",
     "gate_summary_6.1.177": "KMI Xiaomi 14T Pro (rothko): OK; generation 11; exported GKI 2/2, mtk 3705/3705, xiaomi 638/638 (3 via GKI modules); CRC differs 568 (force-load on); BSP: generation 11, exported GKI 2/2, mtk 3353/3353, xiaomi 308/308, config =y not enabled 3 (reviewed), BSP-only vendor hooks 8 (unused); stock 6.1.138: generation 11, exported GKI 2/2, mtk 3596/3596, xiaomi 455/455, config =y not enabled 2 (reviewed), stock-only vendor hooks 6 (unused), CRC differs 538"
   },
+  "ci_run_38934173981": {
+    "repository": "cogan17/Xiomi-14t-pro",
+    "engine": "22c90da1b73c5940f4d4eb2d84e808d01cbb5c6e",
+    "variant": "KernelSU Next + SUSFS, 6.1.177, fullLTO",
+    "result": "compiled; KMI gate FAILED only on BSP gki_defconfig CONFIG_MODULE_SCMVERSION (everything else passed: mtk 3705/3705, xiaomi 638/638, BSP mtk 3353/3353, xiaomi 308/308)",
+    "cause": "MODULE_SCMVERSION depends on LOCALVERSION_AUTO, which build.sh turns off for the Cogan version name; the local 167/177 gate builds had not mirrored that step",
+    "decision": "reviewed exception for BSP and stock: only the modinfo/sysfs scmversion attribute; struct module keeps the scmversion field (layout unchanged); the device-tested r2/r3 kernels were built the same way"
+  },
+  "stock_source_build": {
+    "date": "2026-10-16",
+    "source": "rothko stock kernel source: ACK android14-6.1-2025-06_r11, 6ab8c9a86a331cece499c7edac062ceffbe2e320 (6.1.138)",
+    "variant": "KernelSU Next + SUSFS candidate (stock:rothko), full LTO, LOCALVERSION_AUTO off as in build.sh",
+    "staged_trees": "core 35f9e84b, snapshot 6e2dd051, features a8875c05, final 1e8dcb49 (= lock stock_sources.rothko)",
+    "resolved_config_sha256": "cba59d56007a2bf0a2859794e8969a101350b34bad0cd90f2e012c91cad23299",
+    "result": "compiled, 0 errors",
+    "image_sha256": "92d892d497a12b98dc9ed1042c9681b58b2e34d3d38e57af800651abf419d32f",
+    "kmi_gate_summary": "KMI Xiaomi 14T Pro (rothko): OK; generation 11; exported GKI 2/2, mtk 3596/3596, xiaomi 455/455 (3 via GKI modules); CRC differs 538 (force-load on); BSP: generation 11, exported GKI 2/2, mtk 3353/3353, xiaomi 308/308, config =y not enabled 4 (reviewed), BSP-only vendor hooks 2 (unused); stock 6.1.138: generation 11, exported GKI 2/2, mtk 3596/3596, xiaomi 455/455, config =y not enabled 2 (reviewed), stock-only vendor hooks 0 (unused), CRC differs 538",
+    "crc_vs_stock_frozen_abi": "538, the same set as the device-tested GKID 6.1.177 build: the drift comes from Cogan's features and config, not from the kernel base",
+    "bsp_only_vendor_hooks": 2,
+    "not_verified": "boot on the phone; BakaSU + SUSFS on this source (compile running)"
+  },
   "not_verified": [
     "boot and runtime on the phone for any sublevel other than 177 (owner)",
     "GitHub Actions run of the rothko builder (owner)"

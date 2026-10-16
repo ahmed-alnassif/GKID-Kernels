@@ -33,7 +33,7 @@ A generic kernel built from GKI 6.1 sources ([GKI-Duchamp-6.1](https://github.co
 - **Performance**: 300 Hz timer, MGLRU, zRAM LZ4 + writeback, mq-deadline, F2FS compression, NTSync
 - **TMPFS**: xattr and POSIX ACLs
 - **Toolchain**: Neutron Clang (pinned version) with Full LTO, Thin LTO or no LTO
-- **Xiaomi 14T Pro (rothko)**: the kernel for this phone is built in **[cogan17/Xiomi-14t-pro](https://github.com/cogan17/Xiomi-14t-pro)** with the Cogan build engine (KSUN / BakaSU + SUSFS root, a ZIP that flashes on rothko only, a KMI gate against the MediaTek/Xiaomi vendor modules, checked against the rothko stock kernel 6.1.138 and the Xiaomi BSP)
+- **Xiaomi 14T Pro (rothko)**: the kernel for this phone is built in **[cogan17/Xiomi-14t-pro](https://github.com/cogan17/Xiomi-14t-pro)** with the Cogan build engine (KSUN / BakaSU + SUSFS root, a ZIP that flashes on rothko only, a KMI gate against the MediaTek/Xiaomi vendor modules, checked against the rothko stock kernel 6.1.138 and the Xiaomi BSP). Kernel source: GKID 6.1 or the rothko stock kernel source (official ACK 6.1.138)
 - **Pinned components**: the kernel, root managers, SUSFS, NoMount, BBG, AnyKernel3 and the toolchain are pinned to exact commits and are only updated through **Cogan Manual Update**. Root managers and NoMount follow **official release tags**, so the manager APK and NoMount module always match the kernel
 
 ---

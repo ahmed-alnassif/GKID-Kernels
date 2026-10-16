@@ -1,0 +1,29 @@
+{
+  "kernel_commit": "6e2dd05105528f4a037a65064c49964804383e62",
+  "core_tree": "35f9e84b2fa33aed9aef3dfb169924f176ed352e",
+  "scope": "BBG, BBG allow-cache locking fix, NoMount continuation, BBRv3 and its bbr3 name only",
+  "base": "rothko stock kernel source: ACK android14-6.1-2025-06_r11 (6.1.138)",
+  "patches": [
+    {
+      "path": "001-bbg.patch",
+      "sha256": "b61d26be2ea1f272966335863e51093925934ab9e52218a8a6e5a155a936da15"
+    },
+    {
+      "path": "002-nomount.patch",
+      "sha256": "b161795835c75aeaf98a7df222231d2b9c384fdc21b1358cade6b610903df38c"
+    },
+    {
+      "path": "003-bbg-allow-cache-spinlock.patch",
+      "sha256": "ef50b027655aff46d1a7e3c5061de366e46973eea2e4506153740887d63eb193"
+    },
+    {
+      "path": "stock-6.1.138/004-bbrv3.patch",
+      "sha256": "abcae05fb393192f156faebb433393a8fde57a81e179dce0bba3b934fa4b58f2",
+      "source": "004-bbrv3.patch combined into one diff with the context of ACK 6.1.138 (same changes)"
+    },
+    {
+      "path": "005-bbr3-alias.patch",
+      "sha256": "de0c2f89667f69b49724c22b111cb2c6772d7da772958f607345d1199a99e7eb"
+    }
+  ]
+}
