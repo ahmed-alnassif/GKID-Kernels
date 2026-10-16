@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "scope": "KSUN SUSFS core v2 plus pinned BBG and NoMount; source and config preparation only",
+  "scope": "KSUN SUSFS core v2 plus pinned BBG, NoMount and BBRv3; source and config preparation only",
   "core_kernel_tree": "7e2b5164757d23fe0fbe3cd81ebec264769a0542",
   "core_ksun_tree": "2fd43a2d0ef0e1750102348869dd1152d306afb1",
   "kernel_inputs_sha256": {
@@ -147,10 +147,10 @@
     "automatic_credit_readout_available": false,
     "trigger": "Only an actual visible quota reading or owner notice; do not infer a percentage from elapsed time or tokens."
   },
-  "integrated_kernel_tree": "1246bd4c9a0afc0859ecbc4ad91031dab65aa413",
+  "integrated_kernel_tree": "8109b744c5b6b3421bd7a70ffa90c24fb6492d02",
   "configuration": {
     "fragment": "configs/ksun-susfs-6.1-features.config",
-    "sha256": "6ccc7fe7203e77281b721a604406a57bd53db68f6985d7348836de76718c3e91",
+    "sha256": "699b3c580a48ac6cbfc73877c4d78e141ded2b2979c33a4baf840038a0b0b5e8",
     "target": "gki_defconfig",
     "merge": "scripts/kconfig/merge_config.sh -m",
     "resolve": "olddefconfig",
@@ -167,7 +167,10 @@
       "CONFIG_NOMOUNT": "y",
       "CONFIG_KEYS": "y",
       "CONFIG_LTO_CLANG_FULL": "y",
-      "CONFIG_CFI_CLANG": "y"
+      "CONFIG_CFI_CLANG": "y",
+      "CONFIG_TCP_CONG_BBR": "y",
+      "CONFIG_DEFAULT_BBR": "y",
+      "CONFIG_NET_SCH_FQ": "y"
     },
     "forbidden": [
       "CONFIG_NTSYNC",
@@ -197,6 +200,14 @@
       "applies_after": "001-bbg.patch",
       "approved": "owner 2026-10-15",
       "reason": "Serialize allowed_devs hashtable readers and insertion (IRQ-safe spinlock, double-checked insert)"
+    },
+    {
+      "name": "004-bbrv3.patch",
+      "source": "kernel-patches/susfs/6.1-v2/features/004-bbrv3.patch",
+      "sha256": "adb4ac7c68ebce3ede9302f614a872c6ce5fc0a43440f308836efe8ef1a9e51a",
+      "applies_after": "003-bbg-allow-cache-spinlock.patch",
+      "approved": "owner 2026-10-16 (explicit written approval, together with the networking extras)",
+      "reason": "TCP BBRv3, byte-identical to the production kernel-patches/bbrv3/bbrv3.patch; applies with plain git apply on the candidate feature tree 1246bd4c"
     }
   ],
   "integrated_kernel_tree_before_reviewed_patches": "b5db2f3ccc53539083461caa5cb7d1ddb5cd9e81",
@@ -210,5 +221,6 @@
     "message": "Freeze verified KSUN SUSFS core v2 source for isolated feature staging\n",
     "kernel_snapshot": "3f08838cbc5a94bf877df6a462dabb9118095314",
     "ksun_snapshot": "ce13bc5d783ad2b79409423f1c3343321cf0e304"
-  }
+  },
+  "integrated_kernel_tree_before_bbrv3": "1246bd4c9a0afc0859ecbc4ad91031dab65aa413"
 }

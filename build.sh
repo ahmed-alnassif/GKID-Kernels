@@ -226,7 +226,7 @@ fi
 
 
 if [ "$KSUN_SUSFS_CANDIDATE" = "true" ]; then
-  log "KSUN+SUSFS: frozen validated candidate; BBRv3 networking extras not applied"
+  log "KSUN+SUSFS: BBRv3 comes from candidate feature patch 004; networking extras from the locked fragment"
 elif [ "${NETWORKING:-true}" = "true" ]; then
   log "Applying BBRv3 patch (Networking enabled)"
   apply_patch_file "$KERNEL_PATCHES/bbrv3/bbrv3.patch"
@@ -478,7 +478,7 @@ echo "::endgroup::"
 # Report the resolved kernel configuration, not merely the requested fragments.
 # Diagnostics only: avoid failing established builds on kernel-version differences.
 if [ "$KSUN_SUSFS_CANDIDATE" = "true" ]; then
-  log "Resolved Networking config (KSUN+SUSFS: Networking option ignored, no BBRv3 patch)"
+  log "Resolved Networking config (KSUN+SUSFS: always on from the locked fragment; Networking option ignored)"
 else
   log "Resolved Networking config (NETWORKING=${NETWORKING:-true})"
 fi

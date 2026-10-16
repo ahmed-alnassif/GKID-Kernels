@@ -52,7 +52,7 @@ Kernel generik yang dibangun dari sumber GKI 6.1 ([GKI-Duchamp-6.1](https://gith
 | KernelSU | `KernelSU` | KernelSU | ❌ | |
 | KernelSU + SUSFS | `KernelSU+SuSFS` | KernelSU | ✅ | |
 | KernelSU Next | `KernelSU-Next` | KernelSU Next | ❌ | |
-| KernelSU Next + SUSFS | `KernelSU-Next+SuSFS` | KernelSU Next (fork pershoot) | ✅ | Kernel **6.1.177 yang dikunci** dan sudah diuji di HP (Xiaomi 14T Pro), Full LTO, BBG aktif; **tanpa BBRv3 dan paket jaringan tambahan** (centang Networking diabaikan) |
+| KernelSU Next + SUSFS | `KernelSU-Next+SuSFS` | KernelSU Next (fork pershoot) | ✅ | Kernel **6.1.177 yang dikunci**, Full LTO, BBG aktif. BBRv3 dan paket jaringan tambahan **selalu aktif** (centang Networking diabaikan) |
 | BakaSU + SUSFS | `BakaSU+SuSFS` | BakaSU | ✅ | |
 | Vanilla | `Vanilla` | ❌ | ❌ | Tanpa root |
 | All variants (advanced) | Semua varian standar + `Vanilla+NoLTO` + `Compat+…` | | | `Compat` tanpa LTO, untuk perangkat yang tidak mau boot dengan varian standar |
@@ -96,7 +96,7 @@ Buka **Actions → Cogan Kernel Builder → Run workflow** di repositori Anda.
 | Build Revision | Opsional, format `r` + angka (mis. `r9`), ditambahkan ke nama rilis |
 | Kernel Sublevel | `lts` = terbaru, atau angka saja (mis. `177`, bukan `6.1.177`); tersedia 6.1.160 ke atas |
 | Build Time | `N` = waktu build asli, atau waktu tetap seperti `Thu Jan 1 00:00:00 UTC 2026` |
-| Networking | BBRv3 dan paket jaringan tambahan (default aktif; diabaikan untuk KSUN + SUSFS) |
+| Networking | BBRv3 dan paket jaringan tambahan (default aktif; KSUN + SUSFS selalu aktif) |
 | BBG | Baseband Guard (default aktif) |
 
 **Hasil build:** saat run hijau, artifact bernomor bisa langsung diunduh (tidak perlu diekstrak):

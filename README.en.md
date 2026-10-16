@@ -52,7 +52,7 @@ A generic kernel built from GKI 6.1 sources ([GKI-Duchamp-6.1](https://github.co
 | KernelSU | `KernelSU` | KernelSU | ❌ | |
 | KernelSU + SUSFS | `KernelSU+SuSFS` | KernelSU | ✅ | |
 | KernelSU Next | `KernelSU-Next` | KernelSU Next | ❌ | |
-| KernelSU Next + SUSFS | `KernelSU-Next+SuSFS` | KernelSU Next (pershoot fork) | ✅ | **Frozen 6.1.177** kernel, device-tested (Xiaomi 14T Pro), Full LTO, BBG enabled; **no BBRv3 or extra networking** (the Networking box is ignored) |
+| KernelSU Next + SUSFS | `KernelSU-Next+SuSFS` | KernelSU Next (pershoot fork) | ✅ | **Frozen 6.1.177** kernel, Full LTO, BBG enabled. BBRv3 and extra networking are **always on** (the Networking box is ignored) |
 | BakaSU + SUSFS | `BakaSU+SuSFS` | BakaSU | ✅ | |
 | Vanilla | `Vanilla` | ❌ | ❌ | No root |
 | All variants (advanced) | All standard variants + `Vanilla+NoLTO` + `Compat+…` | | | `Compat` has no LTO, for devices that do not boot the standard variants |
@@ -96,7 +96,7 @@ Open **Actions → Cogan Kernel Builder → Run workflow** in your repository.
 | Build Revision | Optional, `r` + digits (e.g. `r9`), added to the release name |
 | Kernel Sublevel | `lts` = latest, or just the number (e.g. `177`, not `6.1.177`); 6.1.160 and newer |
 | Build Time | `N` = real build time, or a fixed time such as `Thu Jan 1 00:00:00 UTC 2026` |
-| Networking | BBRv3 and extra networking (enabled by default; ignored for KSUN + SUSFS) |
+| Networking | BBRv3 and extra networking (enabled by default; always on for KSUN + SUSFS) |
 | BBG | Baseband Guard (enabled by default) |
 
 **Build output:** a green run lists numbered artifacts you can download directly (no extraction needed):

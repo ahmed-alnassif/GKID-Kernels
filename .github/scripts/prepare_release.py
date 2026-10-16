@@ -170,7 +170,7 @@ def build_release_body():
 | KernelSU | KernelSU | ❌ | |
 | KernelSU+SuSFS | KernelSU | ✅ | |
 | KernelSU-Next | KernelSU Next | ❌ | |
-| KernelSU-Next+SuSFS | KernelSU Next (pershoot fork) | ✅ | 6.1.177, Full LTO; tanpa BBRv3 / no BBRv3 |
+| KernelSU-Next+SuSFS | KernelSU Next (pershoot fork) | ✅ | 6.1.177, Full LTO, BBRv3 |
 | BakaSU+SuSFS | BakaSU | ✅ | |
 | Vanilla | ❌ | ❌ | tanpa root / no root |
 | Compat+… | (as named) | ✅ | tanpa LTO / no LTO |

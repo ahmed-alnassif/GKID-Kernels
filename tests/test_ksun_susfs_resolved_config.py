@@ -211,6 +211,32 @@ class ResolvedConfigTests(unittest.TestCase):
             errors = gate.audit((GOOD + f"{key}=y\n").encode(), lock)
             self.assertTrue(any(key in e for e in errors))
 
+    def test_repository_candidate_carries_production_bbrv3_and_networking(self):
+        import hashlib
+        import json
+        lock = json.loads((ROOT / "configs/ksun-susfs-6.1-features.lock.json").read_text(encoding="utf-8"))
+        features = ROOT / "kernel-patches/susfs/6.1-v2/features"
+        patch = (features / "004-bbrv3.patch").read_bytes()
+        # Byte-identical to the BBRv3 patch the other variants apply, applied last.
+        self.assertEqual(patch, (ROOT / "kernel-patches/bbrv3/bbrv3.patch").read_bytes())
+        digest = hashlib.sha256(patch).hexdigest()
+        replay = json.loads((features / "kernel-replay.json").read_text(encoding="utf-8"))
+        self.assertEqual(replay["patches"][-1], {"path": "004-bbrv3.patch", "sha256": digest})
+        reviewed = {item["name"]: item for item in lock["reviewed_patches"]}
+        self.assertEqual(reviewed["004-bbrv3.patch"]["sha256"], digest)
+        self.assertNotEqual(lock["integrated_kernel_tree"], lock["integrated_kernel_tree_before_bbrv3"])
+        # Same networking extras as configs/custom.config, and the gate requires BBR.
+        fragment = (ROOT / lock["configuration"]["fragment"]).read_text(encoding="utf-8")
+        custom = (ROOT / "configs/custom.config").read_text(encoding="utf-8")
+        extras = custom[custom.index("# Networking extras\n"):].splitlines()[1:]
+        for line in extras:
+            if line.startswith("CONFIG_"):
+                self.assertIn(line + "\n", fragment)
+        for key in ("CONFIG_TCP_CONG_BBR", "CONFIG_DEFAULT_BBR", "CONFIG_NET_SCH_FQ"):
+            self.assertEqual(lock["configuration"]["required"][key], "y")
+        self.assertEqual(hashlib.sha256((ROOT / lock["configuration"]["fragment"]).read_bytes()).hexdigest(),
+                         lock["configuration"]["sha256"])
+
     def test_nomount_module_not_builtin(self):
         self.assertTrue(any("CONFIG_NOMOUNT" in error for error in
                             self.check(GOOD.replace("CONFIG_NOMOUNT=y", "CONFIG_NOMOUNT=m"))))

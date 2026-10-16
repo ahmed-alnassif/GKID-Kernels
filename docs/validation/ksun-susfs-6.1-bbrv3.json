@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-16",
+  "subject": "KSUN+SUSFS candidate: feature patch 004 (BBRv3) and the production networking extras",
+  "approval": "owner, explicit written approval in session (2026-10-16)",
+  "inputs": {
+    "kernel_commit": "a7ba124af5a535078d3f83b3e145f9cc8ec651b8",
+    "feature_tree_before": "1246bd4c9a0afc0859ecbc4ad91031dab65aa413",
+    "patch_004": "kernel-patches/susfs/6.1-v2/features/004-bbrv3.patch",
+    "patch_004_sha256": "adb4ac7c68ebce3ede9302f614a872c6ce5fc0a43440f308836efe8ef1a9e51a",
+    "patch_004_identical_to": "kernel-patches/bbrv3/bbrv3.patch",
+    "fragment_sha256": "699b3c580a48ac6cbfc73877c4d78e141ded2b2979c33a4baf840038a0b0b5e8",
+    "toolchain": "Neutron clang 06092026 (archive SHA256 531083928c8e37f6b31e324dbfd0b5a8323f989b1c57ff2c1368b889b5b1bd30)"
+  },
+  "local_checks": {
+    "staging": "scripts/stage_ksun_susfs_candidate.py from a clean a7ba124 checkout: core/frozen trees unchanged, 4/4 feature patches applied with plain git apply, feature tree 8109b744c5b6b3421bd7a70ffa90c24fb6492d02",
+    "config": "gki_defconfig + locked fragment, merge_config.sh -m, olddefconfig (LLVM=1): scripts/check_ksun_susfs_resolved_config.py PASS, resolved .config SHA256 03830f5bda23d870665cc9da486d3373e230dcf6200a07f0ba307cb74a39fe4a",
+    "config_diff_vs_previous_fragment": "networking only: TCP_CONG_ADVANCED/BBR/WESTWOOD, DEFAULT_TCP_CONG=bbr, IP_SET family, NETFILTER_XT_SET, IP6_NF_NAT/MASQUERADE/HL, IP_NF_TARGET_TTL, XT_MATCH_ADDRTYPE, XT_TARGET_HL",
+    "compile": "make prepare + net/ipv4/ + net/netfilter/ipset/ with KCFLAGS=-w (as the build): 115 C files, exit 0, tcp_bbr.o, tcp_plb.o and ip_set_core.o built"
+  },
+  "not_verified": [
+    "full Image / Full LTO link (needs the CI runner or a 14 GB+ host with swap)",
+    "boot and runtime on the device (owner build + flash)"
+  ]
+}
