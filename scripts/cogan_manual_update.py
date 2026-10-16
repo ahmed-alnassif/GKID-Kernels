@@ -108,7 +108,8 @@ for _pin, _companions in COMPANIONS.items():
         ANCHORS[_companion.sha_key] = _pin
 OPTIONAL = list(ANCHORS)
 LOCAL_FINGERPRINTS = [
-    ("Networking / BBRv3", ["kernel-patches/bbrv3/bbrv3.patch", "configs/custom.config"]),
+    ("Networking / BBRv3", ["kernel-patches/bbrv3/bbrv3.patch", "kernel-patches/bbrv3/bbr3-alias.patch",
+                            "configs/custom.config"]),
     ("Clean LTO", ["configs/gki_defconfig.sh", "build.sh"]),
 ]
 
@@ -600,7 +601,10 @@ def report(rows, fingerprints, mode, groups, updates, lock_keys=()):
         "|---|---|---|---|---|---|",
     ]
     lines += ["| " + " | ".join(row) + " |" for row in rows]
-    lines += ["", "### Cogan local fingerprints", "", "| Component | SHA256 (12) |", "|---|---|"]
+    lines += ["", "### Cogan local fingerprints", "",
+              "Cogan's own files, not upstream components: they never get an update to wait for; "
+              "the value only changes when Cogan itself edits them (for example build.sh).", "",
+              "| Component | SHA256 (12) |", "|---|---|"]
     lines += ["| " + " | ".join(row) + " |" for row in fingerprints]
     lines.append("")
     added = sorted(int(SUBLEVEL_KEY.fullmatch(key).group(1)) for key in updates
