@@ -14,6 +14,9 @@ official release, verifies its SHA256 and saves it under the name above. It
 writes one table to the run summary and a reminder when upstream has a newer
 release than the pin. Vanilla builds get only the kernel. A moved tag or a wrong
 checksum fails (after the kernel is prepared, so it can still be downloaded).
+The reminders also cover the GKID 6.1 kernel (a new sublevel or commit) and, for
+SUSFS variants, SUSFS 6.1 (with its SUSFS_VERSION); the frozen KSUN test kernel
+gets none for those.
 
 Usage: prepare_downloads.py --ksu KSU|KSUN|BSU|no|vnlto --susfs true|false
            --variant V --release R --linux-version 6.1.N --artifacts DIR --out DIR
@@ -23,6 +26,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import sys
 import time
@@ -35,6 +39,7 @@ import cogan_manual_update as mu  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 FEATURE_LOCK = ROOT / "configs/ksun-susfs-6.1-features.lock.json"
 DOWNLOAD = "https://github.com/{repo}/releases/download/{tag}/{name}"
+SUSFS_HEADER = "https://gitlab.com/simonpunk/susfs4ksu/-/raw/{commit}/kernel_patches/include/linux/susfs.h"
 # matrix KSU value -> (label for people and file names, pin key)
 MANAGERS = {"KSU": ("KernelSU", "KSU_COMMIT"), "KSUN": ("KernelSU-Next", "KSUN_COMMIT"),
             "BSU": ("BakaSU", "BSU_COMMIT")}
@@ -126,9 +131,77 @@ def reminder(lock, label, group, pin_key, lister):
             f"kernel, root manager & NoMount naik bersama / move up together.")
 
 
-def prepare(args, lock, lister, fetch):
+def branch_commit(pin_key, lister):
+    """Current upstream commit of a branch-pinned source, or None on any error."""
+    _, _, url, ref = mu.PINS[pin_key]
+    commit, _, error = mu.resolve(url, ref, lister)
+    return None if error else commit
+
+
+def kernel_reminder(lock, lister, text_fetch):
+    commit, pinned = branch_commit("KERNEL_COMMIT_6_1", lister), lock["KERNEL_COMMIT_6_1"]
+    if not commit or commit == pinned:
+        return None
+    try:
+        sublevel = mu.kernel_sublevel(commit, fetch=text_fetch)
+    except (OSError, ValueError):
+        sublevel = None
+    current = mu.current_sublevel(lock)
+    run = ("Jalankan / run **Cogan Manual Update** → `update` → `kernel-6.1`, lalu build ulang dengan / "
+           "then rebuild with Kernel Sublevel `lts`.")
+    if sublevel and current and sublevel > current:
+        return f"🔔 Kernel GKID 6.1.{sublevel} tersedia / available (lts terpasang / pinned: 6.1.{current}). {run}"
+    shown = f"6.1.{sublevel}" if sublevel else "6.1"
+    return (f"🔔 Kernel GKID {shown} punya commit baru / has a new commit `{commit[:12]}` "
+            f"(terpasang / pinned: `{pinned[:12]}`). {run}")
+
+
+def susfs_version(commit, text_fetch):
+    match = re.search(r'^#define SUSFS_VERSION "(v[0-9][0-9A-Za-z.+-]*)"',
+                      text_fetch(SUSFS_HEADER.format(commit=commit)), re.MULTILINE)
+    if not match:
+        raise ValueError("SUSFS_VERSION not found")
+    return match.group(1)
+
+
+def susfs_reminder(lock, lister, text_fetch):
+    commit, pinned = branch_commit("SUSFS_COMMIT_6_1", lister), lock["SUSFS_COMMIT_6_1"]
+    if not commit or commit == pinned:
+        return None
+    versions = []
+    for revision in (pinned, commit):
+        try:
+            versions.append(susfs_version(revision, text_fetch))
+        except (OSError, ValueError):
+            versions.append(None)
+    old, new = versions
+    run = ("Jalankan / run **Cogan Manual Update** → `update` → `susfs`, lalu build ulang & uji / "
+           "then rebuild and test.")
+    if old and new and old != new:
+        return f"🔔 SUSFS {new} tersedia / available (terpasang / pinned: {old}). {run}"
+    pinned_label = f"`{pinned[:12]}`" + (f", {old}" if old else "")
+    return (f"🔔 SUSFS 6.1 punya commit baru / has a new commit `{commit[:12]}` "
+            f"(terpasang / pinned: {pinned_label}). {run}")
+
+
+def source_reminders(lock, susfs, candidate, lister, text_fetch):
+    """Kernel and SUSFS reminders; the KSUN test kernel is frozen, so it gets none."""
+    if candidate:
+        return []
+    notes = [kernel_reminder(lock, lister, text_fetch)]
+    if susfs == "true":
+        notes.append(susfs_reminder(lock, lister, text_fetch))
+    return [note for note in notes if note]
+
+
+def prepare(args, lock, lister, fetch, text_fetch=mu.fetch_url):
     """Returns (outputs, table rows, notes, reminders, status)."""
     outputs, rows, notes, reminders, status = {}, [], [], [], 0
+    candidate = args.ksu == "KSUN" and args.susfs == "true"
+    try:
+        reminders += source_reminders(lock, args.susfs, candidate, lister, text_fetch)
+    except Exception as exc:  # best effort: a reminder must never cost the kernel download
+        notes.append(f"⚠️ Pengingat kernel/SUSFS tidak bisa dicek / could not be checked ({type(exc).__name__})")
     path, problem = kernel_download(args.artifacts, args.out, args.linux_version, args.variant,
                                     args.release, args.suffix)
     if path:
@@ -140,7 +213,6 @@ def prepare(args, lock, lister, fetch):
     if args.ksu not in MANAGERS:
         notes.append("Vanilla: tanpa root manager & NoMount / no root manager or NoMount.")
         return outputs, rows, notes, reminders, status
-    candidate = args.ksu == "KSUN" and args.susfs == "true"
     label, pin_key = MANAGERS[args.ksu]
     tag = lock.get(mu.TAG_KEYS[pin_key])
     manager, *spoofed = mu.COMPANIONS[pin_key]
@@ -201,7 +273,7 @@ def report(rows, notes, reminders):
              "| # | File | Isi / What | Cara pakai / How to use |", "|---|---|---|---|",
              *[f"| {n} | `{name}` | {what} | {how} |" for n, name, what, how in rows], "",
              "Abaikan / ignore `build-…` & `build-env-…`: file internal / internal files.", "",
-             "🔗 Versi kernel, root manager & NoMount dikunci bersama oleh **Cogan Manual Update** "
+             "🔗 Versi kernel, SUSFS, root manager & NoMount dikunci bersama oleh **Cogan Manual Update** "
              "(`configs/upstream.lock`) / **Cogan Manual Update** pins these versions together.", ""]
     if notes:
         lines += ["<details><summary>Detail & SHA256</summary>", "", *[f"- {note}" for note in notes], "",
@@ -211,7 +283,7 @@ def report(rows, notes, reminders):
     return "\n".join(lines) + "\n"
 
 
-def main(argv=None, lister=mu.ls_remote, fetch=download):
+def main(argv=None, lister=mu.ls_remote, fetch=download, text_fetch=mu.fetch_url):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--ksu", required=True)
     parser.add_argument("--susfs", default="false")
@@ -226,7 +298,7 @@ def main(argv=None, lister=mu.ls_remote, fetch=download):
     args = parser.parse_args(argv)
     lock = mu.read_lock(mu.LOCK.read_text(encoding="utf-8"))
     try:
-        outputs, rows, notes, reminders, status = prepare(args, lock, lister, fetch)
+        outputs, rows, notes, reminders, status = prepare(args, lock, lister, fetch, text_fetch)
     except Failure as exc:  # unusable names: nothing can be published safely
         outputs, rows, notes, reminders, status = {}, [], [f"❌ {exc}"], [], 1
     text = report(rows, notes, reminders)

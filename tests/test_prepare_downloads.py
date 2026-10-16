@@ -25,11 +25,21 @@ FIXTURE = {
     "NOMOUNT_REF": "v2.1.1", "NOMOUNT_MODULE_ZIP": "NoMount-v2.1.1-release-7046c7a-555.zip",
     "NOMOUNT_MODULE_SHA256": hashlib.sha256(ZIP).hexdigest(),
 }
+KERNEL_URL, SUSFS_URL = pd.mu.PINS["KERNEL_COMMIT_6_1"][2], pd.mu.PINS["SUSFS_COMMIT_6_1"][2]
+NEW = "c" * 40
+
+
+def makefile(sublevel):
+    return f"VERSION = 6\nPATCHLEVEL = 1\nSUBLEVEL = {sublevel}\nEXTRAVERSION =\n"
+
+
+def susfs_header(version):
+    return f'#ifndef KSU_SUSFS_H\n#define KSU_SUSFS_H\n#define SUSFS_VERSION "{version}"\n'
 
 
 class PrepareDownloadsTests(unittest.TestCase):
     def run_main(self, ksu, susfs="false", variant="BakaSU+SuSFS", lock_updates=FIXTURE, tags=None,
-                 files=None, upstream=None, suffix="", kernel=True):
+                 files=None, upstream=None, suffix="", kernel=True, heads=None, texts=None):
         lock_text = pd.mu.write_lock(REAL_LOCK, dict(lock_updates))
         lock = pd.mu.read_lock(lock_text)
         tags = tags or {"tiann/KernelSU": lock["KSU_COMMIT"], "Baka-SU/BakaSU": lock["BSU_COMMIT"],
@@ -40,12 +50,26 @@ class PrepareDownloadsTests(unittest.TestCase):
         pinned_tags = {pd.mu.PINS[key][2]: (lock.get(tag_key), lock[key])
                        for key, tag_key in pd.mu.TAG_KEYS.items()}
 
+        branches = {KERNEL_URL: lock["KERNEL_COMMIT_6_1"], SUSFS_URL: lock["SUSFS_COMMIT_6_1"], **(heads or {})}
+        texts = texts or {}
+
         def lister(url, *patterns, options=()):
             if "--tags" in options:  # upstream release list: the pinned tag plus any newer one
                 tag, commit = pinned_tags[url]
                 return {**({f"refs/tags/{tag}": commit} if tag else {}), **(upstream or {}).get(url, {})}
+            if url in branches:  # branch-pinned kernel / SUSFS: same as the lock unless overridden
+                if isinstance(branches[url], Exception):
+                    raise branches[url]
+                return {patterns[0]: branches[url]}
             repo = url[len("https://github.com/"):-len(".git")]
             return {patterns[0]: tags[repo]}
+
+        def text_fetch(url):
+            fetched.append(url)
+            for commit, text in texts.items():
+                if f"/{commit}/" in url:
+                    return text
+            raise OSError("not served: " + url)
 
         def fetch(url):
             fetched.append(url)
@@ -68,7 +92,7 @@ class PrepareDownloadsTests(unittest.TestCase):
                                   "--release", "v26.10.16-r15", "--linux-version", "6.1.177",
                                   "--artifacts", str(artifacts), "--out", str(directory / "downloads"),
                                   "--suffix", suffix, "--github-output", str(output), "--summary", str(summary)],
-                                 lister=lister, fetch=fetch)
+                                 lister=lister, fetch=fetch, text_fetch=text_fetch)
             outputs = dict(line.split("=", 1) for line in output.read_text().splitlines()) if output.exists() else {}
             saved = sorted(p.name for p in (directory / "downloads").glob("*")) \
                 if (directory / "downloads").exists() else []
@@ -164,6 +188,66 @@ class PrepareDownloadsTests(unittest.TestCase):
         self.assertIn("BakaSU v4.2.0 tersedia", summary)
         self.assertIn("`update` → `root-managers`", summary)
         self.assertIn("NoMount v2.2.0 tersedia", summary)
+
+    def test_reminds_about_a_new_kernel_sublevel(self):
+        status, _, _, summary, fetched = self.run_main(
+            "BSU", heads={KERNEL_URL: NEW}, texts={NEW: makefile(180)})
+        self.assertEqual(status, 0, summary)  # a reminder never fails the build
+        self.assertIn("Kernel GKID 6.1.180 tersedia / available (lts terpasang / pinned: 6.1.177)", summary)
+        self.assertIn("`update` → `kernel-6.1`", summary)
+        self.assertIn(f"ahmed-alnassif/GKI-Duchamp-6.1/{NEW}/Makefile", " ".join(fetched))
+
+    def test_new_kernel_commit_on_the_same_sublevel_is_reported_as_a_commit(self):
+        _, _, _, summary, _ = self.run_main("BSU", heads={KERNEL_URL: NEW}, texts={NEW: makefile(177)})
+        self.assertIn(f"Kernel GKID 6.1.177 punya commit baru / has a new commit `{NEW[:12]}`", summary)
+        _, _, _, summary, _ = self.run_main("BSU", heads={KERNEL_URL: NEW})  # Makefile unreadable
+        self.assertIn(f"Kernel GKID 6.1 punya commit baru / has a new commit `{NEW[:12]}`", summary)
+
+    def test_vanilla_also_gets_the_kernel_reminder(self):
+        status, outputs, _, summary, _ = self.run_main(
+            "no", variant="Vanilla", heads={KERNEL_URL: NEW}, texts={NEW: makefile(180)})
+        self.assertEqual((status, list(outputs)), (0, ["kernel"]))
+        self.assertIn("Kernel GKID 6.1.180 tersedia", summary)
+
+    def test_reminds_about_a_new_susfs_version_on_susfs_builds_only(self):
+        pinned = pd.mu.read_lock(REAL_LOCK)["SUSFS_COMMIT_6_1"]
+        texts = {pinned: susfs_header("v2.3.0"), NEW: susfs_header("v2.3.1")}
+        status, _, _, summary, fetched = self.run_main("BSU", susfs="true", heads={SUSFS_URL: NEW}, texts=texts)
+        self.assertEqual(status, 0, summary)
+        self.assertIn("SUSFS v2.3.1 tersedia / available (terpasang / pinned: v2.3.0)", summary)
+        self.assertIn("`update` → `susfs`", summary)
+        self.assertIn(f"susfs4ksu/-/raw/{NEW}/kernel_patches/include/linux/susfs.h", " ".join(fetched))
+        _, _, _, summary, _ = self.run_main("KSU", variant="KernelSU", heads={SUSFS_URL: NEW}, texts=texts)
+        self.assertNotIn("SUSFS v2.3.1", summary)  # no SUSFS in this kernel
+
+    def test_new_susfs_commit_with_the_same_version_names_the_commit(self):
+        pinned = pd.mu.read_lock(REAL_LOCK)["SUSFS_COMMIT_6_1"]
+        texts = {pinned: susfs_header("v2.3.0"), NEW: susfs_header("v2.3.0")}
+        _, _, _, summary, _ = self.run_main("BSU", susfs="true", heads={SUSFS_URL: NEW}, texts=texts)
+        self.assertIn(f"SUSFS 6.1 punya commit baru / has a new commit `{NEW[:12]}` "
+                      f"(terpasang / pinned: `{pinned[:12]}`, v2.3.0)", summary)
+
+    def test_frozen_test_kernel_gets_no_kernel_or_susfs_reminder(self):
+        lock = pd.mu.read_lock(REAL_LOCK)
+        _, _, _, summary, _ = self.run_main(
+            "KSUN", susfs="true", variant="KernelSU-Next+SuSFS+Test",
+            tags={"maxsteeel/nomount": lock["NOMOUNT_COMMIT"]},
+            heads={KERNEL_URL: NEW, SUSFS_URL: NEW}, texts={NEW: makefile(180)})
+        self.assertNotIn("Kernel GKID", summary)
+        self.assertNotIn("SUSFS 6.1 punya", summary)
+
+    def test_unreachable_upstream_never_fails_the_build(self):
+        status, _, _, summary, _ = self.run_main(
+            "BSU", susfs="true", heads={KERNEL_URL: OSError("down"), SUSFS_URL: OSError("down")})
+        self.assertEqual(status, 0, summary)
+        self.assertNotIn("Pengingat", summary)
+
+    def test_unexpected_reminder_error_still_ships_the_kernel(self):
+        with mock.patch.object(pd, "kernel_reminder", side_effect=RuntimeError("bug")):
+            status, outputs, _, summary, _ = self.run_main("BSU")
+        self.assertEqual(status, 0, summary)
+        self.assertIn("kernel", outputs)
+        self.assertIn("could not be checked (RuntimeError)", summary)
 
     def test_missing_kernel_zip_is_reported(self):
         status, outputs, _, summary, _ = self.run_main("BSU", kernel=False)
