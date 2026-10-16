@@ -1,7 +1,7 @@
 {
   "kernel_commit": "3f08838cbc5a94bf877df6a462dabb9118095314",
   "core_tree": "7e2b5164757d23fe0fbe3cd81ebec264769a0542",
-  "scope": "BBG, BBG allow-cache locking fix, NoMount continuation and BBRv3 only",
+  "scope": "BBG, BBG allow-cache locking fix, NoMount continuation, BBRv3 and its bbr3 name only",
   "patches": [
     {
       "path": "001-bbg.patch",
@@ -18,6 +18,10 @@
     {
       "path": "004-bbrv3.patch",
       "sha256": "adb4ac7c68ebce3ede9302f614a872c6ce5fc0a43440f308836efe8ef1a9e51a"
+    },
+    {
+      "path": "005-bbr3-alias.patch",
+      "sha256": "de0c2f89667f69b49724c22b111cb2c6772d7da772958f607345d1199a99e7eb"
     }
   ]
 }

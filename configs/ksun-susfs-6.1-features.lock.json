@@ -147,7 +147,7 @@
     "automatic_credit_readout_available": false,
     "trigger": "Only an actual visible quota reading or owner notice; do not infer a percentage from elapsed time or tokens."
   },
-  "integrated_kernel_tree": "8109b744c5b6b3421bd7a70ffa90c24fb6492d02",
+  "integrated_kernel_tree": "978305ce758d533ddf72cfb6aac4019bee0954f3",
   "configuration": {
     "fragment": "configs/ksun-susfs-6.1-features.config",
     "sha256": "699b3c580a48ac6cbfc73877c4d78e141ded2b2979c33a4baf840038a0b0b5e8",
@@ -208,6 +208,14 @@
       "applies_after": "003-bbg-allow-cache-spinlock.patch",
       "approved": "owner 2026-10-16 (explicit written approval, together with the networking extras)",
       "reason": "TCP BBRv3, byte-identical to the production kernel-patches/bbrv3/bbrv3.patch; applies with plain git apply on the candidate feature tree 1246bd4c"
+    },
+    {
+      "name": "005-bbr3-alias.patch",
+      "source": "kernel-patches/susfs/6.1-v2/features/005-bbr3-alias.patch",
+      "sha256": "de0c2f89667f69b49724c22b111cb2c6772d7da772958f607345d1199a99e7eb",
+      "applies_after": "004-bbrv3.patch",
+      "approved": "owner 2026-10-16 (explicit written approval: \"Setuju, tambahkan nama bbr3 untuk BBRv3 di semua varian\")",
+      "reason": "Registers the same BBRv3 tcp_congestion_ops a second time as \"bbr3\" (\"bbr\" stays the default) so tools such as TCP Optimiser find it; byte-identical to the production kernel-patches/bbrv3/bbr3-alias.patch"
     }
   ],
   "integrated_kernel_tree_before_reviewed_patches": "b5db2f3ccc53539083461caa5cb7d1ddb5cd9e81",
@@ -222,5 +230,6 @@
     "kernel_snapshot": "3f08838cbc5a94bf877df6a462dabb9118095314",
     "ksun_snapshot": "ce13bc5d783ad2b79409423f1c3343321cf0e304"
   },
-  "integrated_kernel_tree_before_bbrv3": "1246bd4c9a0afc0859ecbc4ad91031dab65aa413"
+  "integrated_kernel_tree_before_bbrv3": "1246bd4c9a0afc0859ecbc4ad91031dab65aa413",
+  "integrated_kernel_tree_before_bbr3_alias": "8109b744c5b6b3421bd7a70ffa90c24fb6492d02"
 }

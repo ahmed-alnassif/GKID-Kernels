@@ -24,6 +24,15 @@ class KernelFeaturesTests(unittest.TestCase):
         self.assertEqual(kf.features(FULL, BBR_V3_SOURCE),
                          ["SUSFS", "BBRv3 (default)", "BBG", "NoMount", "Full LTO"])
 
+    def test_bbr3_name_is_reported(self):
+        source = BBR_V3_SOURCE + '\tstrscpy(tcp_bbr3_cong_ops.name, "bbr3", sizeof(tcp_bbr3_cong_ops.name));\n'
+        self.assertEqual(kf.features(FULL, source)[1], "BBRv3 (default, also bbr3)")
+
+    def test_repository_bbr3_patch_is_detected(self):
+        patch = (Path(__file__).resolve().parents[1] / "kernel-patches/bbrv3/bbr3-alias.patch").read_text()
+        added = "\n".join(line[1:] for line in patch.splitlines() if line.startswith("+") and not line.startswith("+++"))
+        self.assertTrue(kf.BBR3_NAME.search(added))
+
     def test_plain_bbr_without_the_v3_patch(self):
         self.assertEqual(kf.features(FULL, "/* stock tcp_bbr.c */\n")[1], "BBR (default)")
 

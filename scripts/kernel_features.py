@@ -6,7 +6,8 @@ so the line cannot claim a feature the build lacks:
   SUSFS            CONFIG_KSU_SUSFS=y
   BBRv3 / BBR      CONFIG_TCP_CONG_BBR=y; v3 when net/ipv4/tcp_bbr.c defines
                    BBR_VERSION 3 (the BBRv3 patch), "(default)" when it is the
-                   default congestion control
+                   default congestion control, "also bbr3" when the bbr3 name
+                   patch registers it a second time
   BBG, NoMount     CONFIG_BBG=y, CONFIG_NOMOUNT=y
   LTO              Full / Thin / No LTO
 
@@ -20,6 +21,7 @@ import sys
 from pathlib import Path
 
 BBR_V3 = re.compile(r"^#define\s+BBR_VERSION\s+3\b", re.MULTILINE)
+BBR3_NAME = re.compile(r'tcp_bbr3_cong_ops\.name,\s*"bbr3"')
 
 
 def read_config(text):
@@ -41,7 +43,9 @@ def features(config_text, bbr_source=""):
         found.append("SUSFS")
     if on("CONFIG_TCP_CONG_BBR"):
         name = "BBRv3" if BBR_V3.search(bbr_source) else "BBR"
-        found.append(name + (" (default)" if config.get("CONFIG_DEFAULT_TCP_CONG") == '"bbr"' else ""))
+        notes = (["default"] if config.get("CONFIG_DEFAULT_TCP_CONG") == '"bbr"' else []) + \
+            (["also bbr3"] if name == "BBRv3" and BBR3_NAME.search(bbr_source) else [])
+        found.append(name + (f" ({', '.join(notes)})" if notes else ""))
     if on("CONFIG_BBG"):
         found.append("BBG")
     if on("CONFIG_NOMOUNT"):

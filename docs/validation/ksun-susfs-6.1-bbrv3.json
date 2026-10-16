@@ -21,5 +21,24 @@
   "not_verified": [
     "full Image / Full LTO link (needs the CI runner or a 14 GB+ host with swap)",
     "boot and runtime on the device (owner build + flash)"
-  ]
+  ],
+  "bbr3_alias": {
+    "date": "2026-10-16",
+    "approval": "owner, explicit written approval in session: \"Setuju, tambahkan nama bbr3 untuk BBRv3 di semua varian\"",
+    "patch": "kernel-patches/bbrv3/bbr3-alias.patch (candidate copy: features/005-bbr3-alias.patch)",
+    "patch_sha256": "de0c2f89667f69b49724c22b111cb2c6772d7da772958f607345d1199a99e7eb",
+    "what": "registers the same BBRv3 tcp_congestion_ops a second time as \"bbr3\"; \"bbr\" stays the default name",
+    "why": "TCP Optimiser (fatalcoder524) detects BBRv3 only by the name bbr3 in tcp_available_congestion_control, then uses the fq qdisc",
+    "local_checks": {
+      "production_tree": "applies with plain git apply on a7ba124 + bbrv3.patch",
+      "staging": "clean a7ba124 checkout: 5/5 feature patches, feature tree 978305ce758d533ddf72cfb6aac4019bee0954f3",
+      "config": "resolved-config gate PASS (fragment unchanged)",
+      "compile": "net/ipv4/tcp_bbr.o and tcp_cong.o with Neutron clang 06092026: exit 0, \"bbr3\" present in tcp_bbr.o",
+      "features_line": "SUSFS, BBRv3 (default, also bbr3), BBG, NoMount, Full LTO"
+    },
+    "not_verified": [
+      "full Image link",
+      "device: tcp_available_congestion_control lists bbr3; TCP Optimiser detects it"
+    ]
+  }
 }

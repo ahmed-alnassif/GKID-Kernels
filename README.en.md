@@ -29,7 +29,7 @@ A generic kernel built from GKI 6.1 sources ([GKI-Duchamp-6.1](https://github.co
 - **SUSFS**: root hiding (sus path, sus mount, sus kstat, sus map, uname and cmdline spoofing, open redirect, symbol hiding)
 - **NoMount**: mount metamodule, always included
 - **Baseband Guard (BBG)**: blocks unauthorized writes to critical partitions (can be turned off)
-- **Networking**: TCP BBRv3 (default), Westwood+, FQ, IP Set, IPv6 NAT (can be turned off)
+- **Networking**: TCP BBRv3 (default; registered as both `bbr` and `bbr3`, so TCP Optimiser detects it), Westwood+, FQ, IP Set, IPv6 NAT (can be turned off)
 - **Performance**: 300 Hz timer, MGLRU, zRAM LZ4 + writeback, mq-deadline, F2FS compression, NTSync
 - **TMPFS**: xattr and POSIX ACLs
 - **Toolchain**: Neutron Clang (pinned version) with Full LTO, Thin LTO or no LTO

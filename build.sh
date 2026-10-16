@@ -229,10 +229,13 @@ fi
 
 
 if [ "$KSUN_SUSFS_CANDIDATE" = "true" ]; then
-  log "KSUN+SUSFS: BBRv3 comes from candidate feature patch 004; networking extras from the locked fragment"
+  log "KSUN+SUSFS: BBRv3 comes from candidate feature patches 004 (+ bbr3 name, 005); networking extras from the locked fragment"
 elif [ "${NETWORKING:-true}" = "true" ]; then
   log "Applying BBRv3 patch (Networking enabled)"
-  apply_patch_file "$KERNEL_PATCHES/bbrv3/bbrv3.patch"
+  if apply_patch_file "$KERNEL_PATCHES/bbrv3/bbrv3.patch"; then
+    # The same BBRv3 also registered as "bbr3" (TCP Optimiser looks for that name).
+    apply_patch_file "$KERNEL_PATCHES/bbrv3/bbr3-alias.patch" || { error "bbr3 name patch failed on top of BBRv3"; exit 1; }
+  fi
 else
   log "Skipping optional BBRv3 patch (Networking disabled)"
 fi

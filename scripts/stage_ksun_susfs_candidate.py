@@ -5,7 +5,7 @@ Reproduces exactly what was verified offline and built locally:
   kernel @ replay manifest commit -> core replay (driver glue, SUSFS, companions)
   KSUN fork @ manifest commit     -> offline version metadata
   frozen core snapshots (deterministic commit-tree, metadata from the lock)
-  feature replay (BBG, NoMount, BBG allow-cache fix, BBRv3) -> expected index tree
+  feature replay (BBG, NoMount, BBG allow-cache fix, BBRv3 + bbr3 name) -> expected index tree
 
 Usage: python3 scripts/stage_ksun_susfs_candidate.py KERNEL_DIR KSUN_DIR
 KERNEL_DIR must be a clean checkout of the kernel manifest commit; KSUN_DIR
@@ -97,7 +97,7 @@ def main(argv):
         replay(kernel, BASE / "features/kernel-replay.json")
         git(kernel, "add", "-A")
         expect("feature tree", git(kernel, "write-tree"), lock["integrated_kernel_tree"])
-        print("CANDIDATE STAGED: KSUN + SUSFS 6.1 with BBG (001, 003), NoMount (002) and BBRv3 (004)")
+        print("CANDIDATE STAGED: KSUN + SUSFS 6.1 with BBG (001, 003), NoMount (002) and BBRv3 (004, bbr3 name 005)")
         return 0
     except (OSError, KeyError, ValueError, RuntimeError, subprocess.SubprocessError) as exc:
         print("BLOCKED: " + str(exc)[:2000], file=sys.stderr)

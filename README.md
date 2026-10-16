@@ -29,7 +29,7 @@ Kernel generik yang dibangun dari sumber GKI 6.1 ([GKI-Duchamp-6.1](https://gith
 - **SUSFS**: menyembunyikan root (sus path, sus mount, sus kstat, sus map, spoof uname dan cmdline, open redirect, sembunyikan simbol)
 - **NoMount**: metamodul mount, selalu ikut
 - **Baseband Guard (BBG)**: melindungi partisi penting dari penulisan tanpa izin (bisa dimatikan)
-- **Networking**: TCP BBRv3 (default), Westwood+, FQ, IP Set, NAT IPv6 (bisa dimatikan)
+- **Networking**: TCP BBRv3 (default; terdaftar sebagai `bbr` dan `bbr3`, jadi terdeteksi TCP Optimiser), Westwood+, FQ, IP Set, NAT IPv6 (bisa dimatikan)
 - **Performa**: timer 300 Hz, MGLRU, zRAM LZ4 + writeback, mq-deadline, kompresi F2FS, NTSync
 - **TMPFS**: xattr dan POSIX ACL
 - **Toolchain**: Neutron Clang (versi dikunci) dengan pilihan Full LTO, Thin LTO, atau tanpa LTO

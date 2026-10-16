@@ -221,7 +221,16 @@ class ResolvedConfigTests(unittest.TestCase):
         self.assertEqual(patch, (ROOT / "kernel-patches/bbrv3/bbrv3.patch").read_bytes())
         digest = hashlib.sha256(patch).hexdigest()
         replay = json.loads((features / "kernel-replay.json").read_text(encoding="utf-8"))
-        self.assertEqual(replay["patches"][-1], {"path": "004-bbrv3.patch", "sha256": digest})
+        self.assertEqual(replay["patches"][-2], {"path": "004-bbrv3.patch", "sha256": digest})
+        # The bbr3 name patch (005) is the production bbr3-alias.patch, applied right after.
+        alias = (features / "005-bbr3-alias.patch").read_bytes()
+        self.assertEqual(alias, (ROOT / "kernel-patches/bbrv3/bbr3-alias.patch").read_bytes())
+        self.assertEqual(replay["patches"][-1],
+                         {"path": "005-bbr3-alias.patch", "sha256": hashlib.sha256(alias).hexdigest()})
+        self.assertEqual(lock["reviewed_patches"][-1]["applies_after"], "004-bbrv3.patch")
+        build = (ROOT / "build.sh").read_text(encoding="utf-8")
+        self.assertIn('if apply_patch_file "$KERNEL_PATCHES/bbrv3/bbrv3.patch"; then', build)
+        self.assertIn('apply_patch_file "$KERNEL_PATCHES/bbrv3/bbr3-alias.patch" || {', build)
         reviewed = {item["name"]: item for item in lock["reviewed_patches"]}
         self.assertEqual(reviewed["004-bbrv3.patch"]["sha256"], digest)
         self.assertNotEqual(lock["integrated_kernel_tree"], lock["integrated_kernel_tree_before_bbrv3"])

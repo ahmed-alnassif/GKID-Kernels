@@ -1,0 +1,50 @@
+Cogan: also register the BBRv3 congestion control as "bbr3".
+
+BBRv3 replaces the "bbr" module and keeps its name, so tools that look for
+"bbr3" by name (e.g. TCP Optimiser, which then pairs it with the fq qdisc)
+cannot see it. Register the same tcp_congestion_ops a second time under
+"bbr3"; "bbr" stays registered for CONFIG_DEFAULT_TCP_CONG and existing
+users. Applies on top of bbrv3.patch.
+
+Approved by the owner 2026-10-16: "Setuju, tambahkan nama bbr3 untuk BBRv3 di
+semua varian".
+
+diff --git a/net/ipv4/tcp_bbr.c b/net/ipv4/tcp_bbr.c
+index c2cecf728..23562a5f6 100644
+--- a/net/ipv4/tcp_bbr.c
++++ b/net/ipv4/tcp_bbr.c
+@@ -2375,6 +2375,12 @@ static const struct btf_kfunc_id_set tcp_bbr_kfunc_set = {
+ 	.set   = &tcp_bbr_check_kfunc_ids,
+ };
+ 
++/* The same BBRv3 algorithm, also registered as "bbr3" so tools that look for
++ * that name (e.g. TCP Optimiser) find it. "bbr" stays registered for the
++ * default congestion control and existing users.
++ */
++static struct tcp_congestion_ops tcp_bbr3_cong_ops __read_mostly;
++
+ static int __init bbr_register(void)
+ {
+ 	int ret;
+@@ -2384,11 +2390,20 @@ static int __init bbr_register(void)
+ 	ret = register_btf_kfunc_id_set(BPF_PROG_TYPE_STRUCT_OPS, &tcp_bbr_kfunc_set);
+ 	if (ret < 0)
+ 		return ret;
+-	return tcp_register_congestion_control(&tcp_bbr_cong_ops);
++	tcp_bbr3_cong_ops = tcp_bbr_cong_ops;
++	strscpy(tcp_bbr3_cong_ops.name, "bbr3", sizeof(tcp_bbr3_cong_ops.name));
++	ret = tcp_register_congestion_control(&tcp_bbr_cong_ops);
++	if (ret)
++		return ret;
++	ret = tcp_register_congestion_control(&tcp_bbr3_cong_ops);
++	if (ret)
++		tcp_unregister_congestion_control(&tcp_bbr_cong_ops);
++	return ret;
+ }
+ 
+ static void __exit bbr_unregister(void)
+ {
++	tcp_unregister_congestion_control(&tcp_bbr3_cong_ops);
+ 	tcp_unregister_congestion_control(&tcp_bbr_cong_ops);
+ }
+ 

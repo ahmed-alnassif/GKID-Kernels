@@ -132,7 +132,7 @@ def main():
         patches = generate(kernel, sources, lock)
         manifest = {"kernel_commit": git(kernel, "rev-parse", "HEAD").decode().strip(),
                     "core_tree": tree,
-                    "scope": "BBG, BBG allow-cache locking fix, NoMount continuation and BBRv3 only",
+                    "scope": "BBG, BBG allow-cache locking fix, NoMount continuation, BBRv3 and its bbr3 name only",
                     "patches": []}
         for name, raw in patches:
             if sha(raw) != lock["generated_patches_sha256"][name]:
