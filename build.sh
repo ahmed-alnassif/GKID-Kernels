@@ -478,7 +478,11 @@ echo "::endgroup::"
 
 # Report the resolved kernel configuration, not merely the requested fragments.
 # Diagnostics only: avoid failing established builds on kernel-version differences.
-log "Resolved Networking config (NETWORKING=${NETWORKING:-true})"
+if [ "$KSUN_SUSFS_CANDIDATE" = "true" ]; then
+  log "Resolved Networking config (KSUN+SUSFS test build: Networking option ignored, no BBRv3 patch)"
+else
+  log "Resolved Networking config (NETWORKING=${NETWORKING:-true})"
+fi
 for symbol in CONFIG_TCP_CONG_BBR CONFIG_DEFAULT_BBR CONFIG_NET_SCH_FQ CONFIG_NET_SCH_FQ_CODEL CONFIG_IP_SET CONFIG_NETFILTER_XT_SET; do
   if grep -q "^${symbol}=y$" "$OUTDIR/.config"; then
     log "  ${symbol}=y"

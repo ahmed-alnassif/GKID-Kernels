@@ -52,7 +52,7 @@ Kernel generik yang dibangun dari sumber GKI 6.1 ([GKI-Duchamp-6.1](https://gith
 | KernelSU | `KernelSU` | KernelSU | ❌ | |
 | KernelSU + SUSFS | `KernelSU+SuSFS` | KernelSU | ✅ | |
 | KernelSU Next | `KernelSU-Next` | KernelSU Next | ❌ | |
-| KernelSU Next + SUSFS (uji) | `KernelSU-Next+SuSFS+Test` | KernelSU Next (fork pershoot) | ✅ | **Khusus uji**: hanya 6.1.177 (`lts`), Full LTO, BBG aktif |
+| KernelSU Next + SUSFS (uji) | `KernelSU-Next+SuSFS+Test` | KernelSU Next (fork pershoot) | ✅ | **Khusus uji**: hanya 6.1.177 (`lts`), Full LTO, BBG aktif; **tanpa BBRv3 dan paket jaringan tambahan** (centang Networking diabaikan) |
 | BakaSU + SUSFS | `BakaSU+SuSFS` | BakaSU | ✅ | |
 | Vanilla | `Vanilla` | ❌ | ❌ | Tanpa root |
 | All variants (advanced) | Semua varian standar + `Vanilla+NoLTO` + `Compat+…` | | | `Compat` tanpa LTO, untuk perangkat yang tidak mau boot dengan varian standar |
@@ -72,7 +72,14 @@ Kernel generik yang dibangun dari sumber GKI 6.1 ([GKI-Duchamp-6.1](https://gith
 
 ## Bootloop?
 
-Jangan panik dan **jangan factory reset**. Biasanya cukup mem-flash kembali `boot.img` stock lewat fastboot. Langkah lengkap, termasuk bagian khusus **Xiaomi 14T Pro (rothko)**, ada di **[Panduan Bootloop](docs/bootloop.md)**.
+Jangan panik dan **jangan factory reset**. Kenali dulu penyebabnya:
+
+| Gejala | Penyebab | Pulihkan | Lihat log |
+|---|---|---|---|
+| Macet atau restart di **logo pertama**, animasi boot tidak muncul | **Kernel** | Flash `boot.img` stock lewat fastboot ([caranya](docs/bootloop.md#2-pulihkan-dari-bootloop)) | Setelah menyala: *Opsi pengembang → Laporan bug* atau `adb bugreport`, cari `LAST KMSG` / `Kernel panic` ([detail](docs/bootloop.md#bootloop-karena-kernel)) |
+| **Animasi boot** berulang, atau bootloop setelah memasang modul | Biasanya **modul** | **Safe mode**: saat logo pertama, tekan Volume Bawah lebih dari 3 kali (tekan-lepas), lalu hapus modulnya di manager ([caranya](docs/bootloop.md#kernel-atau-modul)) | Di safe mode: manager → **Pengaturan → Kirim log** ([detail](docs/bootloop.md#bootloop-karena-modul)) |
+
+Kalau safe mode tetap bootloop, anggap penyebabnya kernel. Log kernel (pstore) **tertimpa setelah restart berikutnya**, jadi ambil segera setelah HP menyala. Langkah lengkap, termasuk bagian khusus **Xiaomi 14T Pro (rothko)**, ada di **[Panduan Bootloop](docs/bootloop.md)**.
 
 ---
 
@@ -89,7 +96,7 @@ Buka **Actions → Cogan Kernel Builder → Run workflow** di repositori Anda.
 | Build Revision | Opsional, format `r` + angka (mis. `r9`), ditambahkan ke nama rilis |
 | Kernel Sublevel | `lts` = terbaru, atau angka saja (mis. `177`, bukan `6.1.177`); tersedia 6.1.160 ke atas |
 | Build Time | `N` = waktu build asli, atau waktu tetap seperti `Thu Jan 1 00:00:00 UTC 2026` |
-| Networking | BBRv3 dan paket jaringan tambahan (default aktif) |
+| Networking | BBRv3 dan paket jaringan tambahan (default aktif; diabaikan untuk varian uji) |
 | BBG | Baseband Guard (default aktif) |
 
 **Hasil build:** saat run hijau, artifact bernomor bisa langsung diunduh (tidak perlu diekstrak):

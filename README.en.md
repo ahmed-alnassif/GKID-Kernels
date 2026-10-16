@@ -52,7 +52,7 @@ A generic kernel built from GKI 6.1 sources ([GKI-Duchamp-6.1](https://github.co
 | KernelSU | `KernelSU` | KernelSU | ❌ | |
 | KernelSU + SUSFS | `KernelSU+SuSFS` | KernelSU | ✅ | |
 | KernelSU Next | `KernelSU-Next` | KernelSU Next | ❌ | |
-| KernelSU Next + SUSFS (uji) | `KernelSU-Next+SuSFS+Test` | KernelSU Next (pershoot fork) | ✅ | **Test build only**: 6.1.177 (`lts`), Full LTO, BBG enabled |
+| KernelSU Next + SUSFS (uji) | `KernelSU-Next+SuSFS+Test` | KernelSU Next (pershoot fork) | ✅ | **Test build only**: 6.1.177 (`lts`), Full LTO, BBG enabled; **no BBRv3 or extra networking** (the Networking box is ignored) |
 | BakaSU + SUSFS | `BakaSU+SuSFS` | BakaSU | ✅ | |
 | Vanilla | `Vanilla` | ❌ | ❌ | No root |
 | All variants (advanced) | All standard variants + `Vanilla+NoLTO` + `Compat+…` | | | `Compat` has no LTO, for devices that do not boot the standard variants |
@@ -72,7 +72,14 @@ A generic kernel built from GKI 6.1 sources ([GKI-Duchamp-6.1](https://github.co
 
 ## Bootloop?
 
-Don't panic and **don't factory reset**. Flashing your stock `boot.img` back with fastboot is usually enough. The full steps, including a section for the **Xiaomi 14T Pro (rothko)**, are in the **[Bootloop Guide](docs/bootloop.en.md)**.
+Don't panic and **don't factory reset**. Find the cause first:
+
+| Symptom | Cause | Recover | See the log |
+|---|---|---|---|
+| Hangs or restarts on the **first logo**, no boot animation | **Kernel** | Flash your stock `boot.img` with fastboot ([how](docs/bootloop.en.md#2-recover-from-a-bootloop)) | Once booted: *Developer options → Bug report* or `adb bugreport`, search `LAST KMSG` / `Kernel panic` ([details](docs/bootloop.en.md#bootloop-caused-by-the-kernel)) |
+| The **boot animation** loops, or a bootloop after installing a module | Usually a **module** | **Safe mode**: at the first logo, press Volume Down more than 3 times (press-release), then uninstall the module in the manager ([how](docs/bootloop.en.md#kernel-or-module)) | In safe mode: manager → **Settings → Send logs** ([details](docs/bootloop.en.md#bootloop-caused-by-a-module)) |
+
+If safe mode still bootloops, treat it as a kernel problem. The kernel log (pstore) is **overwritten after the next restart**, so collect it right after the phone boots. The full steps, including a section for the **Xiaomi 14T Pro (rothko)**, are in the **[Bootloop Guide](docs/bootloop.en.md)**.
 
 ---
 
@@ -89,7 +96,7 @@ Open **Actions → Cogan Kernel Builder → Run workflow** in your repository.
 | Build Revision | Optional, `r` + digits (e.g. `r9`), added to the release name |
 | Kernel Sublevel | `lts` = latest, or just the number (e.g. `177`, not `6.1.177`); 6.1.160 and newer |
 | Build Time | `N` = real build time, or a fixed time such as `Thu Jan 1 00:00:00 UTC 2026` |
-| Networking | BBRv3 and extra networking (enabled by default) |
+| Networking | BBRv3 and extra networking (enabled by default; ignored for the test variant) |
 | BBG | Baseband Guard (enabled by default) |
 
 **Build output:** a green run lists numbered artifacts you can download directly (no extraction needed):

@@ -14,6 +14,30 @@
 
 ---
 
+## Kernel atau modul?
+
+Cara memulihkan dan log yang perlu diambil berbeda, jadi kenali dulu penyebabnya.
+
+| Gejala | Penyebab paling mungkin | Langkah |
+|---|---|---|
+| Restart atau macet di **logo pertama** (logo merek / tulisan *unlocked*); animasi boot tidak pernah muncul | **Kernel** | [Bagian 2](#2-pulihkan-dari-bootloop): flash `boot.img` stock |
+| Bootloop tepat setelah **flash kernel baru**, tanpa memasang modul | **Kernel** | [Bagian 2](#2-pulihkan-dari-bootloop) |
+| **Animasi boot** muncul, lalu berulang atau macet lama | Biasanya **modul** | Coba safe mode di bawah dulu |
+| Bootloop tepat setelah **memasang atau memperbarui modul** | **Modul** | Safe mode di bawah |
+
+**Tes safe mode** (KernelSU; KernelSU Next dan BakaSU adalah turunannya):
+
+1. Paksa restart: tahan tombol **Power** sampai HP mati dan menyala lagi.
+2. Begitu **logo pertama** muncul, tekan **Volume Bawah lebih dari 3 kali**: tekan-lepas, tekan-lepas, tekan-lepas, **bukan** ditahan. Harus cepat, karena kesempatannya habis sebelum animasi boot muncul. Kalau terlewat, ulangi dari langkah 1.
+3. Dalam safe mode **semua modul dinonaktifkan**:
+   - **HP menyala → penyebabnya modul.** Buka manager → **Modul**, hapus (*uninstall*) modul yang baru dipasang atau diperbarui, lalu restart. Ambil lognya dulu kalau mau melapor ([bagian 4](#4-setelah-berhasil-boot-ambil-log)).
+   - **Tetap bootloop → kemungkinan kernel.** Lanjut ke [bagian 2](#2-pulihkan-dari-bootloop).
+4. Di HyperOS/MIUI, safe mode sistem juga bisa dibuka dari recovery bawaan (**Volume Atas + Power**, jika menunya ada); KernelSU ikut menonaktifkan modul.
+
+Safe mode tidak menghentikan skrip `init.rc` milik modul. Jika modul seperti itu penyebabnya, gunakan cara manual di [panduan resmi KernelSU](https://kernelsu.org/guide/rescue-from-bootloop.html) atau flash `boot.img` stock ([bagian 2](#2-pulihkan-dari-bootloop)).
+
+---
+
 ## 1. Siapkan `boot.img` stock (sebelum flash)
 
 AnyKernel3 menulis kernel ke partisi **`boot`** pada slot aktif. Untuk memulihkannya Anda butuh `boot.img` dari versi ROM yang **sama persis**.
@@ -102,13 +126,41 @@ Recovery bawaan Xiaomi (**Volume Atas + Power**) tidak bisa mem-flash `boot.img`
 
 ## 4. Setelah berhasil boot: ambil log
 
-Log panic dari boot yang gagal tersimpan sementara di memori (pstore) dan **tertimpa setelah restart berikutnya**. Karena itu, segera setelah HP kembali menyala:
+Ambil log **segera** setelah HP kembali menyala, sebelum restart lagi.
 
-1. Ambil bugreport lewat *Opsi pengembang → Laporan bug → Laporan lengkap*, atau jalankan `adb bugreport` dari PC.
-2. Buka [Issue](https://github.com/cogan17/Cogan/issues) dan lampirkan:
-   - file bugreport (`.zip`),
-   - nama ZIP kernel yang di-flash (varian dan nomor rilis atau run),
-   - model HP dan versi ROM.
+### Bootloop karena kernel
+
+Pesan *panic* dari boot yang gagal tersimpan sementara di memori (**pstore**). Isinya **tertimpa setelah restart berikutnya** dan hilang jika HP mati total.
+
+1. Setelah HP menyala dengan `boot.img` stock (tanpa root), ambil bugreport lewat *Opsi pengembang → Laporan bug → Laporan lengkap*, atau jalankan `adb bugreport` dari PC. Bugreport ikut menyimpan isi pstore.
+2. Mau melihat sendiri? Buka file `.txt` utama di dalam ZIP bugreport, lalu cari bagian `LAST KMSG` atau kata kunci `Kernel panic`, `Unable to handle kernel` dan `Call trace`.
+3. Jika HP sudah root lagi, pstore juga bisa disalin langsung:
+
+```sh
+adb shell "su -c 'cat /sys/fs/pstore/console-ramoops*'" > ramoops.txt
+```
+
+### Bootloop karena modul
+
+1. Masuk **safe mode** ([caranya](#kernel-atau-modul)). Root tetap jalan, hanya modul yang mati.
+2. Di manager buka **Pengaturan → Kirim log** atau **Simpan log** (nama menu bisa sedikit berbeda di KernelSU Next dan BakaSU). ZIP-nya berisi `dmesg`, `logcat`, pstore dan log KernelSU (`/data/adb/ksu/log`).
+3. Kalau **USB debugging sudah aktif dan PC sudah pernah diizinkan**, log bisa direkam langsung saat animasi boot berputar:
+
+```sh
+adb logcat -b all > logcat-bootloop.txt
+```
+
+   Tekan `Ctrl+C` setelah ±1 menit. Cari `FATAL EXCEPTION`, `system_server` atau path `/data/adb/modules/<nama-modul>`.
+4. Mencari modul penyebabnya: aktifkan modul **satu per satu** di manager dan restart setiap kali. Modul terakhir yang diaktifkan sebelum bootloop adalah penyebabnya.
+
+### Lapor
+
+Buka [Issue](https://github.com/cogan17/Cogan/issues) dan lampirkan:
+
+- file bugreport (`.zip`) dan/atau ZIP log dari manager,
+- nama ZIP kernel yang di-flash (varian dan nomor rilis atau run),
+- daftar modul yang terpasang (jika penyebabnya modul),
+- model HP dan versi ROM.
 
 Bugreport seperti inilah yang dipakai untuk menemukan penyebab bootloop varian uji KernelSU Next + SUSFS ([catatan](validation/ksun-susfs-6.1-bootloop-fix.json)).
 

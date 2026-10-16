@@ -14,6 +14,30 @@
 
 ---
 
+## Kernel or module?
+
+Recovery and the logs you need are different, so find the cause first.
+
+| Symptom | Most likely cause | What to do |
+|---|---|---|
+| Restarts or hangs on the **first logo** (brand logo / *unlocked* text); the boot animation never shows | **Kernel** | [Section 2](#2-recover-from-a-bootloop): flash your stock `boot.img` |
+| Bootloop right after **flashing a new kernel**, no module installed | **Kernel** | [Section 2](#2-recover-from-a-bootloop) |
+| The **boot animation** shows, then loops or hangs for a long time | Usually a **module** | Try safe mode below first |
+| Bootloop right after **installing or updating a module** | **Module** | Safe mode below |
+
+**Safe mode test** (KernelSU; KernelSU Next and BakaSU are based on it):
+
+1. Force a restart: hold **Power** until the phone turns off and on again.
+2. As soon as the **first logo** shows, press **Volume Down more than 3 times**: press-release, press-release, press-release, **not** hold. Be quick: the window closes before the boot animation starts. If you miss it, start again from step 1.
+3. Safe mode **disables all modules**:
+   - **The phone boots → a module is the cause.** Open the manager → **Modules**, uninstall the module you just installed or updated, then reboot. Collect logs first if you want to report it ([section 4](#4-after-a-successful-boot-collect-logs)).
+   - **Still bootlooping → probably the kernel.** Go to [section 2](#2-recover-from-a-bootloop).
+4. On HyperOS/MIUI the system safe mode can also be started from the stock recovery (**Volume Up + Power**, if the menu has it); KernelSU then disables modules too.
+
+Safe mode does not stop a module's own `init.rc` scripts. If such a module is the cause, use the manual steps in the [official KernelSU guide](https://kernelsu.org/guide/rescue-from-bootloop.html) or flash your stock `boot.img` ([section 2](#2-recover-from-a-bootloop)).
+
+---
+
 ## 1. Keep your stock `boot.img` (before flashing)
 
 AnyKernel3 writes the kernel to the **`boot`** partition of the active slot. To recover you need the `boot.img` from **exactly the same** ROM version.
@@ -102,13 +126,41 @@ The stock Xiaomi recovery (**Volume Up + Power**) cannot flash `boot.img`, so us
 
 ## 4. After a successful boot: collect logs
 
-The panic log of the failed boot is kept in memory for a while (pstore) and is **overwritten after the next restart**. So as soon as the phone is back up:
+Collect logs **right after** the phone is back up, before it restarts again.
 
-1. Take a bug report via *Developer options → Bug report → Full report*, or run `adb bugreport` from a PC.
-2. Open an [Issue](https://github.com/cogan17/Cogan/issues) and attach:
-   - the bug report file (`.zip`),
-   - the name of the kernel ZIP you flashed (variant and release or run number),
-   - the phone model and ROM version.
+### Bootloop caused by the kernel
+
+The *panic* message of the failed boot is kept in memory for a while (**pstore**). It is **overwritten after the next restart** and lost if the phone fully powers off.
+
+1. Once the phone boots with your stock `boot.img` (no root), take a bug report via *Developer options → Bug report → Full report*, or run `adb bugreport` from a PC. The bug report includes the pstore contents.
+2. Want to look yourself? Open the main `.txt` file inside the bug report ZIP and search for the `LAST KMSG` section or the keywords `Kernel panic`, `Unable to handle kernel` and `Call trace`.
+3. If the phone is rooted again, you can copy pstore directly:
+
+```sh
+adb shell "su -c 'cat /sys/fs/pstore/console-ramoops*'" > ramoops.txt
+```
+
+### Bootloop caused by a module
+
+1. Enter **safe mode** ([how](#kernel-or-module)). Root still works; only modules are off.
+2. In the manager open **Settings → Send logs** or **Save log** (the menu name may differ slightly in KernelSU Next and BakaSU). The ZIP contains `dmesg`, `logcat`, pstore and the KernelSU logs (`/data/adb/ksu/log`).
+3. If **USB debugging was already on and the PC was already authorized**, you can record the log live while the boot animation loops:
+
+```sh
+adb logcat -b all > logcat-bootloop.txt
+```
+
+   Press `Ctrl+C` after about a minute. Look for `FATAL EXCEPTION`, `system_server` or the path `/data/adb/modules/<module-name>`.
+4. Finding the culprit: enable modules **one at a time** in the manager and reboot each time. The last module enabled before the bootloop is the cause.
+
+### Report
+
+Open an [Issue](https://github.com/cogan17/Cogan/issues) and attach:
+
+- the bug report file (`.zip`) and/or the manager's log ZIP,
+- the name of the kernel ZIP you flashed (variant and release or run number),
+- the list of installed modules (if a module is the cause),
+- the phone model and ROM version.
 
 A bug report like this is what found the cause of the KernelSU Next + SUSFS test build bootloop ([record](validation/ksun-susfs-6.1-bootloop-fix.json)).
 
