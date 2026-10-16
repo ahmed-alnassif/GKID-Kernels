@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
-# KSUN + SUSFS builds only the validated isolated candidate as a test build (Issue #19).
+# KSUN + SUSFS builds only the validated, device-tested isolated candidate (Issue #19).
 # Reject other combinations before downloads, installers, or host changes.
 KSUN_SUSFS_CANDIDATE=false
 if [[ "${KSU:-}" == "KSUN" && "${KSU_SUSFS:-false}" == "true" ]]; then
   candidate_sublevel="${KERNEL_SUBLEVEL:-lts}"
   if [[ "${KERNEL_VERSION:-6.1}" != "6.1" || "${KSU_COMPAT:-false}" == "true" || "${LTO:-fullLTO}" != "fullLTO" \
         || "${BBG:-true}" != "true" || ! "${candidate_sublevel,,}" =~ ^(lts|auto|177)$ ]]; then
-    echo "KSUN+SUSFS test build supports only kernel 6.1.177 (lts), fullLTO, BBG enabled and no Compat variant" >&2
+    echo "KSUN+SUSFS supports only kernel 6.1.177 (lts), fullLTO, BBG enabled and no Compat variant" >&2
     exit 1
   fi
   KSUN_SUSFS_CANDIDATE=true
@@ -151,7 +151,6 @@ case "$KSU" in
 esac
 
 susfs_included && VARIANT+="+SuSFS"
-[ "$KSUN_SUSFS_CANDIDATE" = "true" ] && VARIANT+="+Test"
 SUSFS_URL="https://gitlab.com/simonpunk/susfs4ksu"
 SUSFS_DIR="$WORKDIR/susfs"
 SUSFS_PATCHES="${SUSFS_DIR}/kernel_patches"
@@ -227,7 +226,7 @@ fi
 
 
 if [ "$KSUN_SUSFS_CANDIDATE" = "true" ]; then
-  log "KSUN+SUSFS test build: validated candidate only; BBRv3 networking extras not applied"
+  log "KSUN+SUSFS: frozen validated candidate; BBRv3 networking extras not applied"
 elif [ "${NETWORKING:-true}" = "true" ]; then
   log "Applying BBRv3 patch (Networking enabled)"
   apply_patch_file "$KERNEL_PATCHES/bbrv3/bbrv3.patch"
@@ -237,7 +236,7 @@ fi
 
 
 if [ "$KSUN_SUSFS_CANDIDATE" = "true" ]; then
-  log "KSUN+SUSFS test build: BBG comes from candidate feature patches 001 and 003"
+  log "KSUN+SUSFS: BBG comes from candidate feature patches 001 and 003"
 elif [ "${BBG:-true}" = "true" ]; then
   log "BBG included (Baseband Guard, pinned)"
   # setup.sh cannot clone a commit directly, so clone at the pin and let it reuse the checkout.
@@ -377,7 +376,7 @@ fi
 echo "VARIANT=$VARIANT" >> $GITHUB_ENV
 
 if [ "$KSUN_SUSFS_CANDIDATE" = "true" ]; then
-  log "KSUN+SUSFS test build: NoMount comes from candidate feature patch 002"
+  log "KSUN+SUSFS: NoMount comes from candidate feature patch 002"
   # SUSFS here is the locked v2 source of the candidate, not the changelog clone above.
   echo "SUSFS_SHA=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["susfs_provenance"]["owner_reported_commit"])' "$WORKDIR/configs/ksun-susfs-6.1-v2.lock.json")" >> "${GITHUB_ENV:-/dev/null}"
 elif [ "$NM" = "true" ]; then
@@ -405,7 +404,7 @@ AK3_ZIP_NAME=${AK3_ZIP_NAME//VARIANT/$VARIANT}
 
 log "Applying configs..."
 if [ "$KSUN_SUSFS_CANDIDATE" = "true" ]; then
-  log "KSUN+SUSFS test build: config = gki_defconfig + locked candidate fragment (see Generating config)"
+  log "KSUN+SUSFS: config = gki_defconfig + locked candidate fragment (see Generating config)"
 else
   source "$WORKDIR/configs/gki_defconfig.sh"
 fi
@@ -479,7 +478,7 @@ echo "::endgroup::"
 # Report the resolved kernel configuration, not merely the requested fragments.
 # Diagnostics only: avoid failing established builds on kernel-version differences.
 if [ "$KSUN_SUSFS_CANDIDATE" = "true" ]; then
-  log "Resolved Networking config (KSUN+SUSFS test build: Networking option ignored, no BBRv3 patch)"
+  log "Resolved Networking config (KSUN+SUSFS: Networking option ignored, no BBRv3 patch)"
 else
   log "Resolved Networking config (NETWORKING=${NETWORKING:-true})"
 fi

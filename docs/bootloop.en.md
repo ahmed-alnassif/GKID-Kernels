@@ -162,7 +162,7 @@ Open an [Issue](https://github.com/cogan17/Cogan/issues) and attach:
 - the list of installed modules (if a module is the cause),
 - the phone model and ROM version.
 
-A bug report like this is what found the cause of the KernelSU Next + SUSFS test build bootloop ([record](validation/ksun-susfs-6.1-bootloop-fix.json)).
+A bug report like this is what found the cause of the KernelSU Next + SUSFS bootloop while it was still a test build ([record](validation/ksun-susfs-6.1-bootloop-fix.json)).
 
 ---
 

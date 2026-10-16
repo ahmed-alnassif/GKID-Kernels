@@ -14,7 +14,7 @@ on:
           - "KernelSU"
           - "KernelSU + SUSFS"
           - "KernelSU Next"
-          - "KernelSU Next + SUSFS (uji)"
+          - "KernelSU Next + SUSFS"
           - "BakaSU + SUSFS"
           - "Vanilla"
           - "All variants (advanced)"
@@ -120,13 +120,13 @@ jobs:
           BBG_INPUT: ${{ inputs.BBG }}
         run: |
           set -euo pipefail
-          if [[ "$ROOT_MANAGER_INPUT" == "KernelSU Next + SUSFS (uji)" ]]; then
-            # Test build of the validated isolated candidate only (Issue #19); never a release.
+          if [[ "$ROOT_MANAGER_INPUT" == "KernelSU Next + SUSFS" ]]; then
+            # Built only from the frozen, device-tested candidate (Issue #19): 6.1.177, fullLTO, BBG on.
             [[ "$KERNEL_VERSION_INPUT" == "6.1" && "${LTO_INPUT:-}" == fullLTO* && "${BBG_INPUT:-true}" == "true" ]] \
-              || { echo "::error::KSUN+SUSFS (uji) needs kernel 6.1, a fullLTO package and BBG enabled" >&2; exit 1; }
+              || { echo "::error::KSUN+SUSFS needs kernel 6.1, a fullLTO package and BBG enabled" >&2; exit 1; }
             case "$(echo "${KERNEL_SUBLEVEL_INPUT:-}" | tr '[:upper:]' '[:lower:]')" in
               lts|auto|""|177) ;;
-              *) echo "::error::KSUN+SUSFS (uji) is only available for 6.1.177 (lts)" >&2; exit 1 ;;
+              *) echo "::error::KSUN+SUSFS is built from the device-tested kernel 6.1.177 only (sublevel lts or 177)" >&2; exit 1 ;;
             esac
           fi
           # Cogan builds kernel 6.1 only (owner decision 2026-10-16); the form offers nothing else.
@@ -168,8 +168,8 @@ jobs:
             if [[ "${VALIDATION_OUTCOME}" != "success" ]]; then
               echo ""
               echo "**Persiapan gagal; kompilasi tidak dijalankan.**"
-              if [[ "${ROOT_MANAGER_INPUT}" == "KernelSU Next + SUSFS (uji)" ]]; then
-                echo "KSUN + SUSFS (uji) hanya untuk kernel 6.1.177 (lts), paket fullLTO dan BBG aktif."
+              if [[ "${ROOT_MANAGER_INPUT}" == "KernelSU Next + SUSFS" ]]; then
+                echo "KSUN + SUSFS hanya dibangun dari kernel 6.1.177 yang sudah diuji di HP (sublevel lts atau 177), paket fullLTO dan BBG aktif."
               else
                 echo "Periksa pesan error pertama pada langkah **Validate sublevel, build time and optional features**."
               fi
@@ -189,8 +189,8 @@ jobs:
             if [[ "${VALIDATION_OUTCOME}" != "success" ]]; then
               echo ""
               echo "**Preparation failed; no kernel compilation ran.**"
-              if [[ "${ROOT_MANAGER_INPUT}" == "KernelSU Next + SUSFS (uji)" ]]; then
-                echo "KSUN + SUSFS (uji) is only available for kernel 6.1.177 (lts), a fullLTO package and BBG enabled."
+              if [[ "${ROOT_MANAGER_INPUT}" == "KernelSU Next + SUSFS" ]]; then
+                echo "KSUN + SUSFS is only built from the device-tested kernel 6.1.177 (sublevel lts or 177), a fullLTO package and BBG enabled."
               else
                 echo "Inspect the first error in **Validate sublevel, build time and optional features**."
               fi

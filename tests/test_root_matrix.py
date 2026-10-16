@@ -38,7 +38,7 @@ def main():
     for manager, expected_ksu, expected_susfs in (
         ("KernelSU", "KSU", "false"),
         ("KernelSU Next", "KSUN", "false"),
-        ("KernelSU Next + SUSFS (uji)", "KSUN", "true"),
+        ("KernelSU Next + SUSFS", "KSUN", "true"),
         ("KernelSU + SUSFS", "KSU", "true"),
         ("BakaSU + SUSFS", "BSU", "true"),
         ("Vanilla", "no", "false"),
@@ -47,12 +47,13 @@ def main():
         assert len(chosen) == 1
         assert chosen[0]["KSU"] == expected_ksu
         assert chosen[0]["KSU_SUSFS"] == expected_susfs
-    # KSUN+SUSFS builds only the validated isolated candidate as a test build
+    # KSUN+SUSFS builds only the validated, device-tested isolated candidate
     # (Issue #19); any other combination is rejected before tools run.
     build_script = (ROOT / "build.sh").read_text()
     assert 'elif [ "$KSU" = "KSUN" ]; then' in build_script
     assert 'if susfs_included; then' in build_script
-    assert 'KSUN+SUSFS test build supports only kernel 6.1.177 (lts)' in build_script
+    assert 'KSUN+SUSFS supports only kernel 6.1.177 (lts)' in build_script
+    assert '+Test' not in build_script  # no longer labelled as a test build
     assert 'scripts/stage_ksun_susfs_candidate.py' in build_script
     assert 'scripts/check_ksun_susfs_resolved_config.py' in build_script
     assert 'KSUN_REF="$PIN_KSUN_REF"' in build_script
@@ -77,12 +78,12 @@ def main():
                 env=env, text=True, capture_output=True,
             )
             assert rejected.returncode == 1, (bad, rejected.stderr)
-            assert 'KSUN+SUSFS test build supports only' in rejected.stderr, rejected.stderr
+            assert 'KSUN+SUSFS supports only' in rejected.stderr, rejected.stderr
             assert 'command not found' not in rejected.stderr, rejected.stderr
             assert not list(Path(directory).iterdir()), 'Rejected build changed the workspace'
     # The workflow checks the same rules in prepare, before cache/dependency jobs.
     def prepare(**inputs):
-        env = {**os.environ, "ROOT_MANAGER_INPUT": "KernelSU Next + SUSFS (uji)",
+        env = {**os.environ, "ROOT_MANAGER_INPUT": "KernelSU Next + SUSFS",
                "KERNEL_VERSION_INPUT": "6.1", "KERNEL_SUBLEVEL_INPUT": "lts", "BUILD_TIME_INPUT": "N",
                "LTO_INPUT": "fullLTO + NoMount + Clean LTO", "BBG_INPUT": "true", **inputs}
         return subprocess.run(["/bin/bash", "-c", preflight], cwd=ROOT, env=env,
@@ -93,11 +94,11 @@ def main():
                 {"BBG_INPUT": "false"}, {"KERNEL_SUBLEVEL_INPUT": "176"}):
         rejected = prepare(**bad)
         assert rejected.returncode == 1, (bad, rejected.stderr)
-        assert 'KSUN+SUSFS (uji)' in rejected.stderr, rejected.stderr
+        assert 'KSUN+SUSFS needs' in rejected.stderr or 'device-tested kernel 6.1.177' in rejected.stderr, rejected.stderr
     # Owner-ordered dropdown; the kernel version is locked to 6.1 in the form and in prepare.
     inputs = workflow[True]["workflow_dispatch"]["inputs"]
     assert inputs["ROOT_MANAGER"]["options"] == [
-        "KernelSU", "KernelSU + SUSFS", "KernelSU Next", "KernelSU Next + SUSFS (uji)",
+        "KernelSU", "KernelSU + SUSFS", "KernelSU Next", "KernelSU Next + SUSFS",
         "BakaSU + SUSFS", "Vanilla", "All variants (advanced)"]
     assert inputs["KERNEL_VERSION"]["options"] == ["6.1"]
     assert inputs["KERNEL_VERSION"]["default"] == "6.1"

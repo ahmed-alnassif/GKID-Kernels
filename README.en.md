@@ -52,7 +52,7 @@ A generic kernel built from GKI 6.1 sources ([GKI-Duchamp-6.1](https://github.co
 | KernelSU | `KernelSU` | KernelSU | ❌ | |
 | KernelSU + SUSFS | `KernelSU+SuSFS` | KernelSU | ✅ | |
 | KernelSU Next | `KernelSU-Next` | KernelSU Next | ❌ | |
-| KernelSU Next + SUSFS (uji) | `KernelSU-Next+SuSFS+Test` | KernelSU Next (pershoot fork) | ✅ | **Test build only**: 6.1.177 (`lts`), Full LTO, BBG enabled; **no BBRv3 or extra networking** (the Networking box is ignored) |
+| KernelSU Next + SUSFS | `KernelSU-Next+SuSFS` | KernelSU Next (pershoot fork) | ✅ | **Frozen 6.1.177** kernel, device-tested (Xiaomi 14T Pro), Full LTO, BBG enabled; **no BBRv3 or extra networking** (the Networking box is ignored) |
 | BakaSU + SUSFS | `BakaSU+SuSFS` | BakaSU | ✅ | |
 | Vanilla | `Vanilla` | ❌ | ❌ | No root |
 | All variants (advanced) | All standard variants + `Vanilla+NoLTO` + `Compat+…` | | | `Compat` has no LTO, for devices that do not boot the standard variants |
@@ -96,7 +96,7 @@ Open **Actions → Cogan Kernel Builder → Run workflow** in your repository.
 | Build Revision | Optional, `r` + digits (e.g. `r9`), added to the release name |
 | Kernel Sublevel | `lts` = latest, or just the number (e.g. `177`, not `6.1.177`); 6.1.160 and newer |
 | Build Time | `N` = real build time, or a fixed time such as `Thu Jan 1 00:00:00 UTC 2026` |
-| Networking | BBRv3 and extra networking (enabled by default; ignored for the test variant) |
+| Networking | BBRv3 and extra networking (enabled by default; ignored for KSUN + SUSFS) |
 | BBG | Baseband Guard (enabled by default) |
 
 **Build output:** a green run lists numbered artifacts you can download directly (no extraction needed):
@@ -108,7 +108,7 @@ Open **Actions → Cogan Kernel Builder → Run workflow** in your repository.
 | `3-MANAGER-SPOOFED_<root manager>_<version>.apk` | The same manager with a random package name (harder to detect), from the official build of the same tag: KernelSU Next from its release; BakaSU from its tag's Release run, copied to the internal `cogan-mirror` release because Actions artifacts expire | Install **one**: 2 or 3 |
 | `4-NOMOUNT-MODULE_<version>.zip` | Official NoMount module, the same version as the NoMount in the kernel | Install in the manager → Modules |
 
-`build-…` and `build-env-…` artifacts are internal; ignore them. The run summary shows the same table with SHA256 values. **Cogan Manual Update** pins all these versions together. When upstream has something newer (a GKID 6.1 kernel sublevel, SUSFS, a root manager or NoMount), the run summary shows a **🔔 Reminder**: run Cogan Manual Update (`update` → `kernel-6.1`, `susfs`, `root-managers` or `nomount`), then rebuild. The SUSFS reminder only appears on SUSFS variants. The KSUN + SUSFS (uji) variant gets no kernel or SUSFS reminder because its kernel is frozen at 6.1.177.
+`build-…` and `build-env-…` artifacts are internal; ignore them. The run summary shows the same table with SHA256 values. **Cogan Manual Update** pins all these versions together. When upstream has something newer (a GKID 6.1 kernel sublevel, SUSFS, a root manager or NoMount), the run summary shows a **🔔 Reminder**: run Cogan Manual Update (`update` → `kernel-6.1`, `susfs`, `root-managers` or `nomount`), then rebuild. The SUSFS reminder only appears on SUSFS variants. The KSUN + SUSFS variant gets no kernel or SUSFS reminder because its kernel is frozen at 6.1.177.
 
 **Updating components:** open **Actions → Cogan Manual Update**.
 - `check` only reports versions.

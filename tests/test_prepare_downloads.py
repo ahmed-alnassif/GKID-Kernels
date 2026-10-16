@@ -170,7 +170,7 @@ class PrepareDownloadsTests(unittest.TestCase):
     def test_test_build_gets_official_ksun_managers_without_tag_check(self):
         lock = pd.mu.read_lock(REAL_LOCK)
         status, outputs, _, summary, _ = self.run_main(
-            "KSUN", susfs="true", variant="KernelSU-Next+SuSFS+Test",
+            "KSUN", susfs="true", variant="KernelSU-Next+SuSFS",
             tags={"maxsteeel/nomount": lock["NOMOUNT_COMMIT"]})
         self.assertEqual(status, 0, summary)
         self.assertIn("fork pershoot", summary)
@@ -230,7 +230,7 @@ class PrepareDownloadsTests(unittest.TestCase):
     def test_frozen_test_kernel_gets_no_kernel_or_susfs_reminder(self):
         lock = pd.mu.read_lock(REAL_LOCK)
         _, _, _, summary, _ = self.run_main(
-            "KSUN", susfs="true", variant="KernelSU-Next+SuSFS+Test",
+            "KSUN", susfs="true", variant="KernelSU-Next+SuSFS",
             tags={"maxsteeel/nomount": lock["NOMOUNT_COMMIT"]},
             heads={KERNEL_URL: NEW, SUSFS_URL: NEW}, texts={NEW: makefile(180)})
         self.assertNotIn("Kernel GKID", summary)

@@ -52,7 +52,7 @@ Kernel generik yang dibangun dari sumber GKI 6.1 ([GKI-Duchamp-6.1](https://gith
 | KernelSU | `KernelSU` | KernelSU | ❌ | |
 | KernelSU + SUSFS | `KernelSU+SuSFS` | KernelSU | ✅ | |
 | KernelSU Next | `KernelSU-Next` | KernelSU Next | ❌ | |
-| KernelSU Next + SUSFS (uji) | `KernelSU-Next+SuSFS+Test` | KernelSU Next (fork pershoot) | ✅ | **Khusus uji**: hanya 6.1.177 (`lts`), Full LTO, BBG aktif; **tanpa BBRv3 dan paket jaringan tambahan** (centang Networking diabaikan) |
+| KernelSU Next + SUSFS | `KernelSU-Next+SuSFS` | KernelSU Next (fork pershoot) | ✅ | Kernel **6.1.177 yang dikunci** dan sudah diuji di HP (Xiaomi 14T Pro), Full LTO, BBG aktif; **tanpa BBRv3 dan paket jaringan tambahan** (centang Networking diabaikan) |
 | BakaSU + SUSFS | `BakaSU+SuSFS` | BakaSU | ✅ | |
 | Vanilla | `Vanilla` | ❌ | ❌ | Tanpa root |
 | All variants (advanced) | Semua varian standar + `Vanilla+NoLTO` + `Compat+…` | | | `Compat` tanpa LTO, untuk perangkat yang tidak mau boot dengan varian standar |
@@ -96,7 +96,7 @@ Buka **Actions → Cogan Kernel Builder → Run workflow** di repositori Anda.
 | Build Revision | Opsional, format `r` + angka (mis. `r9`), ditambahkan ke nama rilis |
 | Kernel Sublevel | `lts` = terbaru, atau angka saja (mis. `177`, bukan `6.1.177`); tersedia 6.1.160 ke atas |
 | Build Time | `N` = waktu build asli, atau waktu tetap seperti `Thu Jan 1 00:00:00 UTC 2026` |
-| Networking | BBRv3 dan paket jaringan tambahan (default aktif; diabaikan untuk varian uji) |
+| Networking | BBRv3 dan paket jaringan tambahan (default aktif; diabaikan untuk KSUN + SUSFS) |
 | BBG | Baseband Guard (default aktif) |
 
 **Hasil build:** saat run hijau, artifact bernomor bisa langsung diunduh (tidak perlu diekstrak):
@@ -108,7 +108,7 @@ Buka **Actions → Cogan Kernel Builder → Run workflow** di repositori Anda.
 | `3-MANAGER-SPOOFED_<root manager>_<versi>.apk` | Manager yang sama, nama paket acak (lebih sulit dideteksi), dari build resmi tag yang sama: KernelSU Next dari rilisnya; BakaSU dari run Release tag-nya, disalin ke rilis internal `cogan-mirror` karena artifact Actions kedaluwarsa | Install **salah satu**: 2 atau 3 |
 | `4-NOMOUNT-MODULE_<versi>.zip` | Modul NoMount resmi, versi sama dengan NoMount di kernel | Pasang di manager → Modul |
 
-Artifact `build-…` dan `build-env-…` adalah file internal; abaikan saja. Ringkasan run berisi tabel yang sama beserta SHA256. Semua versi ini dikunci bersama oleh **Cogan Manual Update**. Kalau upstream punya versi yang lebih baru (sublevel kernel GKID 6.1, SUSFS, root manager atau NoMount), ringkasan run menampilkan **🔔 Pengingat**: jalankan Cogan Manual Update (`update` → `kernel-6.1`, `susfs`, `root-managers` atau `nomount`), lalu build ulang. Pengingat SUSFS hanya muncul di varian SUSFS. Varian KSUN + SUSFS (uji) tidak mendapat pengingat kernel dan SUSFS karena kernelnya dikunci di 6.1.177.
+Artifact `build-…` dan `build-env-…` adalah file internal; abaikan saja. Ringkasan run berisi tabel yang sama beserta SHA256. Semua versi ini dikunci bersama oleh **Cogan Manual Update**. Kalau upstream punya versi yang lebih baru (sublevel kernel GKID 6.1, SUSFS, root manager atau NoMount), ringkasan run menampilkan **🔔 Pengingat**: jalankan Cogan Manual Update (`update` → `kernel-6.1`, `susfs`, `root-managers` atau `nomount`), lalu build ulang. Pengingat SUSFS hanya muncul di varian SUSFS. Varian KSUN + SUSFS tidak mendapat pengingat kernel dan SUSFS karena kernelnya dikunci di 6.1.177.
 
 **Memperbarui komponen:** buka **Actions → Cogan Manual Update**.
 - `check` hanya menampilkan laporan versi.

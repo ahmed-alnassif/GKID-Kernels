@@ -92,6 +92,7 @@ Record: `docs/validation/ksun-susfs-6.1-local-image.json`. Built in the session 
 - `Image` SHA256 `d03696284c7425685da90e6a5147554cc9e62550ae846151d32b08d887b6d0ca`; `vmlinux` `4f0cd9eb…`; 0 undefined symbols; `susfs_init`, `ksu_lsm_hook_init`, `bbg_init`, `nomount_init` present; `.BTF`/`.BTF_ids` present; kCFI and Full LTO confirmed in the feature objects.
 - BBG allow-cache candidate compiles with `W=1` and 0 warnings (object only; not part of this Image). Tree restored to `b5db2f3c`.
 - **Next:** device boot/root/SUSFS test (owner); then wire the v2 candidate into `build.sh` behind the guard, the owner runs the workflow once, and then the dropdown label and guard are restored (W11). Full LTO link needs about 14 GB+ RAM: on a 14–16 GB host add swap.
+- **2026-10-16:** device test **passed** on rothko (KernelSU Next v3.4.2 33365 built-in, root, SUSFS v2.3.0, SELinux enforcing). The dropdown label is now `KernelSU Next + SUSFS` and the ZIP has no `+Test` suffix; the guards (6.1.177, fullLTO, BBG on, non-Compat) and every frozen input stay unchanged.
 
 ## Checkpoint 2026-10-15 — feature 003 approved and built (latest)
 

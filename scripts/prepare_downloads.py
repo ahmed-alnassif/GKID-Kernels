@@ -15,7 +15,7 @@ writes one table to the run summary and a reminder when upstream has a newer
 release than the pin. Vanilla builds get only the kernel. A moved tag or a wrong
 checksum fails (after the kernel is prepared, so it can still be downloaded).
 The reminders also cover the GKID 6.1 kernel (a new sublevel or commit) and, for
-SUSFS variants, SUSFS 6.1 (with its SUSFS_VERSION); the frozen KSUN test kernel
+SUSFS variants, SUSFS 6.1 (with its SUSFS_VERSION); the frozen KSUN+SUSFS kernel
 gets none for those.
 
 Usage: prepare_downloads.py --ksu KSU|KSUN|BSU|no|vnlto --susfs true|false
@@ -185,7 +185,7 @@ def susfs_reminder(lock, lister, text_fetch):
 
 
 def source_reminders(lock, susfs, candidate, lister, text_fetch):
-    """Kernel and SUSFS reminders; the KSUN test kernel is frozen, so it gets none."""
+    """Kernel and SUSFS reminders; the KSUN+SUSFS kernel is frozen at 6.1.177, so it gets none."""
     if candidate:
         return []
     notes = [kernel_reminder(lock, lister, text_fetch)]
@@ -231,13 +231,13 @@ def prepare(args, lock, lister, fetch, text_fetch=mu.fetch_url):
                              f"jalankan / run **Cogan Manual Update** → `update` → `{group}`")
             continue
         if candidate and kind == "nomount" and candidate_nomount_commit() != lock[key]:
-            notes.append(f"⚠️ NoMount: kernel uji memakai NoMount lain / the test kernel carries a different "
+            notes.append(f"⚠️ NoMount: kernel KSUN+SUSFS memakai NoMount lain / the KSUN+SUSFS kernel carries a different "
                          f"NoMount; module not attached")
             continue
         filename = (f"{prefix}_{item_tag}{args.suffix}.zip" if kind == "nomount"
                     else f"{prefix}_{label}_{item_tag}{args.suffix}.apk")
         try:
-            # The KSUN test kernel is the pershoot fork: no tag to compare for its manager.
+            # The KSUN+SUSFS kernel is the pershoot fork: no tag to compare for its manager.
             path = fetch_asset(lock, key, companion, filename, args.out,
                                not (candidate and kind != "nomount"), lister, fetch)
         except (Failure, OSError, ValueError) as exc:
@@ -257,11 +257,11 @@ def prepare(args, lock, lister, fetch, text_fetch=mu.fetch_url):
         rows.append((number, path.name, what, how))
         notes.append(f"✅ `{path.name}` ← `{lock[companion.name_key]}` SHA256 `{lock[companion.sha_key]}`")
     if candidate:
-        notes.append("ℹ️ Kernel uji / test kernel = fork pershoot: menerima manager KSUN resmi, "
-                     "nomor build bisa beda / accepts the official KSUN manager, build number may differ.")
+        notes.append("ℹ️ Kernel KSUN+SUSFS = fork pershoot: menerima manager KSUN resmi / accepts the official KSUN manager, "
+                     "nomor build bisa beda / build number may differ.")
     for kind, key, group in (("manager", pin_key, "root-managers"), ("nomount", "NOMOUNT_COMMIT", "nomount")):
         if candidate and kind == "manager":
-            continue  # a newer official manager does not move the frozen test kernel
+            continue  # a newer official manager does not move the frozen KSUN+SUSFS kernel
         note = reminder(lock, label if kind == "manager" else "NoMount", group, key, lister)
         if note:
             reminders.append(note)

@@ -162,7 +162,7 @@ Buka [Issue](https://github.com/cogan17/Cogan/issues) dan lampirkan:
 - daftar modul yang terpasang (jika penyebabnya modul),
 - model HP dan versi ROM.
 
-Bugreport seperti inilah yang dipakai untuk menemukan penyebab bootloop varian uji KernelSU Next + SUSFS ([catatan](validation/ksun-susfs-6.1-bootloop-fix.json)).
+Bugreport seperti inilah yang dipakai untuk menemukan penyebab bootloop KernelSU Next + SUSFS saat masih tahap uji ([catatan](validation/ksun-susfs-6.1-bootloop-fix.json)).
 
 ---
 
