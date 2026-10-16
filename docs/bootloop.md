@@ -44,7 +44,7 @@ AnyKernel3 menulis kernel ke partisi **`boot`** pada slot aktif. Untuk memulihka
 
 **Pilihan A: salin dari HP (sudah root)**
 
-- Aplikasi [Kernel Flasher](https://github.com/capntrips/KernelFlasher): pilih slot aktif, lalu *Backup*.
+- Aplikasi [Kernel Flasher](https://github.com/fatalcoder524/KernelFlasher): pilih slot aktif, lalu *Backup*.
 - Atau lewat ADB:
 
 ```sh

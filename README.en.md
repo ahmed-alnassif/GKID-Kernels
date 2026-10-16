@@ -64,7 +64,7 @@ A generic kernel built from GKI 6.1 sources ([GKI-Duchamp-6.1](https://github.co
 1. Make sure your stock kernel is `6.1.x-android14` and the bootloader is unlocked.
 2. **Keep your stock `boot.img`**, exactly matching your ROM version ([how](docs/bootloop.en.md#1-keep-your-stock-bootimg-before-flashing)).
 3. Download the ZIP from **[Releases](https://github.com/cogan17/Cogan/releases)** and check its SHA256 against `checksums.txt`.
-4. Flash the AnyKernel3 ZIP with a kernel flasher app on a rooted device, for example [Kernel Flasher](https://github.com/capntrips/KernelFlasher) or [Horizon Kernel Flasher](https://github.com/libxzr/HorizonKernelFlasher), or from a custom recovery. The ZIP can **not** be flashed with `fastboot`; for fastboot, make an `.img` first ([Using CMD](#using-cmd-platform-tools)).
+4. Flash the AnyKernel3 ZIP with a kernel flasher app on a rooted device, namely [Kernel Flasher](https://github.com/fatalcoder524/KernelFlasher) (fatalcoder524's build), or from a custom recovery. The ZIP can **not** be flashed with `fastboot`; for fastboot, make an `.img` first ([Using CMD](#using-cmd-platform-tools)).
 5. Install the manager APK that matches the kernel. It ships with the build artifacts and is linked in the release notes (**Component versions**, next to the kernel, SUSFS, NoMount and BBG versions), or download it from the official release with the same tag: [KernelSU](https://github.com/tiann/KernelSU/releases), [KernelSU Next](https://github.com/KernelSU-Next/KernelSU-Next/releases) or [BakaSU](https://github.com/Baka-SU/BakaSU/releases). Install the NoMount module (ZIP) from the manager's Modules screen.
 6. Reboot. If it gets stuck on the logo or keeps restarting, open the **[Bootloop Guide](docs/bootloop.en.md)**.
 

@@ -44,7 +44,7 @@ AnyKernel3 writes the kernel to the **`boot`** partition of the active slot. To 
 
 **Option A: copy it from the phone (rooted)**
 
-- [Kernel Flasher](https://github.com/capntrips/KernelFlasher): select the active slot, then *Backup*.
+- [Kernel Flasher](https://github.com/fatalcoder524/KernelFlasher): select the active slot, then *Backup*.
 - Or with ADB:
 
 ```sh

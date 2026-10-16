@@ -64,7 +64,7 @@ Kernel generik yang dibangun dari sumber GKI 6.1 ([GKI-Duchamp-6.1](https://gith
 1. Pastikan kernel stock Anda `6.1.x-android14` dan bootloader sudah terbuka.
 2. **Siapkan `boot.img` stock** yang sama persis dengan versi ROM Anda ([caranya](docs/bootloop.md#1-siapkan-bootimg-stock-sebelum-flash)).
 3. Unduh ZIP dari **[Releases](https://github.com/cogan17/Cogan/releases)**, lalu cocokkan SHA256-nya dengan `checksums.txt`.
-4. Flash ZIP AnyKernel3 dengan aplikasi flasher kernel di perangkat yang sudah root, misalnya [Kernel Flasher](https://github.com/capntrips/KernelFlasher) atau [Horizon Kernel Flasher](https://github.com/libxzr/HorizonKernelFlasher), atau lewat custom recovery. ZIP ini **tidak** bisa di-flash lewat `fastboot`; untuk fastboot, buat `.img` dulu ([Pakai CMD](#pakai-cmd-platform-tools)).
+4. Flash ZIP AnyKernel3 dengan aplikasi flasher kernel di perangkat yang sudah root, yaitu [Kernel Flasher](https://github.com/fatalcoder524/KernelFlasher) (versi fatalcoder524), atau lewat custom recovery. ZIP ini **tidak** bisa di-flash lewat `fastboot`; untuk fastboot, buat `.img` dulu ([Pakai CMD](#pakai-cmd-platform-tools)).
 5. Pasang APK manager yang versinya sama dengan kernel. APK ini ikut di artifact build, dan tautannya tercantum di catatan rilis (bagian **Versi komponen**, bersama versi kernel, SUSFS, NoMount dan BBG); bisa juga diunduh dari rilis resmi dengan tag yang sama: [KernelSU](https://github.com/tiann/KernelSU/releases), [KernelSU Next](https://github.com/KernelSU-Next/KernelSU-Next/releases) atau [BakaSU](https://github.com/Baka-SU/BakaSU/releases). Modul NoMount (ZIP) dipasang lewat menu Modul di manager.
 6. Reboot. Kalau macet di logo atau terus restart, buka **[Panduan Bootloop](docs/bootloop.md)**.
 
