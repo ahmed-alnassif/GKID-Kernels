@@ -349,6 +349,7 @@ jobs:
           ROOT_MANAGER_REF=${{ env.ROOT_MANAGER_REF }}
           ROOT_MANAGER_SHA=${{ env.ROOT_MANAGER_SHA }}
           SUSFS_SHA=${{ env.SUSFS_SHA }}
+          KERNEL_FEATURES=${{ env.KERNEL_FEATURES }}
           KERNEL_VERSION=${{ env.KERNEL_VERSION }}
           ANDROID_RELEASE=${{ env.ANDROID_RELEASE }}
           KERNEL_SOURCE_REPO=${{ env.KERNEL_SOURCE_REPO }}

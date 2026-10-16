@@ -24,6 +24,13 @@ jobs:
   manual-release:
     runs-on: ubuntu-latest
     steps:
+      # Only for scripts/release_notes.py; the release itself is built from the run's artifacts.
+      - name: Checkout release scripts
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
       - name: Verify source run
         env:
           GH_TOKEN: ${{ github.token }}
@@ -133,19 +140,25 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          # Every matrix job writes the same RELEASE (vYY.MM.DD-rN) to its build-env artifact.
-          env_name="$(gh api --paginate "repos/$REPO/actions/runs/$SOURCE_RUN/artifacts?per_page=100" \
-            --jq '.artifacts[] | select(.expired == false and (.name | startswith("build-env-"))) | .name' | head -n 1)"
-          [ -n "$env_name" ] || { echo "::error::No unexpired build-env artifact in run $SOURCE_RUN"; exit 1; }
-          gh run download "$SOURCE_RUN" --repo "$REPO" --name "$env_name" --dir build-env
+          # Every matrix job writes the same RELEASE (vYY.MM.DD-rN) to its build-env artifact;
+          # all of them are kept for the component versions in the notes.
+          gh api --paginate "repos/$REPO/actions/runs/$SOURCE_RUN/artifacts?per_page=100" \
+            --jq '.artifacts[] | select(.expired == false and (.name | startswith("build-env-"))) | .name' > env-names.txt
+          [ -s env-names.txt ] || { echo "::error::No unexpired build-env artifact in run $SOURCE_RUN"; exit 1; }
+          while IFS= read -r name; do
+            gh run download "$SOURCE_RUN" --repo "$REPO" --name "$name" --dir "build-env/$name"
+          done < env-names.txt
           python3 - <<'PY'
           import os, re
           from pathlib import Path
           files = sorted(Path("build-env").rglob("build-env-*.txt"))
           if not files:
               raise SystemExit("build-env file missing")
-          values = dict(line.split("=", 1) for line in files[0].read_text().splitlines() if "=" in line)
-          release, name = values.get("RELEASE", ""), values.get("RELEASE_NAME", "")
+          found = {tuple(dict(line.split("=", 1) for line in path.read_text().splitlines() if "=" in line)
+                         .get(key, "") for key in ("RELEASE", "RELEASE_NAME")) for path in files}
+          if len(found) != 1:
+              raise SystemExit(f"Build variants disagree on the release name: {sorted(found)}")
+          release, name = found.pop()
           # Tags like v26.10.16-r15 keep the README release badge (filter v*) pointing at real releases.
           if not re.fullmatch(r"v\d{2}\.\d{2}\.\d{2}(-r\d+)+", release):
               raise SystemExit(f"Unexpected RELEASE value {release!r}")
@@ -155,6 +168,18 @@ jobs:
               env.write(f"RELEASE_TAG={release}\nRELEASE_TITLE={name}\n")
           print("Release", release, "-", name)
           PY
+
+      - name: Read the pins of the source commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          mkdir -p source-pins
+          for file in upstream.lock ksun-susfs-6.1-features.lock.json; do
+            gh api -H "Accept: application/vnd.github.raw" \
+              "repos/$REPO/contents/configs/$file?ref=$SOURCE_SHA" > "source-pins/$file"
+          done
 
       - name: Create release (draft, pre-release or release)
         env:
@@ -181,6 +206,10 @@ jobs:
             echo "> [!CAUTION]"
             echo "> 🇮🇩 Hanya struktur ZIP yang divalidasi; boot di perangkat **belum diuji**. Simpan \`boot.img\` stock sebelum flash: [Panduan Bootloop]($SERVER/$REPO/blob/HEAD/docs/bootloop.md)."
             echo "> 🇬🇧 Only the ZIP structure was validated; device boot is **not tested**. Keep your stock \`boot.img\` before flashing: [Bootloop Guide]($SERVER/$REPO/blob/HEAD/docs/bootloop.en.md)."
+            echo ""
+            python3 scripts/release_notes.py --lock source-pins/upstream.lock \
+              --features-lock source-pins/ksun-susfs-6.1-features.lock.json \
+              --source-sha "$SOURCE_SHA" --repo "$REPO" --env-dir build-env
           } > release-notes.md
           gh release create "$RELEASE_TAG" release-files/*.zip release-files/checksums.txt \
             --repo "$REPO" --target "$SOURCE_SHA" "${mode[@]}" \

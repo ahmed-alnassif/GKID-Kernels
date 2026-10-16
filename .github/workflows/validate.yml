@@ -52,6 +52,7 @@ jobs:
           python3 -m unittest discover -s tests -p 'test_prepare_downloads.py'
           python3 -m unittest discover -s tests -p 'test_brand_anykernel.py'
           python3 -m unittest discover -s tests -p 'test_kernel_features.py'
+          python3 -m unittest discover -s tests -p 'test_release_notes.py'
           python3 -m unittest discover -s tests -p 'test_prepare_susfs_kernel_patch.py'
           python3 -m unittest discover -s tests -p 'test_prepare_susfs_synthetic.py'
           python3 -m unittest discover -s tests -p 'test_prepare_ksun_susfs_candidate.py'
