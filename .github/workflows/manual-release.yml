@@ -75,9 +75,10 @@ jobs:
           failed = [name for name, result in jobs if result != "success"]
           if failed:
               raise SystemExit("Unsuccessful kernel build jobs: " + ", ".join(failed))
-          # GitHub matrix job name: build (6.1-KSU)
-          # Artifact name: build-6.1-KSU-<run_number>
-          variants = [name[len("build ("):-1] for name, _ in jobs if name.endswith(")")]
+          # GitHub matrix job name lists every matrix value, the variant first:
+          #   build (6.1-KSUN+SUSFS, KSUN, false, true, false, false, 6.1)
+          # Artifact name: build-6.1-KSUN+SUSFS-<run_number>
+          variants = [name[len("build ("):-1].split(", ")[0] for name, _ in jobs if name.endswith(")")]
           if len(variants) != len(jobs) or len(set(variants)) != len(variants):
               raise SystemExit("Unexpected or duplicate matrix job names")
           if len(artifacts) != len(variants):
