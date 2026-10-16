@@ -201,8 +201,25 @@ jobs:
             Release) mode=(--latest); shown="Release (tampil sebagai rilis resmi / published as latest release)" ;;
             *) echo "::error::Unknown release type $RELEASE_TYPE"; exit 1 ;;
           esac
+          # GitHub refuses a GITHUB_TOKEN tag on a commit whose .github/workflows differs from
+          # the current one (HTTP 403 "Resource not accessible by integration"), so such a
+          # build is tagged on the commit this release runs from, and the notes say so.
+          workflows_at() { gh api "repos/$REPO/contents/.github?ref=$1" --jq '.[] | select(.name == "workflows") | .sha'; }
+          built_workflows="$(workflows_at "$SOURCE_SHA")"
+          current_workflows="$(workflows_at "$GITHUB_SHA")"
+          [ -n "$built_workflows" ] && [ -n "$current_workflows" ] || { echo "::error::Cannot read .github/workflows"; exit 1; }
+          target="$SOURCE_SHA"
+          if [ "$built_workflows" != "$current_workflows" ]; then
+            target="$GITHUB_SHA"
+          fi
           {
-            echo "Dibangun dari / built from run [$SOURCE_RUN]($SERVER/$REPO/actions/runs/$SOURCE_RUN)."
+            echo "Dibangun dari / built from run [$SOURCE_RUN]($SERVER/$REPO/actions/runs/$SOURCE_RUN), commit \`${SOURCE_SHA:0:8}\`."
+            if [ "$target" != "$SOURCE_SHA" ]; then
+              echo ""
+              echo "> [!NOTE]"
+              echo "> 🇮🇩 Tag menunjuk commit \`${target:0:8}\` (\`dev\` saat rilis): GitHub menolak tag di commit lama yang workflow-nya sudah berubah. Isi kernel tetap dari commit \`${SOURCE_SHA:0:8}\`."
+              echo "> 🇬🇧 The tag points at \`${target:0:8}\` (\`dev\` at release time): GitHub refuses a tag on an older commit whose workflows changed since. The kernel itself was built from \`${SOURCE_SHA:0:8}\`."
+            fi
             echo ""
             echo "> [!CAUTION]"
             echo "> 🇮🇩 Hanya struktur ZIP yang divalidasi; boot di perangkat **belum diuji**. Simpan \`boot.img\` stock sebelum flash: [Panduan Bootloop]($SERVER/$REPO/blob/HEAD/docs/bootloop.md)."
@@ -213,11 +230,12 @@ jobs:
               --source-sha "$SOURCE_SHA" --repo "$REPO" --env-dir build-env
           } > release-notes.md
           gh release create "$RELEASE_TAG" release-files/*.zip release-files/checksums.txt \
-            --repo "$REPO" --target "$SOURCE_SHA" "${mode[@]}" \
+            --repo "$REPO" --target "$target" "${mode[@]}" \
             --title "$RELEASE_TITLE" --notes-file release-notes.md
           {
             echo "## Manual release"
             echo "- Tag: \`$RELEASE_TAG\` — $RELEASE_TITLE"
             echo "- Jenis / type: **$shown**"
+            echo "- Tag di commit / tagged at \`${target:0:8}\`, kernel dari / built from \`${SOURCE_SHA:0:8}\`"
             echo "- Sumber / source run: $SOURCE_RUN (belum diuji di perangkat / not device-tested)"
           } >> "$GITHUB_STEP_SUMMARY"

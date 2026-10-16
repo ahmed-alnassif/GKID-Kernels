@@ -44,5 +44,17 @@ class ManualReleaseArtifactCheckTests(unittest.TestCase):
         self.assertIn("Artifact mismatch", check([(JOB, "success")], ["build-6.1-KSUN+SUSFS-16"]).stderr)
 
 
+class ManualReleaseTagTargetTests(unittest.TestCase):
+    def test_tag_moves_to_the_release_commit_when_workflows_changed(self):
+        create = next(step["run"] for step in WORKFLOW["jobs"]["manual-release"]["steps"]
+                      if step["name"].startswith("Create release"))
+        self.assertIn('workflows_at "$SOURCE_SHA"', create)
+        self.assertIn('workflows_at "$GITHUB_SHA"', create)
+        self.assertIn('target="$GITHUB_SHA"', create)
+        self.assertIn('--target "$target"', create)
+        self.assertNotIn('--target "$SOURCE_SHA"', create)
+        self.assertIn("Isi kernel tetap dari commit", create)
+
+
 if __name__ == "__main__":
     unittest.main()
