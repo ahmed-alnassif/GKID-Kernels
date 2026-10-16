@@ -14,6 +14,7 @@
 # 38835123605, spoofed BakaSU manager (mirrored to cogan-mirror) from 38836697116;
 # the ruleset refused the
 # bot's push, so their proposed pins were applied through a pull request.
+# NoMount's kernel/setup.sh comes from NOMOUNT_COMMIT (the same release tag).
 NEUTRON_RELEASE=06092026
 NEUTRON_SHA256=531083928c8e37f6b31e324dbfd0b5a8323f989b1c57ff2c1368b889b5b1bd30
 KSU_COMMIT=0c0fdb960178fa12d80d6cbcfdcb6ad8be6a865d
@@ -32,7 +33,6 @@ KSUN_MANAGER_APK=KernelSU_Next_v3.4.2_33355-release.apk
 KSUN_MANAGER_SHA256=774a5511f7034a4930e881114e202319cbdc34c5aaaa5c7c6b6d2902364e4c58
 KSUN_SPOOFED_APK=KernelSU_Next_v3.4.2-spoofed_33355-release.apk
 KSUN_SPOOFED_SHA256=e27ad21204e8f58a4268c41725de97341c62a2f4acca7fa4dda256e9d7863d01
-NOMOUNT_SETUP_COMMIT=da36b5cae06a8380024b0486fb3a09700ec90cd7
 NOMOUNT_COMMIT=7046c7ad3ee0bf4ae66e80f6b93b1e30db0cb4e3
 NOMOUNT_REF=v2.1.1
 NOMOUNT_MODULE_ZIP=NoMount-v2.1.1-release-7046c7a-555.zip

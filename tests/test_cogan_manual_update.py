@@ -503,10 +503,13 @@ class ShellLockTests(unittest.TestCase):
         build = (ROOT / "build.sh").read_text()
         self.assertIn('load_upstream_lock "$WORKDIR/configs/upstream.lock" || exit 1', build)
         for name in ("PIN_KSU_COMMIT", "PIN_BSU_COMMIT", "PIN_KSUN_REF", "PIN_KSUN_COMMIT",
-                     "PIN_NOMOUNT_SETUP_COMMIT", "PIN_NOMOUNT_COMMIT", "PIN_ANYKERNEL_COMMIT", "PIN_BBG_COMMIT",
+                     "PIN_NOMOUNT_COMMIT", "PIN_ANYKERNEL_COMMIT", "PIN_BBG_COMMIT",
                      "PIN_KERNEL_COMMIT_6_1"):
             self.assertIn("$" + name, build, name)
         self.assertNotIn("refs/heads/dev/kernel/setup.sh", build)
+        # NoMount installer and source come from the same release tag.
+        self.assertIn("nomount/$PIN_NOMOUNT_COMMIT/kernel/setup.sh", build)
+        self.assertNotIn("NOMOUNT_SETUP_COMMIT", build + REAL_LOCK)
         self.assertNotIn("Baseband-guard/raw/main/setup.sh", build)
         self.assertIn('install_pinned_neutron "$WORKDIR/neutron-clang" || exit 1', build)
         self.assertNotIn("antman/main/antman", build)

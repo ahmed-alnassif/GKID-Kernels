@@ -383,7 +383,8 @@ if [ "$KSUN_SUSFS_CANDIDATE" = "true" ]; then
 elif [ "$NM" = "true" ]; then
   log "Applying NoMount"
   NOMOUNT_SETUP="$(mktemp)" || { error "Unable to allocate NoMount setup file"; exit 1; }
-  if ! curl -fsSL "https://raw.githubusercontent.com/maxsteeel/nomount/$PIN_NOMOUNT_SETUP_COMMIT/kernel/setup.sh" -o "$NOMOUNT_SETUP"; then
+  # The installer comes from the same release tag as the pinned NoMount source.
+  if ! curl -fsSL "https://raw.githubusercontent.com/maxsteeel/nomount/$PIN_NOMOUNT_COMMIT/kernel/setup.sh" -o "$NOMOUNT_SETUP"; then
     rm -f "$NOMOUNT_SETUP"
     error "NoMount setup download failed"
     exit 1

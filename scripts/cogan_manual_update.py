@@ -52,11 +52,13 @@ SUSFS = "https://gitlab.com/simonpunk/susfs4ksu.git"
 # Root managers and NoMount follow release tags so the kernel is built from
 # exactly the source of the official manager APK / module ZIP (owner decision
 # 2026-10-16): the kernel only accepts the developer-signed manager.
+# NoMount's kernel/setup.sh is read from NOMOUNT_COMMIT too (same release tag),
+# so installer and source never drift apart and dev-branch commits that do not
+# touch the installer no longer show up as updates.
 PINS = {
     "KSU_COMMIT": ("root-managers", "KernelSU", "https://github.com/tiann/KernelSU.git", "latest-stable-tag"),
     "BSU_COMMIT": ("root-managers", "BakaSU", "https://github.com/Baka-SU/BakaSU.git", "latest-release-tag"),
     "KSUN_COMMIT": ("root-managers", "KernelSU Next", "https://github.com/KernelSU-Next/KernelSU-Next.git", "latest-stable-tag"),
-    "NOMOUNT_SETUP_COMMIT": ("nomount", "NoMount setup.sh", "https://github.com/maxsteeel/nomount.git", "refs/heads/dev"),
     "NOMOUNT_COMMIT": ("nomount", "NoMount source", "https://github.com/maxsteeel/nomount.git", "latest-stable-tag"),
     "BBG_COMMIT": ("bbg", "Baseband Guard (BBG)", "https://github.com/vc-teahouse/Baseband-guard.git", "refs/heads/main"),
     "ANYKERNEL_COMMIT": ("anykernel", "AnyKernel3", "https://github.com/ahmed-alnassif/AK3-GKID.git", "HEAD"),
