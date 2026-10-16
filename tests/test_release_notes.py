@@ -167,7 +167,13 @@ class ReleaseNotesTests(unittest.TestCase):
             self.assertIn("> **Fitur unggulan**\n> - 🚀 BBRv3 (default, juga bbr3): internet lebih cepat & stabil", box)
             self.assertIn("> - 🛡️ SUSFS: sembunyikan root dari aplikasi", box)  # from the second variant
             self.assertIn("> **✨ Baru**\n> - Varian `KernelSU Next + SUSFS`", box)
-            self.assertIn("> <summary>📋 Salin untuk grup Telegram</summary>\n>\n> ```text\n> 🚀 Cogan", box)
+            self.assertIn("> <summary>📋 Salin untuk grup Telegram (Indonesia)</summary>\n>\n> ```text\n> 🚀 Cogan", box)
+            # Indonesian first, then the English dropdown, then one Telegram dropdown per language.
+            self.assertLess(box.index("**Fitur unggulan**"), box.index("<summary>🇬🇧 English</summary>"))
+            self.assertLess(box.index("<summary>🇬🇧 English</summary>"), box.index("(Indonesia)</summary>"))
+            self.assertLess(box.index("(Indonesia)</summary>"), box.index("(English)</summary>"))
+            self.assertIn("> **Key features**\n> - 🚀 BBRv3 (default, also bbr3): faster, steadier internet", box)
+            self.assertIn("> **✨ New**\n> - Varian `KernelSU Next + SUSFS`", box)  # no English line: Indonesian
             self.assertLess(text.index("## Isi rilis"), text.index("<summary>Versi komponen"))
             message = telegram.read_text()
             self.assertTrue(message.startswith("🚀 Cogan v26.10.16-r3 (Pre-release)\n"))
@@ -272,10 +278,30 @@ class ReleaseNotesTests(unittest.TestCase):
                           telegram.read_text())
             self.assertIn('"Kernel":["6.1.180","6.1.180"]', text)  # recorded for the next release
 
+    def test_english_news_features_and_telegram(self):
+        log = "Baru: Fitur A\nNew: Feature A\nDiperbaiki: Perbaikan B\nUpdated: manual update\n"
+        self.assertEqual(rn.whats_new("", log, "en"), {"Baru": ["Feature A"], "Diperbaiki": [], "Diperbarui": ["manual update"]})
+        self.assertEqual(rn.whats_new("", log), {"Baru": ["Fitur A"], "Diperbaiki": ["Perbaikan B"], "Diperbarui": []})
+        r3 = (ROOT / "docs/whats-new/v26.10.16-r3.md").read_text()
+        self.assertEqual(len(rn.whats_new(r3, "", "en")["Baru"]), len(rn.whats_new(r3)["Baru"]))
+        self.assertTrue(rn.whats_new(r3, "", "en")["Baru"][0].startswith("KernelSU Next + SUSFS variant"))
+        self.assertEqual(rn.feature_items("SUSFS, Thin LTO", "en"),
+                         ["🛡️ SUSFS: hides root from apps", "⚡ Thin LTO: leaner, more efficient kernel"])
+        highlights = (ROOT / "docs/whats-new/highlights.md").read_text()
+        self.assertTrue(rn.read_highlights(highlights, "en")[0].startswith("📦 The manager and NoMount module"))
+        self.assertTrue(rn.read_highlights(highlights)[0].startswith("📦 Manager + modul NoMount"))
+        self.assertEqual(rn.read_highlights("- hanya Indonesia\n", "en"), ["hanya Indonesia"])
+        message = rn.telegram_text("Cogan v1", "Release", [KSUN], ["1-KERNEL_x.zip", "4-NOMOUNT-MODULE_v2.1.1.zip"],
+                                   {"Baru": ["Feature A"]}, [], [], "en")
+        self.assertEqual(message.splitlines()[0], "🚀 Cogan v1 (Release)")
+        self.assertIn("✨ New\n• Feature A", message)
+        self.assertIn("📦 Kernel + NoMount module v2.1.1\n⚠️ Keep your stock boot.img before flashing.", message)
+
     def test_highlights_file_is_short(self):
-        highlights = rn.read_highlights((ROOT / "docs/whats-new/highlights.md").read_text())
-        self.assertTrue(1 <= len(highlights) <= 4)
-        self.assertTrue(all("SUSFS" not in line and "BBR" not in line for line in highlights))
+        for lang in ("id", "en"):
+            highlights = rn.read_highlights((ROOT / "docs/whats-new/highlights.md").read_text(), lang)
+            self.assertTrue(1 <= len(highlights) <= 4)
+            self.assertTrue(all("SUSFS" not in line and "BBR" not in line for line in highlights))
 
     def test_r3_news_file_parses(self):
         items = rn.whats_new((ROOT / "docs/whats-new/v26.10.16-r3.md").read_text())

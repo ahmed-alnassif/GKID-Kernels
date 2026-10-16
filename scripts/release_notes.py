@@ -19,6 +19,9 @@ With --files, a table of the attached files (1-KERNEL_, 2-MANAGER_, ...) comes f
 (build-env KERNEL_FEATURES, else the "Features:" line of its kernel ZIP), the
 repository highlights (--highlights), the news, and a dropdown with the same text in
 plain form for Telegram (no links, no Markdown), also written to --telegram-out.
+Indonesian comes first; the box holds an English dropdown ("New:" / "Fixed:" /
+"Updated:" commit lines, "### New" / "### Fixed" headings; Indonesian is used where
+an English line is missing) and one Telegram dropdown per language (--telegram-en-out).
 "⬆️ Diperbarui" lists the components (kernel, manager, SUSFS, NoMount, BBG, Neutron)
 whose version differs from the previous release of the same variant; every release
 records its versions in a hidden "cogan-components" marker (--previous-notes).
@@ -26,7 +29,7 @@ records its versions in a hidden "cogan-components" marker (--previous-notes).
 Usage: release_notes.py --lock FILE --features-lock FILE --source-sha SHA
            --repo OWNER/NAME --env-dir DIR [--files DIR] [--whats-new-file FILE]
            [--commit-log FILE] [--highlights FILE] [--previous-notes FILE]
-           [--title T --release-type R --telegram-out FILE]
+           [--title T --release-type R --telegram-out FILE --telegram-en-out FILE]
 """
 import argparse
 import json
@@ -164,24 +167,40 @@ def files_section(names):
 
 KINDS = ("Baru", "Diperbaiki", "Diperbarui")
 ICONS = {"Baru": "✨", "Diperbaiki": "🔧", "Diperbarui": "⬆️"}
-NEWS_LINE = re.compile(r"(Baru|Diperbaiki|Diperbarui):\s*(\S.*)")
+# Per language: the marker words of each kind (commit lines "Baru: ..." / "New: ...", and the
+# "### Baru" / "### New" headings of docs/whats-new/<tag>.md) and the labels people read.
+WORDS = {"id": {"Baru": "Baru", "Diperbaiki": "Diperbaiki", "Diperbarui": "Diperbarui"},
+         "en": {"Baru": "New", "Diperbaiki": "Fixed", "Diperbarui": "Updated"}}
+LABELS = {
+    "id": {"features": "Fitur unggulan", "telegram": "📋 Salin untuk grup Telegram (Indonesia)",
+           "regular": "biasa/spoofed", "nomount": "Modul NoMount", "boot": "⚠️ Simpan boot.img stock sebelum flash.",
+           "types": {"Draft": "Draft", "Pre-release": "Pre-release", "Release": "Rilis"}},
+    "en": {"features": "Key features", "telegram": "📋 Copy for the Telegram group (English)",
+           "regular": "regular/spoofed", "nomount": "NoMount module", "boot": "⚠️ Keep your stock boot.img before flashing.",
+           "types": {"Draft": "Draft", "Pre-release": "Pre-release", "Release": "Release"}},
+}
 MAX_ITEMS = 8  # per kind: the news stays short
 
 
-def whats_new(override_text="", commit_log=""):
-    """{"Baru": [...], "Diperbaiki": [...], "Diperbarui": [...]}: the per-release file wins over commit lines."""
+def whats_new(override_text="", commit_log="", lang="id"):
+    """{"Baru": [...], "Diperbaiki": [...], "Diperbarui": [...]} in one language: the
+    per-release file wins over commit lines. English uses New / Fixed / Updated."""
+    kind_of = {word: kind for kind, word in WORDS[lang].items()}
+    words = "|".join(kind_of)
     found = []
     if override_text:
         kind = None
         for line in override_text.splitlines():
-            heading = re.fullmatch(r"#+\s*(Baru|Diperbaiki|Diperbarui)\s*", line.strip())
+            heading = re.fullmatch(r"#+\s*(\w+)\s*", line.strip())
             if heading:
-                kind = heading.group(1)
+                kind = kind_of.get(heading.group(1))
             elif kind and line.strip().startswith("- "):
                 found.append((kind, line.strip()[2:]))
     else:
-        found = [match.groups() for match in map(NEWS_LINE.fullmatch, map(str.strip, commit_log.splitlines()))
-                 if match]
+        for line in commit_log.splitlines():
+            match = re.fullmatch(rf"({words}):\s*(\S.*)", line.strip())
+            if match:
+                found.append((kind_of[match.group(1)], match.group(2)))
     items = {kind: [] for kind in KINDS}
     for kind, text in found:
         text = " ".join(text.split())[:160]
@@ -275,71 +294,104 @@ def features_from_zip(path):
     return match.group(1) if match else ""
 
 
-def feature_items(features):
+FEATURE_TEXT = {
+    "id": {"SUSFS": "🛡️ SUSFS: sembunyikan root dari aplikasi", "BBR": "internet lebih cepat & stabil",
+           "BBG": "🔒 Baseband Guard: lindungi partisi penting", "NoMount": "🧩 NoMount: metamodul tanpa mount",
+           "LTO": "kernel lebih ringkas & efisien", "also": "juga "},
+    "en": {"SUSFS": "🛡️ SUSFS: hides root from apps", "BBR": "faster, steadier internet",
+           "BBG": "🔒 Baseband Guard: protects critical partitions", "NoMount": "🧩 NoMount: mountless metamodule",
+           "LTO": "leaner, more efficient kernel", "also": "also "},
+}
+
+
+def feature_items(features, lang="id"):
     """Friendly lines for the build's own feature list (scripts/kernel_features.py)."""
-    items = []
+    text, items = FEATURE_TEXT[lang], []
     for token in (t.strip() for t in re.split(r",(?![^()]*\))", features or "")):
-        if token == "SUSFS":
-            items.append("🛡️ SUSFS: sembunyikan root dari aplikasi")
+        if token in ("SUSFS", "BBG", "NoMount"):
+            items.append(text[token])
         elif token.startswith("BBR"):
-            items.append(f"🚀 {token.replace('also ', 'juga ')}: internet lebih cepat & stabil")
-        elif token == "BBG":
-            items.append("🔒 Baseband Guard: lindungi partisi penting")
-        elif token == "NoMount":
-            items.append("🧩 NoMount: metamodul tanpa mount")
+            items.append(f"🚀 {token.replace('also ', text['also'])}: {text['BBR']}")
         elif token in ("Full LTO", "Thin LTO"):
-            items.append(f"⚡ {token}: kernel lebih ringkas & efisien")
+            items.append(f"⚡ {token}: {text['LTO']}")
     return items
 
 
-def read_highlights(text):
-    """Repository highlights true for every build: "- " lines of docs/whats-new/highlights.md."""
-    return [line.strip()[2:].strip() for line in (text or "").splitlines() if line.strip().startswith("- ")][:4]
+def read_highlights(text, lang="id"):
+    """Repository highlights true for every build: "- " lines of docs/whats-new/highlights.md,
+    under "### Indonesia" or "### English" (lines before any heading are Indonesian)."""
+    section, found = "id", {"id": [], "en": []}
+    for line in (text or "").splitlines():
+        heading = re.fullmatch(r"#+\s*(Indonesia|English)\s*", line.strip())
+        if heading:
+            section = "id" if heading.group(1) == "Indonesia" else "en"
+        elif line.strip().startswith("- "):
+            found[section].append(line.strip()[2:].strip())
+    return (found[lang] or found["id"])[:4]
 
 
 def plain(text):
     return text.replace("`", "").replace("**", "")
 
 
-def telegram_text(title, release_type, envs, names, items, features=(), highlights=()):
+def telegram_text(title, release_type, envs, names, items, features=(), highlights=(), lang="id"):
     """Short plain text for Telegram: no links and no Markdown, so it pastes as is."""
-    kind_label = {"Draft": "Draft", "Pre-release": "Pre-release", "Release": "Rilis"}.get(release_type, release_type)
-    lines = [f"🚀 {title} ({kind_label})"]
+    label = LABELS[lang]
+    lines = [f"🚀 {title} ({label['types'].get(release_type, release_type)})"]
     lines += [f"🐧 Linux {env.get('LINUX_VERSION', '?')} • {variant_label(env)}" for env in envs]
     best = [*features, *highlights]
     if best:
-        lines += ["", "⭐ Fitur unggulan", *[f"• {plain(text)}" for text in best]]
+        lines += ["", f"⭐ {label['features']}", *[f"• {plain(text)}" for text in best]]
     for kind, icon in ICONS.items():
         if items.get(kind):
-            lines += ["", f"{icon} {kind}", *[f"• {plain(text)}" for text in items[kind]]]
+            lines += ["", f"{icon} {WORDS[lang][kind]}", *[f"• {plain(text)}" for text in items[kind]]]
     parts = []
     if any(name.startswith("1-KERNEL_") for name in names):
         parts.append("Kernel")
     managers = sorted(name for name in names if name.startswith(("2-MANAGER_", "3-MANAGER-SPOOFED_")))
     if managers:
         manager = re.sub(r"\.apk$", "", managers[0].split("_", 1)[1]).replace("_", " ")
-        parts.append(f"Manager {manager}" + (" (biasa/spoofed)" if len(managers) > 1 else ""))
+        parts.append(f"Manager {manager}" + (f" ({label['regular']})" if len(managers) > 1 else ""))
     nomount = [name for name in names if name.startswith("4-NOMOUNT-MODULE_")]
     if nomount:
-        parts.append("Modul NoMount " + re.sub(r"\.zip$", "", nomount[0][len("4-NOMOUNT-MODULE_"):]).split("_")[0])
+        version = re.sub(r"\.zip$", "", nomount[0][len("4-NOMOUNT-MODULE_"):]).split("_")[0]
+        parts.append(f"{label['nomount']} {version}")
     if parts:
         lines += ["", "📦 " + " + ".join(parts)]
-    lines += ["⚠️ Simpan boot.img stock sebelum flash.", "📥 GitHub cogan17/Cogan → Releases"]
+    lines += [label["boot"], "📥 GitHub cogan17/Cogan → Releases"]
     return "\n".join(lines) + "\n"
 
 
-def frame(title, envs, features, highlights, items, telegram):
-    """One GitHub tip box: highlights, news and a dropdown with the Telegram text."""
-    body = [f"**⭐ {title}** · " + " · ".join(f"Linux {env.get('LINUX_VERSION', '?')} · {variant_label(env)}"
-                                           for env in envs), ""]
+def box_content(title, envs, features, highlights, items, lang):
+    """Title, features and news of the release box in one language (Markdown lines)."""
+    lines = [f"**⭐ {title}** · " + " · ".join(f"Linux {env.get('LINUX_VERSION', '?')} · {variant_label(env)}"
+                                            for env in envs), ""]
     best = [*features, *highlights]
     if best:
-        body += ["**Fitur unggulan**", *[f"- {text}" for text in best], ""]
+        lines += [f"**{LABELS[lang]['features']}**", *[f"- {text}" for text in best], ""]
     for kind, icon in ICONS.items():
         if items.get(kind):
-            body += [f"**{icon} {kind}**", *[f"- {text}" for text in items[kind]], ""]
-    body += ["<details>", "<summary>📋 Salin untuk grup Telegram</summary>", "", "```text",
-             *telegram.rstrip("\n").splitlines(), "```", "", "</details>"]
+            lines += [f"**{icon} {WORDS[lang][kind]}**", *[f"- {text}" for text in items[kind]], ""]
+    return lines
+
+
+def dropdown(summary, lines):
+    return ["<details>", f"<summary>{summary}</summary>", "", *lines, "</details>", ""]
+
+
+def frame(title, envs, content):
+    """One GitHub tip box: Indonesian first, then dropdowns with the English version and the
+    Telegram texts. content: {"id"|"en": {"features", "highlights", "items", "telegram"}}."""
+    body = box_content(title, envs, content["id"]["features"], content["id"]["highlights"],
+                       content["id"]["items"], "id")
+    english = box_content(title, envs, content["en"]["features"], content["en"]["highlights"],
+                          content["en"]["items"], "en")
+    body += dropdown("🇬🇧 English", english)
+    for lang in ("id", "en"):
+        body += dropdown(LABELS[lang]["telegram"],
+                         ["```text", *content[lang]["telegram"].rstrip("\n").splitlines(), "```", ""])
+    while body and not body[-1]:
+        body.pop()
     return ["> [!TIP]", *[f"> {line}" if line else ">" for line in body], ""]
 
 
@@ -372,7 +424,8 @@ def main(argv=None):
     parser.add_argument("--commit-log", type=Path, help="commit messages since the previous release")
     parser.add_argument("--title", default="")
     parser.add_argument("--release-type", default="")
-    parser.add_argument("--telegram-out", type=Path)
+    parser.add_argument("--telegram-out", type=Path, help="Indonesian Telegram text")
+    parser.add_argument("--telegram-en-out", type=Path, help="English Telegram text")
     parser.add_argument("--highlights", type=Path, help="repository highlights (docs/whats-new/highlights.md)")
     parser.add_argument("--previous-notes", type=Path, help="notes of the previous release (component marker)")
     args = parser.parse_args(argv)
@@ -389,8 +442,8 @@ def main(argv=None):
                     if args.whats_new_file and args.whats_new_file.is_file() else "")
         log = (args.commit_log.read_text(encoding="utf-8", errors="replace")
                if args.commit_log and args.commit_log.is_file() else "")
-        highlights = read_highlights(args.highlights.read_text(encoding="utf-8")
-                                     if args.highlights and args.highlights.is_file() else "")
+        highlights_text = (args.highlights.read_text(encoding="utf-8")
+                           if args.highlights and args.highlights.is_file() else "")
         kernels = sorted(p for p in args.files.iterdir() if p.name.startswith("1-KERNEL_")) if args.files else []
         previous = read_previous_components(args.previous_notes.read_text(encoding="utf-8", errors="replace")
                                             if args.previous_notes and args.previous_notes.is_file() else "")
@@ -401,24 +454,35 @@ def main(argv=None):
         print("no build-env-*.txt under " + str(args.env_dir), file=sys.stderr)
         return 1
     items = whats_new(override, log)
+    english = whats_new(override, log, "en")
+    for kind in KINDS:  # an item without its English line still shows, in Indonesian
+        english[kind] = english[kind] or items[kind]
     # The build's own features: saved in build-env since PR #66, else read from its kernel ZIP.
-    features = []
+    recorded_features = []
     for env in envs:
         recorded = env.get("KERNEL_FEATURES", "")
         if not recorded:
             match = [k for k in kernels if len(kernels) == 1 or k.stem.endswith("_" + env.get("BUILD_VARIANT", "?"))]
             recorded = features_from_zip(match[0]) if match else ""
-        features += [item for item in feature_items(recorded) if item not in features]
+        recorded_features.append(recorded)
     # "⬆️ Diperbarui": component versions against the previous release of the same variant.
     current = {env.get("BUILD_VARIANT", "?"): components(env, lock, features_lock) for env in envs}
     automatic = [line for variant, found in current.items() for line in updates(previous.get(variant, {}), found)]
     items["Diperbarui"] = list(dict.fromkeys(automatic + items["Diperbarui"]))[:MAX_ITEMS]
+    english["Diperbarui"] = list(dict.fromkeys(automatic + english["Diperbarui"]))[:MAX_ITEMS]
     top = None
     if args.title:
-        message = telegram_text(args.title, args.release_type, envs, names, items, features, highlights)
-        top = frame(args.title, envs, features, highlights, items, message)
-        if args.telegram_out:
-            args.telegram_out.write_text(message, encoding="utf-8")
+        content = {}
+        for lang, news in (("id", items), ("en", english)):
+            features = list(dict.fromkeys(f for recorded in recorded_features for f in feature_items(recorded, lang)))
+            highlights = read_highlights(highlights_text, lang)
+            content[lang] = {"features": features, "highlights": highlights, "items": news,
+                             "telegram": telegram_text(args.title, args.release_type, envs, names, news,
+                                                       features, highlights, lang)}
+        top = frame(args.title, envs, content)
+        for lang, out in (("id", args.telegram_out), ("en", args.telegram_en_out)):
+            if out:
+                out.write_text(content[lang]["telegram"], encoding="utf-8")
     sys.stdout.write(notes(envs, lock, features_lock, args.source_sha, args.repo, names, items, top,
                            components_marker(current)))
     return 0

@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       run_id:
-        description: "Successful Cogan build run ID"
+        description: "ID run build Cogan yang sukses / Successful Cogan build run ID"
         required: true
         type: string
       release_type:
-        description: "Draft = belum tampil, cek dulu lalu publish sendiri; Pre-release = langsung tampil berlabel Pre-release; Release = langsung tampil sebagai rilis resmi (Latest)"
+        description: "Draft = belum tampil, cek lalu publish sendiri; Pre-release = langsung tampil berlabel Pre-release; Release = rilis resmi (Latest) / Draft = hidden until you publish it; Pre-release = published as pre-release; Release = official latest release"
         type: choice
         default: "Draft"
         options:
@@ -16,7 +16,7 @@ on:
           - "Pre-release"
           - "Release"
       ganti_rilis:
-        description: "Ganti rilis yang tag-nya sama (rilis lama + tag-nya dihapus, lalu dibuat ulang dari run ini)"
+        description: "Ganti rilis yang tag-nya sama (rilis lama + tag dihapus, lalu dibuat ulang dari run ini) / Replace the release with the same tag (old release and tag deleted, then recreated from this run)"
         type: boolean
         default: false
 
@@ -271,7 +271,8 @@ jobs:
               --source-sha "$SOURCE_SHA" --repo "$REPO" --env-dir build-env --files release-files \
               --whats-new-file "docs/whats-new/$RELEASE_TAG.md" --commit-log commit-log.txt \
               --highlights docs/whats-new/highlights.md --previous-notes previous-notes.md \
-              --title "$RELEASE_TITLE" --release-type "$RELEASE_TYPE" --telegram-out telegram.txt
+              --title "$RELEASE_TITLE" --release-type "$RELEASE_TYPE" \
+              --telegram-out telegram.txt --telegram-en-out telegram-en.txt
             echo ""
             echo "> [!CAUTION]"
             echo "> 🇮🇩 Hanya struktur ZIP yang divalidasi; boot di perangkat **belum diuji**. Simpan \`boot.img\` stock sebelum flash: [Panduan Bootloop]($SERVER/$REPO/blob/HEAD/docs/bootloop.md)."
@@ -297,8 +298,13 @@ jobs:
             echo "- File: $(cd release-files && ls | sed 's/^/`/; s/$/`/' | paste -sd ' ' -)"
             echo "- Sumber / source run: $SOURCE_RUN (belum diuji di perangkat / not device-tested)"
             echo ""
-            echo "### 📋 Teks untuk Telegram (salin)"
+            echo "### 📋 Teks Telegram (Indonesia)"
             echo '```text'
             cat telegram.txt
+            echo '```'
+            echo ""
+            echo "### 📋 Telegram text (English)"
+            echo '```text'
+            cat telegram-en.txt
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"

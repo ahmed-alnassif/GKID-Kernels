@@ -114,6 +114,15 @@ class ManualReleaseCreateTests(unittest.TestCase):
         self.assertIn(': > previous-notes.md', news)
         self.assertIn("printf '%s\\n' \"$body\" > previous-notes.md", news)
         self.assertEqual(self.create.count("cat telegram.txt"), 1)  # run summary; the notes carry it in the box
+        self.assertIn("--telegram-out telegram.txt --telegram-en-out telegram-en.txt", self.create)
+        self.assertEqual(self.create.count("cat telegram-en.txt"), 1)
+
+    def test_run_form_is_indonesian_then_english(self):
+        inputs = WORKFLOW[True]["workflow_dispatch"]["inputs"]
+        for name in ("run_id", "release_type", "ganti_rilis"):
+            indonesian, english = inputs[name]["description"].rsplit(" / ", 1)
+            self.assertTrue(indonesian and english, name)
+        self.assertTrue(inputs["run_id"]["description"].startswith("ID run build Cogan"))
         checkout = next(step for step in STEPS if step["name"] == "Checkout release scripts")
         self.assertEqual(checkout["with"]["fetch-depth"], 0)
 
