@@ -268,20 +268,12 @@ jobs:
               --features-lock source-pins/ksun-susfs-6.1-features.lock.json \
               --source-sha "$SOURCE_SHA" --repo "$REPO" --env-dir build-env --files release-files \
               --whats-new-file "docs/whats-new/$RELEASE_TAG.md" --commit-log commit-log.txt \
+              --highlights docs/whats-new/highlights.md \
               --title "$RELEASE_TITLE" --release-type "$RELEASE_TYPE" --telegram-out telegram.txt
             echo ""
             echo "> [!CAUTION]"
             echo "> 🇮🇩 Hanya struktur ZIP yang divalidasi; boot di perangkat **belum diuji**. Simpan \`boot.img\` stock sebelum flash: [Panduan Bootloop]($SERVER/$REPO/blob/HEAD/docs/bootloop.md)."
             echo "> 🇬🇧 Only the ZIP structure was validated; device boot is **not tested**. Keep your stock \`boot.img\` before flashing: [Bootloop Guide]($SERVER/$REPO/blob/HEAD/docs/bootloop.en.md)."
-            echo ""
-            echo "<details>"
-            echo "<summary>📋 Teks untuk Telegram (salin) / Telegram text (copy)</summary>"
-            echo ""
-            echo '```text'
-            cat telegram.txt
-            echo '```'
-            echo ""
-            echo "</details>"
             echo ""
             footer="Dibangun dari / built from run [$SOURCE_RUN]($SERVER/$REPO/actions/runs/$SOURCE_RUN), commit \`${SOURCE_SHA:0:8}\`."
             if [ "$target" != "$SOURCE_SHA" ]; then

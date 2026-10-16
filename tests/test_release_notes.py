@@ -5,6 +5,7 @@ import io
 import json
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 
 from scripts import release_notes as rn
@@ -158,15 +159,23 @@ class ReleaseNotesTests(unittest.TestCase):
                                                  "--title", "Cogan v26.10.16-r3", "--release-type", "Pre-release",
                                                  "--telegram-out", str(telegram)]), 0)
             text = out.getvalue()
-            self.assertTrue(text.startswith("## Yang baru / What's new\n"))
-            self.assertLess(text.index("## Yang baru"), text.index("## Isi rilis"))
-            self.assertLess(text.index("## Isi rilis"), text.index("<details>"))
+            self.assertTrue(text.startswith("> [!TIP]\n> **⭐ Cogan v26.10.16-r3** · Linux 6.1.177 · KernelSU Next"))
+            frame_end = text.index("\n\n## Isi rilis")
+            box = text[:frame_end]
+            self.assertTrue(all(line.startswith(">") for line in box.splitlines()))  # one box
+            self.assertIn("> **Fitur unggulan**\n> - 🚀 BBRv3 (default, juga bbr3): internet lebih cepat & stabil", box)
+            self.assertIn("> - 🛡️ SUSFS: sembunyikan root dari aplikasi", box)  # from the second variant
+            self.assertIn("> **✨ Baru**\n> - Varian `KernelSU Next + SUSFS`", box)
+            self.assertIn("> <summary>📋 Salin untuk grup Telegram</summary>\n>\n> ```text\n> 🚀 Cogan", box)
+            self.assertLess(text.index("## Isi rilis"), text.index("<summary>Versi komponen"))
             message = telegram.read_text()
             self.assertTrue(message.startswith("🚀 Cogan v26.10.16-r3 (Pre-release)\n"))
             self.assertIn("• Varian KernelSU Next + SUSFS", message)
-            self.assertIn("2️⃣ Manager KernelSU-Next v3.4.2", message)
+            self.assertIn("⭐ Fitur unggulan\n• 🚀 BBRv3 (default, juga bbr3)", message)
+            self.assertIn("📦 Kernel + Manager KernelSU-Next v3.4.2\n", message)
             self.assertNotIn("http", message)
             self.assertNotIn("`", message)
+            self.assertIn(message.splitlines()[-1], box)
 
     def test_whats_new_from_file_or_commit_lines(self):
         log = ("fix: something (#80)\n\nBaru: BBRv3 juga bernama bbr3\nDiperbaiki:   Rilis berisi   manager\n"
@@ -180,18 +189,39 @@ class ReleaseNotesTests(unittest.TestCase):
         self.assertEqual(len(rn.whats_new("", many)["Baru"]), rn.MAX_ITEMS)
 
     def test_telegram_text_is_short_and_plain(self):
-        env = dict(KSUN, KSU="BSU", KSU_SUSFS="true", KERNEL_FEATURES="SUSFS, BBRv3 (default, also bbr3), BBG")
+        env = dict(KSUN, KSU="BSU", KSU_SUSFS="true")
+        features = rn.feature_items("SUSFS, BBRv3 (default, also bbr3), BBG")
         message = rn.telegram_text("Cogan v26.10.20-r4", "Release", [env],
                                    ["1-KERNEL_x.zip", "2-MANAGER_BakaSU_v4.2.0-rc3.apk",
                                     "3-MANAGER-SPOOFED_BakaSU_v4.2.0-rc3.apk", "4-NOMOUNT-MODULE_v2.1.1.zip"],
-                                   {"Baru": ["Satu"], "Diperbaiki": []})
-        self.assertEqual(message.splitlines()[:3], ["🚀 Cogan v26.10.20-r4 (Rilis)",
-                                                    "🐧 Linux 6.1.177 • BakaSU + SUSFS",
-                                                    "⚙️ SUSFS, BBRv3 (default, also bbr3), BBG"])
-        self.assertIn("3️⃣ Manager spoofed BakaSU v4.2.0-rc3 (pilih 2 atau 3)", message)
-        self.assertIn("4️⃣ Modul NoMount v2.1.1", message)
+                                   {"Baru": ["Satu `kode`"], "Diperbaiki": []}, features, ["📦 **Sorotan**"])
+        self.assertEqual(message.splitlines()[:4], ["🚀 Cogan v26.10.20-r4 (Rilis)",
+                                                    "🐧 Linux 6.1.177 • BakaSU + SUSFS", "", "⭐ Fitur unggulan"])
+        self.assertIn("• 📦 Sorotan\n", message)
+        self.assertIn("✨ Baru\n• Satu kode\n", message)
+        self.assertIn("📦 Kernel + Manager BakaSU v4.2.0-rc3 (biasa/spoofed) + Modul NoMount v2.1.1", message)
         self.assertNotIn("🔧", message)
         self.assertLess(len(message.splitlines()), 20)
+
+    def test_build_features_from_env_or_kernel_zip(self):
+        self.assertEqual(rn.feature_items("SUSFS, BBRv3 (default, also bbr3), BBG, NoMount, Full LTO"),
+                         ["🛡️ SUSFS: sembunyikan root dari aplikasi",
+                          "🚀 BBRv3 (default, juga bbr3): internet lebih cepat & stabil",
+                          "🔒 Baseband Guard: lindungi partisi penting", "🧩 NoMount: metamodul tanpa mount",
+                          "⚡ Full LTO: kernel lebih ringkas & efisien"])
+        self.assertEqual(rn.feature_items("No LTO"), [])
+        with tempfile.TemporaryDirectory() as directory:
+            kernel = Path(directory) / "1-KERNEL_x.zip"
+            with zipfile.ZipFile(kernel, "w") as archive:
+                archive.writestr("anykernel.sh", 'ui_print "github.com/cogan17/Cogan"\n'
+                                                 'ui_print "Features: SUSFS, BBRv3 (default, also bbr3), Full LTO"\n')
+            self.assertEqual(rn.features_from_zip(kernel), "SUSFS, BBRv3 (default, also bbr3), Full LTO")
+            self.assertEqual(rn.features_from_zip(Path(directory) / "missing.zip"), "")
+
+    def test_highlights_file_is_short(self):
+        highlights = rn.read_highlights((ROOT / "docs/whats-new/highlights.md").read_text())
+        self.assertTrue(1 <= len(highlights) <= 4)
+        self.assertTrue(all("SUSFS" not in line and "BBR" not in line for line in highlights))
 
     def test_r3_news_file_parses(self):
         items = rn.whats_new((ROOT / "docs/whats-new/v26.10.16-r3.md").read_text())

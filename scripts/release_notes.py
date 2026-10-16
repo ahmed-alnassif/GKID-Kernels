@@ -15,17 +15,21 @@ With --files, a table of the attached files (1-KERNEL_, 2-MANAGER_, ...) comes f
 "What's new" comes from docs/whats-new/<tag>.md when that file exists ("### Baru" /
 "### Diperbaiki" headings with "- " items), else from the "Baru: ..." and
 "Diperbaiki: ..." lines of the commit messages since the previous release
-(--commit-log). --telegram-out writes the same news as short plain text to paste
-into Telegram (no links, no Markdown).
+(--commit-log). With --title the notes open with one tip box: the build's features
+(build-env KERNEL_FEATURES, else the "Features:" line of its kernel ZIP), the
+repository highlights (--highlights), the news, and a dropdown with the same text in
+plain form for Telegram (no links, no Markdown), also written to --telegram-out.
 
 Usage: release_notes.py --lock FILE --features-lock FILE --source-sha SHA
            --repo OWNER/NAME --env-dir DIR [--files DIR] [--whats-new-file FILE]
-           [--commit-log FILE] [--title T --release-type R --telegram-out FILE]
+           [--commit-log FILE] [--highlights FILE]
+           [--title T --release-type R --telegram-out FILE]
 """
 import argparse
 import json
 import re
 import sys
+import zipfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -197,36 +201,91 @@ def variant_label(env):
     return root + (" + SUSFS" if env.get("KSU_SUSFS") == "true" else "")
 
 
-def telegram_text(title, release_type, envs, names, items):
+FEATURES_LINE = re.compile(r'^ui_print "Features: ([A-Za-z0-9][A-Za-z0-9 ,._+()-]*)"$', re.MULTILINE)
+
+
+def features_from_zip(path):
+    """The "Features: ..." line brand_anykernel.py wrote into the kernel ZIP's anykernel.sh."""
+    try:
+        with zipfile.ZipFile(path) as archive:
+            match = FEATURES_LINE.search(archive.read("anykernel.sh").decode("utf-8", "replace"))
+    except (OSError, KeyError, zipfile.BadZipFile):
+        return ""
+    return match.group(1) if match else ""
+
+
+def feature_items(features):
+    """Friendly lines for the build's own feature list (scripts/kernel_features.py)."""
+    items = []
+    for token in (t.strip() for t in re.split(r",(?![^()]*\))", features or "")):
+        if token == "SUSFS":
+            items.append("🛡️ SUSFS: sembunyikan root dari aplikasi")
+        elif token.startswith("BBR"):
+            items.append(f"🚀 {token.replace('also ', 'juga ')}: internet lebih cepat & stabil")
+        elif token == "BBG":
+            items.append("🔒 Baseband Guard: lindungi partisi penting")
+        elif token == "NoMount":
+            items.append("🧩 NoMount: metamodul tanpa mount")
+        elif token in ("Full LTO", "Thin LTO"):
+            items.append(f"⚡ {token}: kernel lebih ringkas & efisien")
+    return items
+
+
+def read_highlights(text):
+    """Repository highlights true for every build: "- " lines of docs/whats-new/highlights.md."""
+    return [line.strip()[2:].strip() for line in (text or "").splitlines() if line.strip().startswith("- ")][:4]
+
+
+def plain(text):
+    return text.replace("`", "").replace("**", "")
+
+
+def telegram_text(title, release_type, envs, names, items, features=(), highlights=()):
     """Short plain text for Telegram: no links and no Markdown, so it pastes as is."""
     kind_label = {"Draft": "Draft", "Pre-release": "Pre-release", "Release": "Rilis"}.get(release_type, release_type)
     lines = [f"🚀 {title} ({kind_label})"]
-    for env in envs:
-        lines.append(f"🐧 Linux {env.get('LINUX_VERSION', '?')} • {variant_label(env)}")
-        if env.get("KERNEL_FEATURES"):
-            lines.append(f"⚙️ {env['KERNEL_FEATURES']}")
+    lines += [f"🐧 Linux {env.get('LINUX_VERSION', '?')} • {variant_label(env)}" for env in envs]
+    best = [*features, *highlights]
+    if best:
+        lines += ["", "⭐ Fitur unggulan", *[f"• {plain(text)}" for text in best]]
     for kind, icon in zip(KINDS, ("✨", "🔧")):
         if items[kind]:
-            lines += ["", f"{icon} {kind}", *[f"• {text.replace('`', '')}" for text in items[kind]]]
-    pretty = lambda name, prefix: re.sub(r"\.(zip|apk)$", "", name[len(prefix):]).replace("_", " ")  # noqa: E731
-    files = []
-    for name in sorted(names):
-        if name.startswith("1-KERNEL_"):
-            files.append("1️⃣ Kernel → flash dengan Kernel Flasher")
-        elif name.startswith("2-MANAGER_"):
-            files.append(f"2️⃣ Manager {pretty(name, '2-MANAGER_')}")
-        elif name.startswith("3-MANAGER-SPOOFED_"):
-            files.append(f"3️⃣ Manager spoofed {pretty(name, '3-MANAGER-SPOOFED_')} (pilih 2 atau 3)")
-        elif name.startswith("4-NOMOUNT-MODULE_"):
-            files.append(f"4️⃣ Modul NoMount {pretty(name, '4-NOMOUNT-MODULE_')}")
-    if files:
-        lines += ["", "📦 Isi rilis", *files]
-    lines += ["", "⚠️ Simpan boot.img stock sebelum flash.", "📥 GitHub cogan17/Cogan → Releases"]
+            lines += ["", f"{icon} {kind}", *[f"• {plain(text)}" for text in items[kind]]]
+    parts = []
+    if any(name.startswith("1-KERNEL_") for name in names):
+        parts.append("Kernel")
+    managers = sorted(name for name in names if name.startswith(("2-MANAGER_", "3-MANAGER-SPOOFED_")))
+    if managers:
+        manager = re.sub(r"\.apk$", "", managers[0].split("_", 1)[1]).replace("_", " ")
+        parts.append(f"Manager {manager}" + (" (biasa/spoofed)" if len(managers) > 1 else ""))
+    nomount = [name for name in names if name.startswith("4-NOMOUNT-MODULE_")]
+    if nomount:
+        parts.append("Modul NoMount " + re.sub(r"\.zip$", "", nomount[0][len("4-NOMOUNT-MODULE_"):]).split("_")[0])
+    if parts:
+        lines += ["", "📦 " + " + ".join(parts)]
+    lines += ["⚠️ Simpan boot.img stock sebelum flash.", "📥 GitHub cogan17/Cogan → Releases"]
     return "\n".join(lines) + "\n"
 
 
-def notes(envs, lock, features_lock, source_sha, repo, names=(), items=None):
-    lines = whats_new_section(items or {kind: [] for kind in KINDS}) + files_section(names)
+def frame(title, envs, features, highlights, items, telegram):
+    """One GitHub tip box: highlights, news and a dropdown with the Telegram text."""
+    body = [f"**⭐ {title}** · " + " · ".join(f"Linux {env.get('LINUX_VERSION', '?')} · {variant_label(env)}"
+                                           for env in envs), ""]
+    best = [*features, *highlights]
+    if best:
+        body += ["**Fitur unggulan**", *[f"- {text}" for text in best], ""]
+    for kind, icon in zip(KINDS, ("✨", "🔧")):
+        if items[kind]:
+            body += [f"**{icon} {kind}**", *[f"- {text}" for text in items[kind]], ""]
+    body += ["<details>", "<summary>📋 Salin untuk grup Telegram</summary>", "", "```text",
+             *telegram.rstrip("\n").splitlines(), "```", "", "</details>"]
+    return ["> [!TIP]", *[f"> {line}" if line else ">" for line in body], ""]
+
+
+def notes(envs, lock, features_lock, source_sha, repo, names=(), items=None, top=None):
+    """top: the frame lines; without it the news section stands alone (older callers)."""
+    news = top if top is not None else whats_new_section(items or {kind: [] for kind in KINDS})
+    lines = news + files_section(names)
     # Component versions are for those who want them: folded, so the page stays short.
     lines += ["<details>", "<summary>Versi komponen / Component versions</summary>", ""]
     for env in envs:
@@ -250,6 +309,7 @@ def main(argv=None):
     parser.add_argument("--title", default="")
     parser.add_argument("--release-type", default="")
     parser.add_argument("--telegram-out", type=Path)
+    parser.add_argument("--highlights", type=Path, help="repository highlights (docs/whats-new/highlights.md)")
     args = parser.parse_args(argv)
     if not HEX.fullmatch(args.source_sha) or not re.fullmatch(r"[\w.-]+/[\w.-]+", args.repo):
         print("bad --source-sha or --repo", file=sys.stderr)
@@ -264,6 +324,9 @@ def main(argv=None):
                     if args.whats_new_file and args.whats_new_file.is_file() else "")
         log = (args.commit_log.read_text(encoding="utf-8", errors="replace")
                if args.commit_log and args.commit_log.is_file() else "")
+        highlights = read_highlights(args.highlights.read_text(encoding="utf-8")
+                                     if args.highlights and args.highlights.is_file() else "")
+        kernels = sorted(p for p in args.files.iterdir() if p.name.startswith("1-KERNEL_")) if args.files else []
     except (OSError, ValueError) as exc:
         print("release notes inputs unreadable: " + str(exc), file=sys.stderr)
         return 1
@@ -271,10 +334,21 @@ def main(argv=None):
         print("no build-env-*.txt under " + str(args.env_dir), file=sys.stderr)
         return 1
     items = whats_new(override, log)
-    sys.stdout.write(notes(envs, lock, features_lock, args.source_sha, args.repo, names, items))
-    if args.telegram_out:
-        args.telegram_out.write_text(telegram_text(args.title, args.release_type, envs, names, items),
-                                     encoding="utf-8")
+    # The build's own features: saved in build-env since PR #66, else read from its kernel ZIP.
+    features = []
+    for env in envs:
+        recorded = env.get("KERNEL_FEATURES", "")
+        if not recorded:
+            match = [k for k in kernels if len(kernels) == 1 or k.stem.endswith("_" + env.get("BUILD_VARIANT", "?"))]
+            recorded = features_from_zip(match[0]) if match else ""
+        features += [item for item in feature_items(recorded) if item not in features]
+    top = None
+    if args.title:
+        message = telegram_text(args.title, args.release_type, envs, names, items, features, highlights)
+        top = frame(args.title, envs, features, highlights, items, message)
+        if args.telegram_out:
+            args.telegram_out.write_text(message, encoding="utf-8")
+    sys.stdout.write(notes(envs, lock, features_lock, args.source_sha, args.repo, names, items, top))
     return 0
 
 

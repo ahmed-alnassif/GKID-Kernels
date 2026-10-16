@@ -110,7 +110,8 @@ class ManualReleaseCreateTests(unittest.TestCase):
         self.assertIn("git merge-base --is-ancestor", news)
         self.assertIn('--whats-new-file "docs/whats-new/$RELEASE_TAG.md" --commit-log commit-log.txt', self.create)
         self.assertIn("--telegram-out telegram.txt", self.create)
-        self.assertEqual(self.create.count("cat telegram.txt"), 2)  # release notes + run summary
+        self.assertIn("--highlights docs/whats-new/highlights.md", self.create)
+        self.assertEqual(self.create.count("cat telegram.txt"), 1)  # run summary; the notes carry it in the box
         checkout = next(step for step in STEPS if step["name"] == "Checkout release scripts")
         self.assertEqual(checkout["with"]["fetch-depth"], 0)
 
