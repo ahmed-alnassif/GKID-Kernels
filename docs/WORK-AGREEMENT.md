@@ -117,4 +117,6 @@ Semua branch diproteksi ruleset; bila ditolak, nonaktifkan sementara aturan *Res
 grep -v '^#' docs/archive/gkid-upstream-tags.tsv | cut -f1 | sed 's#^#refs/tags/#' | xargs -n 50 git push origin --delete
 ```
 
+Tanpa PC/Termux (owner menyetujui penghapusan 2026-10-16; akses git sesi Claude ditolak 403): **Actions → Hapus tag lama (sekali pakai) → Run workflow**. Kosongkan isian dulu untuk cek saja (ringkasan menampilkan jumlah yang akan dihapus), lalu jalankan lagi dengan `HAPUS`. Workflow hanya menghapus tag di arsip yang commit-nya masih sama dan tidak punya GitHub Release; tag Cogan (`v26.10.14` ke atas, `ci-ccache-store`, `cogan-mirror`) tidak pernah disentuh. Hapus workflow ini setelah selesai.
+
 Hanya 246 tag di file arsip yang dihapus; `v26.10.14-r2`, `v26.10.14-r3` dan `ci-ccache-store` tidak ikut. Tag yang terhapus bisa dipulihkan dari upstream (perintah ada di kepala file arsip).
