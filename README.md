@@ -176,6 +176,8 @@ Artifact `build-…` dan `build-env-…` adalah file internal; abaikan saja. Rin
 
 Run workflow build hanya meng-compile dan tidak pernah memperbarui komponen sendiri.
 
+**Membersihkan riwayat run:** buka **Actions → Hapus log run lama**. Isi `simpan_hari` (default 7), kosongkan konfirmasi untuk cek saja, lalu jalankan lagi dengan `HAPUS`. Run yang masih berjalan, run dalam rentang hari itu, dan run yang dirujuk dokumen atau catatan rilis tidak dihapus.
+
 ---
 
 ## Terima kasih

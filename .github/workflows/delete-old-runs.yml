@@ -1,0 +1,111 @@
+name: Hapus log run lama
+
+# Owner tool: deletes old workflow runs (and their logs) from the Actions tab. Never deleted:
+# runs newer than "simpan_hari", runs still in progress, this run, and runs whose ID is cited
+# as evidence in the repository (docs/, configs/, README) or in a release's notes.
+
+on:
+  workflow_dispatch:
+    inputs:
+      simpan_hari:
+        description: "Simpan run dari berapa hari terakhir (1-90). Manual Release butuh run build yang belum lewat 1 hari."
+        required: true
+        default: "7"
+        type: string
+      konfirmasi:
+        description: "Ketik HAPUS untuk benar-benar menghapus. Kosong = cek saja, tidak ada yang dihapus."
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: delete-old-runs
+  cancel-in-progress: false
+
+jobs:
+  delete-old-runs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout evidence references
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Plan which runs to delete
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          KEEP_DAYS: ${{ inputs.simpan_hari }}
+          THIS_RUN: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          [[ "$KEEP_DAYS" =~ ^[0-9]+$ ]] && [ "$KEEP_DAYS" -ge 1 ] && [ "$KEEP_DAYS" -le 90 ] \
+            || { echo "::error::simpan_hari must be a number from 1 to 90"; exit 1; }
+          gh api --paginate "repos/$REPO/actions/runs?per_page=100" \
+            --jq '.workflow_runs[] | [.id, .status, .created_at, .name] | @tsv' > runs.tsv
+          gh api --paginate "repos/$REPO/releases?per_page=100" --jq '.[].body // ""' > release-bodies.txt
+          { grep -rhoE '\b[0-9]{11}\b' docs configs README.md README.en.md 2>/dev/null || true
+            grep -oE 'actions/runs/[0-9]+' release-bodies.txt | cut -d/ -f3 || true; } | sort -u > cited-runs.txt
+          python3 - <<'PY'
+          import collections, datetime, os
+          from pathlib import Path
+          keep_days = int(os.environ["KEEP_DAYS"])
+          cutoff = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=keep_days)
+          cited = set(Path("cited-runs.txt").read_text().split())
+          plan, kept = [], collections.Counter()
+          per_workflow = collections.Counter()
+          for line in Path("runs.tsv").read_text().splitlines():
+              run_id, status, created, name = line.split("\t", 3)
+              when = datetime.datetime.fromisoformat(created.replace("Z", "+00:00"))
+              if run_id == os.environ["THIS_RUN"] or status != "completed":
+                  kept["berjalan / running"] += 1
+              elif when >= cutoff:
+                  kept[f"{keep_days} hari terakhir / last {keep_days} days"] += 1
+              elif run_id in cited:
+                  kept["dirujuk dokumen atau rilis / cited as evidence"] += 1
+              else:
+                  plan.append(run_id)
+                  per_workflow[name] += 1
+          Path("delete-plan.txt").write_text("".join(r + "\n" for r in plan))
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
+              summary.write(f"## Hapus log run lama\n\n- Akan dihapus: **{len(plan)}** run\n")
+              for name, count in per_workflow.most_common():
+                  summary.write(f"  - {name}: {count}\n")
+              for reason, count in kept.items():
+                  summary.write(f"- Disimpan, {reason}: {count}\n")
+          print(f"{len(plan)} to delete; kept {dict(kept)}")
+          PY
+
+      - name: Delete the planned runs
+        if: inputs.konfirmasi == 'HAPUS'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          # Stay well under the GITHUB_TOKEN limit of 1000 API requests per hour.
+          limit=800 deleted=0 failed=0
+          while IFS= read -r run_id; do
+            [ "$deleted" -lt "$limit" ] || break
+            if gh api -X DELETE "repos/$REPO/actions/runs/$run_id" > /dev/null 2> error.txt; then
+              deleted=$((deleted + 1))
+            else
+              failed=$((failed + 1))
+              echo "::warning::run $run_id: $(head -c 200 error.txt)"
+            fi
+          done < delete-plan.txt
+          left=$(( $(wc -l < delete-plan.txt) - deleted - failed ))
+          {
+            echo "- **Terhapus: $deleted**, gagal: $failed"
+            [ "$left" -le 0 ] || echo "- Masih ada $left run: jalankan lagi setelah 1 jam (batas API GitHub)."
+          } >> "$GITHUB_STEP_SUMMARY"
+          [ "$failed" -eq 0 ]
+
+      - name: Check only
+        if: inputs.konfirmasi != 'HAPUS'
+        run: echo "- Cek saja; tidak ada yang dihapus. Jalankan lagi dengan konfirmasi HAPUS." >> "$GITHUB_STEP_SUMMARY"

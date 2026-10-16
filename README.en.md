@@ -176,6 +176,8 @@ Open **Actions → Cogan Kernel Builder → Run workflow** in your repository.
 
 The build workflow only compiles and never updates components by itself.
 
+**Cleaning up run history:** open **Actions → Hapus log run lama**. Set `simpan_hari` (days to keep, default 7), leave the confirmation empty to only check, then run again with `HAPUS`. Running runs, runs inside that window, and runs cited by the docs or release notes are never deleted.
+
 ---
 
 ## Special thanks

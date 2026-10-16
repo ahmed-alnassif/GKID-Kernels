@@ -2,8 +2,10 @@ name: Validate
 
 on:
   push:
+    # Only dev: work branches are checked by their pull request, so a change is
+    # validated twice (PR, then dev) instead of three times.
     branches:
-      - '**'
+      - dev
     # Skip pushes that only touch prose or images. docs/validation/*.json is
     # read by scripts/ksun_susfs_preflight.py, so it is not ignored. Pull
     # requests always run so a required check never stays pending.
@@ -54,6 +56,7 @@ jobs:
           python3 -m unittest discover -s tests -p 'test_kernel_features.py'
           python3 -m unittest discover -s tests -p 'test_release_notes.py'
           python3 -m unittest discover -s tests -p 'test_manual_release.py'
+          python3 -m unittest discover -s tests -p 'test_delete_old_runs.py'
           python3 -m unittest discover -s tests -p 'test_prepare_susfs_kernel_patch.py'
           python3 -m unittest discover -s tests -p 'test_prepare_susfs_synthetic.py'
           python3 -m unittest discover -s tests -p 'test_prepare_ksun_susfs_candidate.py'
