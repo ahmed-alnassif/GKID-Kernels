@@ -137,9 +137,66 @@ class ReleaseNotesTests(unittest.TestCase):
                 self.assertEqual(rn.main(args[:-1] + [str(directory / "missing")]), 1)
                 self.assertEqual(rn.main(args[:4] + ["--source-sha", "nothex"] + args[6:]), 1)
             text = out.getvalue()
-            self.assertTrue(text.startswith("## Versi komponen / Component versions\n"))
+            self.assertTrue(text.startswith("<details>\n<summary>Versi komponen / Component versions</summary>\n"))
+            self.assertTrue(text.endswith("</details>\n"))
             self.assertEqual(text.count("\n### "), 2)
             self.assertIn("@ `aaaaaaaa`", text)
+
+            # Per-release news file + Telegram text.
+            news = directory / "news.md"
+            news.write_text("Catatan.\n### Baru\n- Varian `KernelSU Next + SUSFS`\n### Diperbaiki\n- Bootloop MediaTek\n")
+            files = directory / "files"
+            files.mkdir()
+            for name in ("1-KERNEL_Cogan-6.1.177_KernelSU-Next+SuSFS_v26.10.16-r3.zip",
+                         "2-MANAGER_KernelSU-Next_v3.4.2.apk", "checksums.txt"):
+                (files / name).write_text("x")
+            telegram = directory / "telegram.txt"
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                self.assertEqual(rn.main(args + ["--files", str(files), "--whats-new-file", str(news),
+                                                 "--commit-log", str(directory / "absent"),
+                                                 "--title", "Cogan v26.10.16-r3", "--release-type", "Pre-release",
+                                                 "--telegram-out", str(telegram)]), 0)
+            text = out.getvalue()
+            self.assertTrue(text.startswith("## Yang baru / What's new\n"))
+            self.assertLess(text.index("## Yang baru"), text.index("## Isi rilis"))
+            self.assertLess(text.index("## Isi rilis"), text.index("<details>"))
+            message = telegram.read_text()
+            self.assertTrue(message.startswith("🚀 Cogan v26.10.16-r3 (Pre-release)\n"))
+            self.assertIn("• Varian KernelSU Next + SUSFS", message)
+            self.assertIn("2️⃣ Manager KernelSU-Next v3.4.2", message)
+            self.assertNotIn("http", message)
+            self.assertNotIn("`", message)
+
+    def test_whats_new_from_file_or_commit_lines(self):
+        log = ("fix: something (#80)\n\nBaru: BBRv3 juga bernama bbr3\nDiperbaiki:   Rilis berisi   manager\n"
+               "  Baru: BBRv3 juga bernama bbr3\nCo-Authored-By: x\nbukan Baru: ini\n")
+        self.assertEqual(rn.whats_new("", log), {"Baru": ["BBRv3 juga bernama bbr3"],
+                                                 "Diperbaiki": ["Rilis berisi manager"]})
+        override = "### Baru\n- dari file\n"
+        self.assertEqual(rn.whats_new(override, log), {"Baru": ["dari file"], "Diperbaiki": []})
+        self.assertEqual(rn.whats_new_section(rn.whats_new("", "")), [])
+        many = "".join(f"Baru: item {i}\n" for i in range(20))
+        self.assertEqual(len(rn.whats_new("", many)["Baru"]), rn.MAX_ITEMS)
+
+    def test_telegram_text_is_short_and_plain(self):
+        env = dict(KSUN, KSU="BSU", KSU_SUSFS="true", KERNEL_FEATURES="SUSFS, BBRv3 (default, also bbr3), BBG")
+        message = rn.telegram_text("Cogan v26.10.20-r4", "Release", [env],
+                                   ["1-KERNEL_x.zip", "2-MANAGER_BakaSU_v4.2.0-rc3.apk",
+                                    "3-MANAGER-SPOOFED_BakaSU_v4.2.0-rc3.apk", "4-NOMOUNT-MODULE_v2.1.1.zip"],
+                                   {"Baru": ["Satu"], "Diperbaiki": []})
+        self.assertEqual(message.splitlines()[:3], ["🚀 Cogan v26.10.20-r4 (Rilis)",
+                                                    "🐧 Linux 6.1.177 • BakaSU + SUSFS",
+                                                    "⚙️ SUSFS, BBRv3 (default, also bbr3), BBG"])
+        self.assertIn("3️⃣ Manager spoofed BakaSU v4.2.0-rc3 (pilih 2 atau 3)", message)
+        self.assertIn("4️⃣ Modul NoMount v2.1.1", message)
+        self.assertNotIn("🔧", message)
+        self.assertLess(len(message.splitlines()), 20)
+
+    def test_r3_news_file_parses(self):
+        items = rn.whats_new((ROOT / "docs/whats-new/v26.10.16-r3.md").read_text())
+        self.assertTrue(items["Baru"] and items["Diperbaiki"])
+        self.assertLessEqual(sum(map(len, items.values())), 8)
 
 
 if __name__ == "__main__":

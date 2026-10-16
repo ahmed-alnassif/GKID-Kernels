@@ -28,11 +28,12 @@ jobs:
   manual-release:
     runs-on: ubuntu-latest
     steps:
-      # Only for scripts/release_notes.py; the release files come from the run's downloads.
+      # Scripts and docs/whats-new for the notes, with history for "what's new" since the
+      # previous release; the release files themselves come from the run's downloads.
       - name: Checkout release scripts
         uses: actions/checkout@v7.0.1
         with:
-          fetch-depth: 1
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Verify source run
@@ -196,6 +197,35 @@ jobs:
               "repos/$REPO/contents/configs/$file?ref=$SOURCE_SHA" > "source-pins/$file"
           done
 
+      - name: Collect what's new since the previous release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          # Previous published Cogan release (tag v*), other than the one being made or replaced.
+          prev_tag="$(gh api --paginate "repos/$REPO/releases?per_page=100" \
+            --jq '.[] | select((.tag_name | startswith("v")) and (.draft | not)) | [.created_at, .tag_name] | @tsv' \
+            | awk -F'\t' -v tag="$RELEASE_TAG" '$2 != tag' | sort -r | head -n 1 | cut -f2)"
+          prev_source=""
+          if [ -n "$prev_tag" ]; then
+            body="$(gh api "repos/$REPO/releases/tags/$prev_tag" --jq '.body // ""')"
+            prev_source="$(sed -nE 's/.*cogan-source: ([0-9a-f]{40}).*/\1/p' <<<"$body" | head -n 1)"
+            if [ -z "$prev_source" ]; then
+              short="$(sed -nE 's/.*commit `([0-9a-f]{8})`.*/\1/p' <<<"$body" | head -n 1)"
+              prev_source="$( { [ -n "$short" ] && git rev-parse --verify --quiet "$short^{commit}"; } \
+                || gh api "repos/$REPO/commits/$prev_tag" --jq .sha)"
+            fi
+          fi
+          if [ -z "$prev_tag" ]; then
+            git log --format=%B "$SOURCE_SHA" > commit-log.txt
+          elif git merge-base --is-ancestor "$prev_source" "$SOURCE_SHA" 2>/dev/null; then
+            git log --format=%B "$prev_source..$SOURCE_SHA" > commit-log.txt
+          else
+            : > commit-log.txt  # unknown range: only docs/whats-new/<tag>.md can add news
+          fi
+          echo "Previous release: ${prev_tag:-none} (${prev_source:0:8}); $(grep -cE '^(Baru|Diperbaiki):' commit-log.txt || true) news line(s)"
+
       - name: Create release (draft, pre-release or release)
         env:
           GH_TOKEN: ${{ github.token }}
@@ -234,21 +264,32 @@ jobs:
             target="$GITHUB_SHA"
           fi
           {
-            echo "Dibangun dari / built from run [$SOURCE_RUN]($SERVER/$REPO/actions/runs/$SOURCE_RUN), commit \`${SOURCE_SHA:0:8}\`."
-            if [ "$target" != "$SOURCE_SHA" ]; then
-              echo ""
-              echo "> [!NOTE]"
-              echo "> 🇮🇩 Tag menunjuk commit \`${target:0:8}\` (\`dev\` saat rilis): GitHub menolak tag di commit lama yang workflow-nya sudah berubah. Isi kernel tetap dari commit \`${SOURCE_SHA:0:8}\`."
-              echo "> 🇬🇧 The tag points at \`${target:0:8}\` (\`dev\` at release time): GitHub refuses a tag on an older commit whose workflows changed since. The kernel itself was built from \`${SOURCE_SHA:0:8}\`."
-            fi
+            python3 scripts/release_notes.py --lock source-pins/upstream.lock \
+              --features-lock source-pins/ksun-susfs-6.1-features.lock.json \
+              --source-sha "$SOURCE_SHA" --repo "$REPO" --env-dir build-env --files release-files \
+              --whats-new-file "docs/whats-new/$RELEASE_TAG.md" --commit-log commit-log.txt \
+              --title "$RELEASE_TITLE" --release-type "$RELEASE_TYPE" --telegram-out telegram.txt
             echo ""
             echo "> [!CAUTION]"
             echo "> 🇮🇩 Hanya struktur ZIP yang divalidasi; boot di perangkat **belum diuji**. Simpan \`boot.img\` stock sebelum flash: [Panduan Bootloop]($SERVER/$REPO/blob/HEAD/docs/bootloop.md)."
             echo "> 🇬🇧 Only the ZIP structure was validated; device boot is **not tested**. Keep your stock \`boot.img\` before flashing: [Bootloop Guide]($SERVER/$REPO/blob/HEAD/docs/bootloop.en.md)."
             echo ""
-            python3 scripts/release_notes.py --lock source-pins/upstream.lock \
-              --features-lock source-pins/ksun-susfs-6.1-features.lock.json \
-              --source-sha "$SOURCE_SHA" --repo "$REPO" --env-dir build-env --files release-files
+            echo "<details>"
+            echo "<summary>📋 Teks untuk Telegram (salin) / Telegram text (copy)</summary>"
+            echo ""
+            echo '```text'
+            cat telegram.txt
+            echo '```'
+            echo ""
+            echo "</details>"
+            echo ""
+            footer="Dibangun dari / built from run [$SOURCE_RUN]($SERVER/$REPO/actions/runs/$SOURCE_RUN), commit \`${SOURCE_SHA:0:8}\`."
+            if [ "$target" != "$SOURCE_SHA" ]; then
+              footer="$footer Tag di / tagged at \`${target:0:8}\` (\`dev\` saat rilis): GitHub menolak tag bot di commit lama / GitHub refuses a bot tag on an older commit."
+            fi
+            echo "<sub>$footer</sub>"
+            echo ""
+            echo "<!-- cogan-source: $SOURCE_SHA -->"
           } > release-notes.md
           gh release create "$RELEASE_TAG" release-files/* \
             --repo "$REPO" --target "$target" "${mode[@]}" \
@@ -261,4 +302,9 @@ jobs:
             echo "- Rilis lama diganti / replaced an existing release: $replaced"
             echo "- File: $(cd release-files && ls | sed 's/^/`/; s/$/`/' | paste -sd ' ' -)"
             echo "- Sumber / source run: $SOURCE_RUN (belum diuji di perangkat / not device-tested)"
+            echo ""
+            echo "### 📋 Teks untuk Telegram (salin)"
+            echo '```text'
+            cat telegram.txt
+            echo '```'
           } >> "$GITHUB_STEP_SUMMARY"

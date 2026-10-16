@@ -96,11 +96,23 @@ class ManualReleaseCreateTests(unittest.TestCase):
         self.assertIn('target="$GITHUB_SHA"', self.create)
         self.assertIn('--target "$target"', self.create)
         self.assertNotIn('--target "$SOURCE_SHA"', self.create)
-        self.assertIn("Isi kernel tetap dari commit", self.create)
+        self.assertIn("GitHub menolak tag bot di commit lama", self.create)
+        self.assertIn('echo "<!-- cogan-source: $SOURCE_SHA -->"', self.create)
 
     def test_every_download_is_attached_and_listed(self):
         self.assertIn('gh release create "$RELEASE_TAG" release-files/* \\', self.create)
         self.assertIn("--files release-files", self.create)
+
+    def test_whats_new_and_telegram_text(self):
+        news = next(step["run"] for step in STEPS if step["name"].startswith("Collect what's new"))
+        self.assertIn("cogan-source: ([0-9a-f]{40})", news)
+        self.assertIn('git log --format=%B "$prev_source..$SOURCE_SHA" > commit-log.txt', news)
+        self.assertIn("git merge-base --is-ancestor", news)
+        self.assertIn('--whats-new-file "docs/whats-new/$RELEASE_TAG.md" --commit-log commit-log.txt', self.create)
+        self.assertIn("--telegram-out telegram.txt", self.create)
+        self.assertEqual(self.create.count("cat telegram.txt"), 2)  # release notes + run summary
+        checkout = next(step for step in STEPS if step["name"] == "Checkout release scripts")
+        self.assertEqual(checkout["with"]["fetch-depth"], 0)
 
     def test_existing_release_is_replaced_only_when_asked(self):
         self.assertEqual(WORKFLOW[True]["workflow_dispatch"]["inputs"]["ganti_rilis"]["default"], False)
