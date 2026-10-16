@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
 """Offline tests for Cogan Manual Update: lock parsing, selection and pin bumps."""
+import hashlib
+import io
+import json
 import os
 import subprocess
 import tempfile
 import unittest
+import urllib.error
+import zipfile
 from pathlib import Path
+from unittest import mock
 
 from scripts import cogan_manual_update as mu
 
@@ -79,8 +85,21 @@ def fake_assets(drop=()):
     return assets_of
 
 
+def no_ci_artifact(repo, ci, commit, tag):
+    raise ValueError("no unexpired artifact")
+
+
+def apk_bytes(label=b"apk"):
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as apk:
+        apk.writestr("AndroidManifest.xml", label)
+        apk.writestr("classes.dex", label)
+    return buffer.getvalue()
+
+
 def plan(lock, groups, lister, **kwargs):
     kwargs.setdefault("assets_of", fake_assets())
+    kwargs.setdefault("ci_of", no_ci_artifact)  # never reach the real Actions API in tests
     return mu.plan(lock, groups, lister, **kwargs)
 
 
@@ -220,6 +239,109 @@ class PlanTests(unittest.TestCase):
         self.assertEqual(written["KSUN_MANAGER_APK"], COMPANION_FIXTURE["KSUN_MANAGER_APK"])
         with self.assertRaisesRegex(ValueError, "Only optional keys"):
             mu.write_lock(FULL_LOCK, {"KSU_COMMIT": None})
+
+    def test_bakasu_spoofed_comes_from_the_tag_run_artifact_and_waits_for_the_mirror(self):
+        mu.PENDING_MIRROR.clear()
+        data = apk_bytes(b"spoofed")
+        seen = []
+
+        def ci_of(repo, ci, commit, tag):
+            seen.append((repo, ci, commit, tag))
+            return "ReSukiSU_v4.2.0-rc3_35171-universal-release.apk", data, "https://example.invalid/run"
+        _, updates = plan(self.lock, {"root-managers"}, fake_lister(), ci_of=ci_of)
+        name = "BakaSU-spoofed_ReSukiSU_v4.2.0-rc3_35171-universal-release.apk"
+        self.assertEqual(updates["BSU_SPOOFED_APK"], name)
+        self.assertEqual(updates["BSU_SPOOFED_SHA256"], hashlib.sha256(data).hexdigest())
+        self.assertEqual(seen, [("Baka-SU/BakaSU", "release.yml:Spoofed-Manager-release",
+                                 self.lock["BSU_COMMIT"], "v4.2.0-rc3")])
+        self.assertEqual(mu.PENDING_MIRROR[name], data)
+        mu.PENDING_MIRROR.clear()
+
+    def test_ci_artifact_apk_picks_the_tag_push_run_and_the_universal_apk(self):
+        commit = "a" * 40
+        artifact = io.BytesIO()
+        with zipfile.ZipFile(artifact, "w") as archive:
+            for abi in ("arm64-v8a", "universal", "x86_64"):
+                archive.writestr(f"ReSukiSU_v4.2.0-rc3_35171-{abi}-release.apk", apk_bytes(abi.encode()))
+        runs = {"workflow_runs": [
+            {"id": 1, "head_sha": commit, "conclusion": "success", "event": "workflow_dispatch",
+             "head_branch": "main", "created_at": "2026-09-24"},
+            {"id": 2, "head_sha": commit, "conclusion": "success", "event": "push",
+             "head_branch": "v4.2.0-rc3", "created_at": "2026-09-23", "html_url": "https://example.invalid/2"},
+            {"id": 3, "head_sha": "b" * 40, "conclusion": "success", "event": "push"}]}
+        calls = []
+
+        def json_of(path):
+            calls.append(path)
+            if "/runs?" in path:
+                return runs
+            run_id = int(path.split("/runs/")[1].split("/")[0])
+            return {"artifacts": [{"id": 20 + run_id, "name": "Spoofed-Manager-release", "expired": run_id == 1}]}
+        name, data, url = mu.ci_artifact_apk("Baka-SU/BakaSU", "release.yml:Spoofed-Manager-release", commit,
+                                             "v4.2.0-rc3", json_of=json_of,
+                                             artifact_of=lambda repo, art_id: artifact.getvalue())
+        self.assertEqual(name, "ReSukiSU_v4.2.0-rc3_35171-universal-release.apk")
+        self.assertEqual(url, "https://example.invalid/2")
+        self.assertIn(f"head_sha={commit}", calls[0])
+        self.assertIn("/runs/2/artifacts?name=Spoofed-Manager-release", calls[1])  # tag push run first
+        with self.assertRaisesRegex(ValueError, "no unexpired"):
+            mu.ci_artifact_apk("Baka-SU/BakaSU", "release.yml:Spoofed-Manager-release", "c" * 40, "v1.0.0",
+                               json_of=json_of, artifact_of=lambda repo, art_id: b"")
+
+    def test_upload_mirror_creates_the_release_and_never_overwrites(self):
+        data = apk_bytes(b"spoofed")
+        digest = hashlib.sha256(data).hexdigest()
+        created, uploads = [], []
+
+        def json_of(path, method="GET", body=None):
+            if method == "POST":
+                created.append(body)
+                return {"assets": [], "upload_url": "https://uploads.example.invalid/assets{?name,label}"}
+            raise urllib.error.HTTPError(path, 404, "Not Found", {}, None)
+
+        class Response(io.BytesIO):
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return False
+
+        def opener(request, timeout=0):
+            uploads.append(request.full_url)
+            return Response(json.dumps({"id": 1}).encode())
+        self.assertEqual(mu.upload_mirror("cogan17/Cogan", {"x.apk": data}, json_of=json_of, opener=opener),
+                         ["x.apk"])
+        self.assertEqual(created[0]["tag_name"], mu.MIRROR_TAG)
+        self.assertTrue(created[0]["prerelease"])
+        self.assertEqual(uploads, ["https://uploads.example.invalid/assets?name=x.apk"])
+        existing = {"assets": [{"name": "x.apk", "digest": "sha256:" + digest}], "upload_url": "u{?name}"}
+        self.assertEqual(mu.upload_mirror("r/r", {"x.apk": data}, json_of=lambda *a, **k: existing), [])
+        tampered = {"assets": [{"name": "x.apk", "digest": "sha256:" + "0" * 64}], "upload_url": "u{?name}"}
+        with self.assertRaisesRegex(ValueError, "different content"):
+            mu.upload_mirror("r/r", {"x.apk": data}, json_of=lambda *a, **k: tampered)
+
+    def test_update_copies_mirror_assets_before_writing_the_lock(self):
+        name = "BakaSU-spoofed_ReSukiSU_v4.2.0-rc3_35171-universal-release.apk"
+        data = apk_bytes(b"spoofed")
+        updates = {"BSU_SPOOFED_APK": name, "BSU_SPOOFED_SHA256": hashlib.sha256(data).hexdigest()}
+
+        def fake_plan(lock, groups):
+            mu.PENDING_MIRROR[name] = data
+            return [], dict(updates)
+        with tempfile.TemporaryDirectory() as directory:
+            lock_path = Path(directory) / "upstream.lock"
+            for upload, expected_status in ((mock.Mock(side_effect=OSError("refused")), 1),
+                                            (mock.Mock(return_value=[name]), 0)):
+                lock_path.write_text(FULL_LOCK)
+                with mock.patch.object(mu, "LOCK", lock_path), mock.patch.object(mu, "plan", fake_plan), \
+                        mock.patch.object(mu, "upload_mirror", upload), \
+                        mock.patch.object(mu, "collect_fingerprints", lambda: []):
+                    status = mu.main(["--mode", "update", "--components", "root-managers"])
+                self.assertEqual(status, expected_status)
+                self.assertEqual(upload.call_args.args[1], {name: data})
+                written = mu.read_lock(lock_path.read_text())
+                self.assertEqual(written.get("BSU_SPOOFED_APK"), name if expected_status == 0 else None)
+        mu.PENDING_MIRROR.clear()
 
     def test_new_manager_asset_on_same_tag_is_an_update(self):
         lister = fake_lister()

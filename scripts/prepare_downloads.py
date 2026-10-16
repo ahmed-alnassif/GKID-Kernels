@@ -22,6 +22,7 @@ Usage: prepare_downloads.py --ksu KSU|KSUN|BSU|no|vnlto --susfs true|false
 import argparse
 import hashlib
 import json
+import os
 import shutil
 import sys
 import time
@@ -92,7 +93,11 @@ def fetch_asset(lock, pin_key, companion, filename, out, verify_tag, lister, fet
         if actual != lock[pin_key]:
             raise Failure(f"{companion.repo} tag {tag} now points at {actual}, but the kernel was built "
                           f"from {lock[pin_key]}; run Cogan Manual Update before shipping it")
-    data = fetch(DOWNLOAD.format(repo=companion.repo, tag=tag, name=name))
+    # A CI-only upstream build is downloaded from this repository's mirror prerelease.
+    source = (DOWNLOAD.format(repo=os.environ.get("GITHUB_REPOSITORY", "cogan17/Cogan"), tag=mu.MIRROR_TAG,
+                              name=name) if companion.ci
+              else DOWNLOAD.format(repo=companion.repo, tag=tag, name=name))
+    data = fetch(source)
     actual_digest = hashlib.sha256(data).hexdigest()
     if actual_digest != digest:
         raise Failure(f"{name}: SHA256 {actual_digest} does not match the pinned {digest}")
@@ -146,8 +151,8 @@ def prepare(args, lock, lister, fetch):
         item_tag = lock.get(mu.TAG_KEYS[key])
         if not (item_tag and lock.get(companion.name_key) and lock.get(companion.sha_key)):
             if kind == "spoofed" and item_tag:
-                notes.append(f"ℹ️ {label} {item_tag}: rilis resmi tidak menyertakan manager spoofed / "
-                             f"the official release has no spoofed manager.")
+                notes.append(f"ℹ️ {label} {item_tag}: belum ada manager spoofed resmi yang dipin / "
+                             f"no official spoofed manager pinned.")
             elif kind != "spoofed":
                 group = "nomount" if kind == "nomount" else "root-managers"
                 notes.append(f"⚠️ {'NoMount' if kind == 'nomount' else label}: belum dipin / not pinned yet; "

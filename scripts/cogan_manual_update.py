@@ -17,6 +17,7 @@ Usage:
 import argparse
 import collections
 import hashlib
+import io
 import json
 import os
 import re
@@ -24,6 +25,7 @@ import subprocess
 import sys
 import urllib.error
 import urllib.request
+import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -66,23 +68,33 @@ REQUIRED = [*PINS, "KSUN_REF", "NEUTRON_RELEASE", "NEUTRON_SHA256"]
 # Tag-pinned sources: commit key -> lock key holding the tag.
 TAG_KEYS = {"KSU_COMMIT": "KSU_REF", "BSU_COMMIT": "BSU_REF",
             "KSUN_COMMIT": "KSUN_REF", "NOMOUNT_COMMIT": "NOMOUNT_REF"}
-# Release assets shipped next to the kernel, from the same tag as the pinned source.
+# Assets shipped next to the kernel, built from the same tag as the pinned source.
 # required: without the asset the pin is not moved (a manager must match the kernel).
-# spoofed: the developers' own spoofed-package build of the same manager (optional;
-# only shipped when the official release publishes one).
-Companion = collections.namedtuple("Companion", "repo name_key sha_key suffix required spoofed")
+# spoofed: the developers' own spoofed-package build of the same manager (optional).
+# ci: "" = an asset of the official release; "<workflow>:<artifact>" = an artifact of
+# the official workflow run for the tag commit, copied by an update to MIRROR_TAG in
+# this repository because Actions artifacts expire (owner decision 2026-10-16).
+Companion = collections.namedtuple("Companion", "repo name_key sha_key suffix required spoofed ci")
 COMPANIONS = {
     "KSU_COMMIT": (
-        Companion("tiann/KernelSU", "KSU_MANAGER_APK", "KSU_MANAGER_SHA256", ".apk", True, False),),
+        Companion("tiann/KernelSU", "KSU_MANAGER_APK", "KSU_MANAGER_SHA256", ".apk", True, False, ""),),
     "BSU_COMMIT": (
-        Companion("Baka-SU/BakaSU", "BSU_MANAGER_APK", "BSU_MANAGER_SHA256", ".apk", True, False),
-        Companion("Baka-SU/BakaSU", "BSU_SPOOFED_APK", "BSU_SPOOFED_SHA256", ".apk", False, True)),
+        Companion("Baka-SU/BakaSU", "BSU_MANAGER_APK", "BSU_MANAGER_SHA256", ".apk", True, False, ""),
+        # BakaSU's Release run builds the spoofed manager but only publishes the normal one.
+        Companion("Baka-SU/BakaSU", "BSU_SPOOFED_APK", "BSU_SPOOFED_SHA256", ".apk", False, True,
+                  "release.yml:Spoofed-Manager-release")),
     "KSUN_COMMIT": (
-        Companion("KernelSU-Next/KernelSU-Next", "KSUN_MANAGER_APK", "KSUN_MANAGER_SHA256", ".apk", True, False),
-        Companion("KernelSU-Next/KernelSU-Next", "KSUN_SPOOFED_APK", "KSUN_SPOOFED_SHA256", ".apk", False, True)),
+        Companion("KernelSU-Next/KernelSU-Next", "KSUN_MANAGER_APK", "KSUN_MANAGER_SHA256", ".apk", True, False, ""),
+        Companion("KernelSU-Next/KernelSU-Next", "KSUN_SPOOFED_APK", "KSUN_SPOOFED_SHA256", ".apk", False, True, "")),
     "NOMOUNT_COMMIT": (
-        Companion("maxsteeel/nomount", "NOMOUNT_MODULE_ZIP", "NOMOUNT_MODULE_SHA256", ".zip", False, False),),
+        Companion("maxsteeel/nomount", "NOMOUNT_MODULE_ZIP", "NOMOUNT_MODULE_SHA256", ".zip", False, False, ""),),
 }
+# Internal prerelease of this repository holding copies of CI-only assets.
+MIRROR_TAG = "cogan-mirror"
+MIRROR_NAME = "Root manager mirror (internal - do not delete)"
+GITHUB_API = "https://api.github.com"
+# Mirror asset name -> bytes, collected by plan() and uploaded by an update.
+PENDING_MIRROR = {}
 # Optional lock keys (added by an update) -> the pin line they are written after.
 ANCHORS = {}
 for _pin, _tag_key in TAG_KEYS.items():
@@ -270,11 +282,12 @@ def release_assets(repo, tag, opener=urllib.request.urlopen):
 def pick_asset(assets, suffix, spoofed=False):
     """The single official asset ending in suffix: the normal build, or the spoofed one.
 
-    Debug builds are always excluded.
+    Debug builds are always excluded. spoofed=None skips the spoof filter (an
+    artifact that only holds one kind of build).
     """
     candidates = [asset for asset in assets if asset["name"].lower().endswith(suffix)
                   and "debug" not in asset["name"].lower()
-                  and ("spoof" in asset["name"].lower()) == spoofed]
+                  and (spoofed is None or ("spoof" in asset["name"].lower()) == spoofed)]
     # Narrow step by step: release builds, then the universal APK of per-ABI splits
     # (BakaSU ships arm64-v8a, armeabi-v7a, x86_64 and universal).
     for word in ("release", "universal"):
@@ -302,17 +315,128 @@ def asset_sha256(asset, opener=urllib.request.urlopen):
     return hasher.hexdigest()
 
 
-def companion_for(companion, tag, assets_of=release_assets, sha_of=asset_sha256):
-    """(name, sha256, None) for one release asset next to a tag pin, or (None, None, reason)."""
+def github_headers(accept="application/vnd.github+json"):
+    headers = {"Accept": accept, "X-GitHub-Api-Version": "2022-11-28"}
+    token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
+    if token:
+        headers["Authorization"] = "Bearer " + token
+    return headers
+
+
+def api_json(path, opener=urllib.request.urlopen, method="GET", body=None):
+    data = json.dumps(body).encode() if body is not None else None
+    request = urllib.request.Request(GITHUB_API + path, data=data, method=method, headers=github_headers())
+    with opener(request, timeout=60) as response:
+        return json.load(response)
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, *args, **kwargs):
+        return None
+
+
+def download_artifact(repo, artifact_id):
+    """Bytes of an Actions artifact ZIP. The token goes only to the API, never to the
+    storage host it redirects to."""
+    request = urllib.request.Request(f"{GITHUB_API}/repos/{repo}/actions/artifacts/{artifact_id}/zip",
+                                     headers=github_headers())
+    try:
+        with urllib.request.build_opener(_NoRedirect).open(request, timeout=60) as response:
+            return response.read()
+    except urllib.error.HTTPError as exc:
+        location = exc.headers.get("Location") if exc.code in (301, 302, 303, 307, 308) else None
+        if not location:
+            raise
+    with urllib.request.urlopen(location, timeout=300) as response:
+        return response.read()
+
+
+def ci_artifact_apk(repo, ci, commit, tag, json_of=api_json, artifact_of=download_artifact):
+    """(apk name, bytes, run URL) from the official workflow run for the tag commit."""
+    workflow, artifact_name = ci.split(":", 1)
+    runs = json_of(f"/repos/{repo}/actions/workflows/{workflow}/runs?head_sha={commit}&status=success&per_page=20")
+    candidates = [run for run in runs.get("workflow_runs", [])
+                  if run.get("head_sha") == commit and run.get("conclusion") == "success"]
+    # Prefer the run the tag push started.
+    candidates.sort(key=lambda run: (run.get("event") == "push" and run.get("head_branch") == tag,
+                                     run.get("created_at", "")), reverse=True)
+    for run in candidates:
+        artifacts = json_of(f"/repos/{repo}/actions/runs/{run['id']}/artifacts?name={artifact_name}")
+        live = [art for art in artifacts.get("artifacts", [])
+                if art.get("name") == artifact_name and not art.get("expired")]
+        if not live:
+            continue
+        with zipfile.ZipFile(io.BytesIO(artifact_of(repo, live[0]["id"]))) as archive:
+            names = [{"name": name.rsplit("/", 1)[-1], "path": name} for name in archive.namelist()]
+            chosen = pick_asset(names, ".apk", spoofed=None)
+            data = archive.read(chosen["path"])
+        with zipfile.ZipFile(io.BytesIO(data)) as apk:  # sanity: a real APK
+            if "AndroidManifest.xml" not in apk.namelist():
+                raise ValueError(f"{chosen['name']} is not an APK")
+        return chosen["name"], data, run.get("html_url", "")
+    raise ValueError(f"no unexpired {artifact_name} artifact in a successful {workflow} run for {commit[:12]}")
+
+
+def mirror_name(companion, inner):
+    name = f"{companion.repo.split('/', 1)[1]}-spoofed_{inner}" if companion.spoofed \
+        else f"{companion.repo.split('/', 1)[1]}_{inner}"
+    if not ASSET_NAME.fullmatch(name):
+        raise ValueError(f"unsupported mirror name {name!r}")
+    return name
+
+
+def companion_for(companion, tag, assets_of=release_assets, sha_of=asset_sha256,
+                  commit=None, ci_of=ci_artifact_apk):
+    """(name, sha256, None) for one asset next to a tag pin, or (None, None, reason).
+
+    A CI-sourced asset is returned under its mirror name; its bytes wait in
+    PENDING_MIRROR until an update copies them to this repository.
+    """
     kind = "spoofed " + companion.suffix if companion.spoofed else companion.suffix
     try:
+        if companion.ci:
+            inner, data, _run = ci_of(companion.repo, companion.ci, commit, tag)
+            name = mirror_name(companion, inner)
+            PENDING_MIRROR[name] = data
+            return name, hashlib.sha256(data).hexdigest(), None
         asset = pick_asset(assets_of(companion.repo, tag), companion.suffix, companion.spoofed)
         digest = sha_of(asset)
         if not SHA256.fullmatch(digest):
             raise ValueError("bad digest")
         return asset["name"], digest, None
-    except (OSError, ValueError, KeyError) as exc:
-        return None, None, f"no usable {kind} in release {tag}: {exc}"
+    except (OSError, ValueError, KeyError, zipfile.BadZipFile) as exc:
+        where = "CI artifact" if companion.ci else "release"
+        return None, None, f"no usable {kind} in {where} {tag}: {exc}"
+
+
+def upload_mirror(repo, payloads, json_of=api_json, opener=urllib.request.urlopen):
+    """Copy CI-only assets to the MIRROR_TAG prerelease of repo (created if missing)."""
+    try:
+        release = json_of(f"/repos/{repo}/releases/tags/{MIRROR_TAG}")
+    except urllib.error.HTTPError as exc:
+        if exc.code != 404:
+            raise
+        release = json_of(f"/repos/{repo}/releases", method="POST", body={
+            "tag_name": MIRROR_TAG, "name": MIRROR_NAME, "prerelease": True,
+            "body": "Copies of official root manager builds that upstream ships only as Actions "
+                    "artifacts (they expire). Written by Cogan Manual Update; the kernel build "
+                    "downloads them with their pinned SHA256. Do not delete."})
+    existing = {asset["name"]: asset for asset in release.get("assets", [])}
+    uploaded = []
+    for name, data in sorted(payloads.items()):
+        digest = hashlib.sha256(data).hexdigest()
+        if name in existing:
+            recorded = existing[name].get("digest") or ""
+            if recorded and recorded != "sha256:" + digest:
+                raise ValueError(f"mirror asset {name} exists with different content ({recorded})")
+            continue
+        upload_url = release["upload_url"].split("{", 1)[0]
+        request = urllib.request.Request(f"{upload_url}?name={name}", data=data, method="POST",
+                                         headers={**github_headers(), "Content-Type": "application/octet-stream"})
+        with opener(request, timeout=300) as response:
+            json.load(response)
+        uploaded.append(name)
+    return uploaded
 
 
 def kernel_sublevel(commit, fetch=fetch_url):
@@ -364,7 +488,7 @@ def current_sublevel(lock):
 
 
 def plan(lock, groups, lister=ls_remote, sublevel_of=kernel_sublevel, sha256_of=archive_sha256,
-         assets_of=release_assets, asset_sha_of=asset_sha256):
+         assets_of=release_assets, asset_sha_of=asset_sha256, ci_of=ci_artifact_apk):
     """Compare pins with upstream. Returns (rows, updates) without side effects."""
     rows, updates = [], {}
     for key, (group, label, url, ref) in PINS.items():
@@ -386,7 +510,7 @@ def plan(lock, groups, lister=ls_remote, sublevel_of=kernel_sublevel, sha256_of=
                 return cache[(repo, release)]
 
             for companion in companions:
-                name, digest, reason = companion_for(companion, tag, assets_once, asset_sha_of)
+                name, digest, reason = companion_for(companion, tag, assets_once, asset_sha_of, commit, ci_of)
                 if reason and companion.required:
                     error = reason  # never pin a kernel source whose manager APK is missing
                     break
@@ -529,6 +653,26 @@ def main(argv=None):
             handle.write(output)
     print(output)
 
+    if args.mode == "update":
+        # Copy CI-only assets that the lock will point at before the lock changes,
+        # so a pin never names a mirror file that does not exist.
+        final = {**lock, **updates}
+        mirror_keys = {c.name_key for companions in COMPANIONS.values() for c in companions if c.ci}
+        payloads = {name: PENDING_MIRROR[name] for key, name in final.items()
+                    if key in mirror_keys and name in PENDING_MIRROR}
+        if payloads:
+            repo = os.environ.get("GITHUB_REPOSITORY", "cogan17/Cogan")
+            try:
+                uploaded = upload_mirror(repo, payloads)
+            except (OSError, ValueError, KeyError) as exc:
+                print(f"::error::Mirror upload to {repo} release {MIRROR_TAG} failed: {exc}")
+                return 1
+            note = (f"\nMirror `{MIRROR_TAG}`: uploaded {', '.join(uploaded)}\n" if uploaded
+                    else f"\nMirror `{MIRROR_TAG}`: already holds {', '.join(sorted(payloads))}\n")
+            print(note)
+            if args.summary:
+                with open(args.summary, "a", encoding="utf-8") as handle:
+                    handle.write(note)
     if args.mode == "update" and updates:
         LOCK.write_text(write_lock(text, updates), encoding="utf-8")
     if args.changes:

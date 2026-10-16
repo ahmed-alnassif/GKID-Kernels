@@ -8,7 +8,7 @@
 
 [![Lisensi: GPL-3.0](https://img.shields.io/badge/lisensi-GPL--3.0-blue.svg)](LICENSE)
 [![GKI android14-6.1](https://img.shields.io/badge/GKI-android14--6.1-3DDC84.svg?logo=android&logoColor=white)](#perangkat-yang-didukung)
-[![Rilis](https://img.shields.io/github/v/release/cogan17/Cogan?include_prereleases&label=rilis)](https://github.com/cogan17/Cogan/releases)
+[![Rilis](https://img.shields.io/github/v/release/cogan17/Cogan?include_prereleases&filter=v*&label=rilis)](https://github.com/cogan17/Cogan/releases)
 
 </div>
 
@@ -98,7 +98,7 @@ Buka **Actions → Cogan Kernel Builder → Run workflow** di repositori Anda.
 |---|---|---|
 | `1-KERNEL_Cogan-6.1.x_<varian>_<rilis>.zip` | Kernel (ZIP AnyKernel3) | Flash dengan Kernel Flasher |
 | `2-MANAGER_<root manager>_<versi>.apk` | Root manager resmi, tag rilis sama dengan kernel | Install APK |
-| `3-MANAGER-SPOOFED_<root manager>_<versi>.apk` | Manager yang sama, nama paket acak (lebih sulit dideteksi); hanya jika rilis resminya menyediakan, saat ini KernelSU Next | Install **salah satu**: 2 atau 3 |
+| `3-MANAGER-SPOOFED_<root manager>_<versi>.apk` | Manager yang sama, nama paket acak (lebih sulit dideteksi), dari build resmi tag yang sama: KernelSU Next dari rilisnya; BakaSU dari run Release tag-nya, disalin ke rilis internal `cogan-mirror` karena artifact Actions kedaluwarsa | Install **salah satu**: 2 atau 3 |
 | `4-NOMOUNT-MODULE_<versi>.zip` | Modul NoMount resmi, versi sama dengan NoMount di kernel | Pasang di manager → Modul |
 
 Artifact `build-…` dan `build-env-…` adalah file internal; abaikan saja. Ringkasan run berisi tabel yang sama beserta SHA256. Semua versi ini dikunci bersama oleh **Cogan Manual Update**. Kalau upstream sudah merilis versi yang lebih baru, ringkasan run menampilkan **🔔 Pengingat**: jalankan Cogan Manual Update (`update` → `root-managers` atau `nomount`), lalu build ulang supaya kernel, root manager dan NoMount naik bersama.

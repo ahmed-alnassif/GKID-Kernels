@@ -8,7 +8,7 @@
 
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 [![GKI android14-6.1](https://img.shields.io/badge/GKI-android14--6.1-3DDC84.svg?logo=android&logoColor=white)](#supported-devices)
-[![Release](https://img.shields.io/github/v/release/cogan17/Cogan?include_prereleases&label=release)](https://github.com/cogan17/Cogan/releases)
+[![Release](https://img.shields.io/github/v/release/cogan17/Cogan?include_prereleases&filter=v*&label=release)](https://github.com/cogan17/Cogan/releases)
 
 </div>
 
@@ -98,7 +98,7 @@ Open **Actions → Cogan Kernel Builder → Run workflow** in your repository.
 |---|---|---|
 | `1-KERNEL_Cogan-6.1.x_<variant>_<release>.zip` | Kernel (AnyKernel3 ZIP) | Flash with Kernel Flasher |
 | `2-MANAGER_<root manager>_<version>.apk` | Official root manager, same release tag as the kernel | Install the APK |
-| `3-MANAGER-SPOOFED_<root manager>_<version>.apk` | The same manager with a random package name (harder to detect); only when the official release publishes one, currently KernelSU Next | Install **one**: 2 or 3 |
+| `3-MANAGER-SPOOFED_<root manager>_<version>.apk` | The same manager with a random package name (harder to detect), from the official build of the same tag: KernelSU Next from its release; BakaSU from its tag's Release run, copied to the internal `cogan-mirror` release because Actions artifacts expire | Install **one**: 2 or 3 |
 | `4-NOMOUNT-MODULE_<version>.zip` | Official NoMount module, the same version as the NoMount in the kernel | Install in the manager → Modules |
 
 `build-…` and `build-env-…` artifacts are internal; ignore them. The run summary shows the same table with SHA256 values. **Cogan Manual Update** pins all these versions together. When upstream publishes a newer release, the run summary shows a **🔔 Reminder**: run Cogan Manual Update (`update` → `root-managers` or `nomount`), then rebuild so the kernel, root manager and NoMount move up together.

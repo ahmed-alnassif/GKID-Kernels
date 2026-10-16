@@ -83,10 +83,22 @@ class PrepareDownloadsTests(unittest.TestCase):
         self.assertEqual(set(outputs), {"kernel", "manager", "nomount"})
         self.assertIn("| 1 | `1-KERNEL_Cogan-6.1.177_BakaSU+SuSFS_v26.10.16-r15.zip` |", summary)
         self.assertIn("Kernel Flasher", summary)
-        self.assertIn("rilis resmi tidak menyertakan manager spoofed", summary)  # BakaSU publishes none
+        self.assertIn("belum ada manager spoofed resmi yang dipin", summary)  # none pinned in this fixture
         self.assertIn("https://github.com/Baka-SU/BakaSU/releases/download/v4.2.0-rc3/"
                       "ReSukiSU_v4.2.0-rc3_35171-universal-release.apk", fetched)
         self.assertIn("Abaikan / ignore `build-…`", summary)
+
+    def test_bakasu_spoofed_is_downloaded_from_the_mirror_of_the_tag_run(self):
+        name = "BakaSU-spoofed_ReSukiSU_v4.2.0-rc3_35171-universal-release.apk"
+        updates = {**FIXTURE, "BSU_SPOOFED_APK": name, "BSU_SPOOFED_SHA256": hashlib.sha256(SPOOFED).hexdigest()}
+        with mock.patch.dict("os.environ", {"GITHUB_REPOSITORY": "cogan17/Cogan"}):
+            status, outputs, saved, summary, fetched = self.run_main(
+                "BSU", lock_updates=updates, files={name: SPOOFED})
+        self.assertEqual(status, 0, summary)
+        self.assertIn("3-MANAGER-SPOOFED_BakaSU_v4.2.0-rc3.apk", saved)
+        self.assertEqual(set(outputs), {"kernel", "manager", "spoofed", "nomount"})
+        self.assertIn(f"https://github.com/cogan17/Cogan/releases/download/cogan-mirror/{name}", fetched)
+        self.assertNotIn("belum ada manager spoofed", summary)
 
     def test_kernelsu_next_ships_normal_and_spoofed_manager(self):
         status, outputs, saved, summary, _ = self.run_main("KSUN", variant="KernelSU-Next")

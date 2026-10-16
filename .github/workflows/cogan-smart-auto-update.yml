@@ -58,7 +58,8 @@ jobs:
         env:
           MODE: ${{ github.event.inputs.MODE }}
           COMPONENTS: ${{ github.event.inputs.COMPONENTS }}
-          # Read-only: lists release assets (manager APK, NoMount module) of the pinned tags.
+          # Lists release assets and Actions artifacts of the pinned tags; in update mode it
+          # also copies CI-only manager builds to this repository's cogan-mirror prerelease.
           GH_TOKEN: ${{ github.token }}
         run: |
           python3 scripts/cogan_manual_update.py --mode "$MODE" --components "$COMPONENTS" \
