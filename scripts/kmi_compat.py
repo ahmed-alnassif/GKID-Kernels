@@ -18,20 +18,27 @@ load on another kernel only if:
      frozen ABI (android/abi_gki_aarch64.stg) are still reported: each one is a
      changed KMI type worth a look before testing on a phone.
 
-With --reference BSP_SRC (the phone maker's own kernel source, for rothko the Xiaomi
-BSP in cogan17/Xiomi-14t-pro) the GKI build is also held against it:
-  5. the BSP's KMI generation is the phone's;
-  6. every symbol of the BSP's own symbol lists is exported (as in 2);
-  7. every CONFIG_*=y of the BSP's gki_defconfig is =y in the built .config, except
-     the reviewed exceptions listed per device;
-  8. every vendor hook the BSP declares (include/trace/hooks) that the GKI source
-     lacks is unused by the vendor modules (its __tracepoint_ symbol is in no symbol
-     list); unused ones are only reported. Xiaomi/MediaTek features themselves live
-     in the phone's vendor modules, which these checks keep loadable.
+Two references hold the GKI build against the phone itself:
+  --reference BSP_SRC          the phone maker's own kernel source (rothko: the Xiaomi
+                               BSP in cogan17/Xiomi-14t-pro);
+  --stock-reference STOCK_SRC  the ACK source of the phone's stock kernel (rothko:
+                               6.1.138, tag android14-6.1-2025-06_r11; fetched at the
+                               pinned commit by stock_reference.py).
+For each one:
+  5. its KMI generation is the phone's (the stock one must also be the stock version);
+  6. every symbol of its own symbol lists is exported (as in 2);
+  7. every CONFIG_*=y of its gki_defconfig is =y in the built .config, except the
+     reviewed exceptions listed per device and reference;
+  8. every vendor hook it declares (include/trace/hooks) that the GKI source lacks is
+     unused by the vendor modules (its __tracepoint_ symbol is in no symbol list);
+     unused ones are only reported. Xiaomi/MediaTek features themselves live in the
+     phone's vendor modules, which these checks keep loadable.
+The stock reference also reports the CRC differences against the stock frozen ABI,
+the one the phone's vendor modules were actually built with.
 
 Usage: kmi_compat.py --device rothko KERNEL_SRC OUT_DIR [--reference BSP_SRC]
-                     [--github-env FILE] [--json FILE]
-Exit 1 when 1-3, 5-7 or the force-load change fail; CRC differences only warn.
+                     [--stock-reference STOCK_SRC] [--github-env FILE] [--json FILE]
+Exit 1 when 1-3, 5-8 or the force-load change fail; CRC differences only warn.
 """
 import argparse
 import json
@@ -49,8 +56,20 @@ DEVICES = {
                    "CONFIG_DEBUG_STACK_USAGE": "debug statistics only",
                    "CONFIG_MEDIA_CEC_RC": "HDMI-CEC remote control keys; no HDMI-CEC on the phone",
                    "CONFIG_UAPI_HEADER_TEST": "build-time header test, not in the kernel",
+               },
+               # Stock kernel 6.1.138-android14-11-g6ab8c9a86a33-ab14396278 = this ACK commit.
+               "stock": {"kernel": "6.1.138-android14-11-g6ab8c9a86a33-ab14396278", "version": "6.1.138",
+                         "repo": "https://github.com/aosp-mirror/kernel_common",
+                         "tag": "android14-6.1-2025-06_r11",
+                         "commit": "6ab8c9a86a331cece499c7edac062ceffbe2e320"},
+               # Stock gki_defconfig =y options that are not =y in GKID 6.1, reviewed 2026-10-16.
+               "stock_config_exceptions": {
+                   "CONFIG_MEMFD_ASHMEM_SHIM": "removed from android14-6.1 by Google (ACK 8e481acd, "
+                                               "2026-03-10: only needed on 6.12+); exports no symbol",
+                   "CONFIG_UAPI_HEADER_TEST": "build-time header test, not in the kernel",
                }},
 }
+REFERENCES = {"bsp": "BSP", "stock": "stock"}
 FORCE_LOAD = re.compile(r"disagrees about version of symbol.*but ignore")
 HOOK = re.compile(r"DECLARE_(?:RESTRICTED_)?HOOK\(\s*(\w+)")
 
@@ -120,7 +139,16 @@ def generation(src):
     return match.group(1) if match else None
 
 
-def check(src, out, device, reference=None):
+def kernel_version(src):
+    """VERSION.PATCHLEVEL.SUBLEVEL of a kernel source's Makefile, None without one."""
+    if not (src / "Makefile").is_file():
+        return None
+    head = (src / "Makefile").read_text(encoding="utf-8", errors="replace")[:1000]
+    parts = [re.search(rf"^{key} = (\d+)$", head, re.MULTILINE) for key in ("VERSION", "PATCHLEVEL", "SUBLEVEL")]
+    return ".".join(part.group(1) for part in parts) if all(parts) else None
+
+
+def check(src, out, device, reference=None, stock=None):
     spec = DEVICES[device]
     report = {"device": spec["name"], "kmi_generation": generation(src), "lists": {}, "errors": []}
     if report["kmi_generation"] != spec["generation"]:
@@ -149,8 +177,10 @@ def check(src, out, device, reference=None):
     report["protected_exports"] = sorted(p.name for p in (src / "android").glob("*protected_exports*"))
     if report["protected_exports"]:
         report["errors"].append("protected exports still present: " + ", ".join(report["protected_exports"]))
-    if reference:
-        check_reference(report, reference, src, out, spec, exported)
+    report["references"] = {}
+    for kind, path in (("bsp", reference), ("stock", stock)):
+        if path:
+            check_reference(report, kind, path, src, out, spec, exported)
     return report
 
 
@@ -163,11 +193,15 @@ def read_config(path):
     return values
 
 
-def check_reference(report, reference, src, out, spec, exported):
-    """Hold the GKI build against the phone maker's own kernel source (BSP)."""
-    ref = {"kmi_generation": generation(reference), "lists": {}}
+def check_reference(report, kind, reference, src, out, spec, exported):
+    """Hold the GKI build against one of the phone's own kernel sources (BSP or stock ACK)."""
+    label = REFERENCES[kind]
+    ref = {"kmi_generation": generation(reference), "version": kernel_version(reference), "lists": {}}
     if ref["kmi_generation"] != spec["generation"]:
-        report["errors"].append(f"BSP KMI generation {ref['kmi_generation']}, the phone needs {spec['generation']}")
+        report["errors"].append(f"{label} KMI generation {ref['kmi_generation']}, the phone needs {spec['generation']}")
+    if kind == "stock" and ref["version"] != spec["stock"]["version"]:
+        report["errors"].append(f"stock reference is kernel {ref['version']}, the phone's stock kernel is "
+                                f"{spec['stock']['version']} ({spec['stock']['tag']})")
     wanted = set()
     for name in spec["lists"]:
         wanted |= read_list(reference / "android" / name)
@@ -177,44 +211,50 @@ def check_reference(report, reference, src, out, spec, exported):
         missing = sorted(symbols - exported.keys() - from_modules.keys())
         ref["lists"][name] = {"symbols": len(symbols), "missing": missing}
         if missing:
-            report["errors"].append(f"BSP {name}: {len(missing)} symbol(s) not exported, e.g. {', '.join(missing[:5])}")
-    bsp = read_config(reference / "arch/arm64/configs/gki_defconfig")
+            report["errors"].append(f"{label} {name}: {len(missing)} symbol(s) not exported, "
+                                    f"e.g. {', '.join(missing[:5])}")
+    defconfig = read_config(reference / "arch/arm64/configs/gki_defconfig")
     built = read_config(out / ".config")
-    off = sorted(key for key, value in bsp.items() if value == "y" and built.get(key) != "y")
-    exceptions = spec.get("bsp_config_exceptions", {})
+    off = sorted(key for key, value in defconfig.items() if value == "y" and built.get(key) != "y")
+    exceptions = spec.get(f"{kind}_config_exceptions", {})
     ref["config_not_enabled"] = {key: exceptions.get(key, "NOT REVIEWED") for key in off}
     unreviewed = [key for key in off if key not in exceptions]
     if unreviewed:
-        report["errors"].append("BSP gki_defconfig options not enabled: " + ", ".join(unreviewed[:10]))
+        report["errors"].append(f"{label} gki_defconfig options not enabled: " + ", ".join(unreviewed[:10]))
     every_list = set()
     for path in sorted((reference / "android").glob("abi_gki_aarch64*")):
         if path.suffix != ".stg" and "." not in path.name:
             every_list |= read_list(path)
     absent = sorted(vendor_hooks(reference) - vendor_hooks(src))
     used = [hook for hook in absent if f"__tracepoint_{hook}" in every_list]
-    ref["bsp_hooks_absent"] = {hook: ("USED by vendor modules" if hook in used else "unused by vendor modules")
-                               for hook in absent}
+    ref["hooks_absent"] = {hook: ("USED by vendor modules" if hook in used else "unused by vendor modules")
+                           for hook in absent}
     if used:
-        report["errors"].append("BSP vendor hooks missing but used by vendor modules: " + ", ".join(used))
-    report["reference"] = ref
+        report["errors"].append(f"{label} vendor hooks missing but used by vendor modules: " + ", ".join(used))
+    if kind == "stock":
+        frozen = read_stg(reference / "android/abi_gki_aarch64.stg")
+        ref["crc_differences"] = sorted(name for name in wanted & frozen.keys() & exported.keys()
+                                        if frozen[name] != exported[name])
+    report["references"][kind] = ref
 
 
 def summary(report):
-    lists = ", ".join(f"{name.replace('abi_gki_aarch64', 'GKI').replace('GKI_', '')} "
-                      f"{info['symbols'] - len(info['missing'])}/{info['symbols']}"
-                      for name, info in report["lists"].items())
+    def exported(lists):
+        return ", ".join(f"{name.replace('abi_gki_aarch64', 'GKI').replace('GKI_', '')} "
+                         f"{info['symbols'] - len(info['missing'])}/{info['symbols']}"
+                         for name, info in lists.items())
     verdict = "OK" if not report["errors"] else "GAGAL / FAILED"
-    line = (f"KMI {report['device']}: {verdict}; generation {report['kmi_generation']}; exported {lists} "
-            f"({len(report['from_gki_modules'])} via GKI modules); "
+    line = (f"KMI {report['device']}: {verdict}; generation {report['kmi_generation']}; "
+            f"exported {exported(report['lists'])} ({len(report['from_gki_modules'])} via GKI modules); "
             f"CRC differs {len(report['crc_differences'])} (force-load {'on' if report['force_load'] else 'OFF'})")
-    ref = report.get("reference")
-    if ref:
-        bsp = ", ".join(f"{name.replace('abi_gki_aarch64', 'GKI').replace('GKI_', '')} "
-                        f"{info['symbols'] - len(info['missing'])}/{info['symbols']}"
-                        for name, info in ref["lists"].items())
-        line += (f"; BSP: generation {ref['kmi_generation']}, exported {bsp}, "
+    for kind, ref in report.get("references", {}).items():
+        label = REFERENCES[kind]
+        name = f"{label} {ref['version']}" if kind == "stock" and ref["version"] else label
+        line += (f"; {name}: generation {ref['kmi_generation']}, exported {exported(ref['lists'])}, "
                  f"config =y not enabled {len(ref['config_not_enabled'])} (reviewed), "
-                 f"BSP-only vendor hooks {len(ref['bsp_hooks_absent'])} (unused)")
+                 f"{label}-only vendor hooks {len(ref['hooks_absent'])} (unused)")
+        if "crc_differences" in ref:
+            line += f", CRC differs {len(ref['crc_differences'])}"
     return line
 
 
@@ -224,11 +264,12 @@ def main(argv=None):
     parser.add_argument("src", type=Path)
     parser.add_argument("out", type=Path)
     parser.add_argument("--reference", type=Path, help="phone maker's kernel source (BSP) to hold the build against")
+    parser.add_argument("--stock-reference", type=Path, help="ACK source of the phone's stock kernel")
     parser.add_argument("--github-env")
     parser.add_argument("--json", type=Path)
     args = parser.parse_args(argv)
     try:
-        report = check(args.src, args.out, args.device, args.reference)
+        report = check(args.src, args.out, args.device, args.reference, args.stock_reference)
     except (OSError, ValueError) as exc:
         print(f"BLOCKED: KMI check could not run: {exc}", file=sys.stderr)
         return 1

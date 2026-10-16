@@ -121,8 +121,8 @@ class KmiCompatTests(unittest.TestCase):
     def test_bsp_reference_passes_with_reviewed_config_exceptions(self):
         status, report = self.run_reference(self.make_bsp())
         self.assertEqual(status, 0, report["errors"])
-        self.assertEqual(report["reference"]["kmi_generation"], "11")
-        self.assertEqual(report["reference"]["config_not_enabled"],
+        self.assertEqual(report["references"]["bsp"]["kmi_generation"], "11")
+        self.assertEqual(report["references"]["bsp"]["config_not_enabled"],
                          {"CONFIG_MEDIA_CEC_RC": kc.DEVICES["rothko"]["bsp_config_exceptions"]["CONFIG_MEDIA_CEC_RC"]})
         line = kc.summary(report)
         self.assertIn("BSP: generation 11, exported GKI 1/1, mtk 1/1, xiaomi 0/0, config =y not enabled 1 (reviewed)", line)
@@ -146,7 +146,7 @@ class KmiCompatTests(unittest.TestCase):
         (self.src / "include/trace/hooks/sched.h").write_text("DECLARE_RESTRICTED_HOOK(android_rvh_shared, x, y, 1);\n")
         status, report = self.run_reference(bsp)
         self.assertEqual(status, 0, report["errors"])
-        self.assertEqual(report["reference"]["bsp_hooks_absent"],
+        self.assertEqual(report["references"]["bsp"]["hooks_absent"],
                          {"android_vh_allow_domain_state": "unused by vendor modules"})
         (bsp / "android/abi_gki_aarch64_mtk").write_text(
             "[abi_symbol_list]\n  changed_type\n  __tracepoint_android_vh_allow_domain_state\n")
@@ -155,9 +155,47 @@ class KmiCompatTests(unittest.TestCase):
         self.assertTrue(any("BSP vendor hooks missing but used by vendor modules: android_vh_allow_domain_state" in e
                             for e in report["errors"]), report["errors"])
 
-    def test_build_passes_the_bsp_reference_when_given(self):
+    def make_stock(self, version="138", config="CONFIG_A=y\nCONFIG_MEMFD_ASHMEM_SHIM=y\n"):
+        stock = self.make_bsp(config=config).rename(Path(self.temp.name) / "stock")
+        (stock / "Makefile").write_text(f"# SPDX\nVERSION = 6\nPATCHLEVEL = 1\nSUBLEVEL = {version}\nEXTRAVERSION =\n")
+        (stock / "android/abi_gki_aarch64.stg").write_text(STG.replace("0x0000000a", "0x0000000c"))
+        return stock
+
+    def test_stock_reference_reports_its_own_crc_differences(self):
+        stock = self.make_stock()
+        report_file = Path(self.temp.name) / "stock.json"
+        status = kc.main(["--device", "rothko", str(self.src), str(self.out), "--stock-reference", str(stock),
+                          "--json", str(report_file)])
+        report = json.loads(report_file.read_text())
+        self.assertEqual(status, 0, report["errors"])
+        ref = report["references"]["stock"]
+        self.assertEqual(ref["version"], "6.1.138")
+        self.assertEqual(ref["config_not_enabled"],
+                         {"CONFIG_MEMFD_ASHMEM_SHIM": kc.DEVICES["rothko"]["stock_config_exceptions"]["CONFIG_MEMFD_ASHMEM_SHIM"]})
+        # The stock frozen ABI is the one the vendor modules were built with: vendor_used differs there.
+        self.assertEqual(ref["crc_differences"], ["changed_type", "vendor_used"])
+        self.assertIn("; stock 6.1.138: generation 11, exported GKI 1/1, mtk 1/1, xiaomi 0/0, "
+                      "config =y not enabled 1 (reviewed), stock-only vendor hooks 0 (unused), CRC differs 2",
+                      kc.summary(report))
+
+    def test_stock_reference_must_be_the_stock_kernel(self):
+        for change, message in (({"version": "155"}, "stock reference is kernel 6.1.155"),
+                                ({"config": "CONFIG_A=y\nCONFIG_INTERCONNECT=y\n"},
+                                 "stock gki_defconfig options not enabled: CONFIG_INTERCONNECT")):
+            self.setUp()
+            report_file = Path(self.temp.name) / "stock.json"
+            status = kc.main(["--device", "rothko", str(self.src), str(self.out),
+                              "--stock-reference", str(self.make_stock(**change)), "--json", str(report_file)])
+            errors = json.loads(report_file.read_text())["errors"]
+            self.assertEqual(status, 1, message)
+            self.assertTrue(any(message in error for error in errors), errors)
+
+    def test_build_holds_rothko_against_the_stock_kernel_and_the_bsp(self):
         build = (ROOT / "build.sh").read_text()
-        self.assertIn('[ -n "${ROTHKO_BSP_SRC:-}" ] && KMI_REFERENCE=(--reference "$ROTHKO_BSP_SRC")', build)
+        self.assertIn('scripts/stock_reference.py" --device rothko "$ROTHKO_STOCK_SRC" || exit 1', build)
+        self.assertLess(build.index("scripts/stock_reference.py"), build.index('echo "::group::[*] Building kernel"'))
+        self.assertIn('KMI_REFERENCE=(--stock-reference "$ROTHKO_STOCK_SRC")', build)
+        self.assertIn('[ -n "${ROTHKO_BSP_SRC:-}" ] && KMI_REFERENCE+=(--reference "$ROTHKO_BSP_SRC")', build)
         self.assertIn('"$KSRC" "$OUTDIR" "${KMI_REFERENCE[@]}"', build)
 
     def test_module_symvers_is_the_fallback(self):

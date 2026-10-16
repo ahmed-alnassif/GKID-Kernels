@@ -50,6 +50,7 @@ jobs:
           python3 -m unittest discover -s tests -p 'test_ksun_susfs_replay.py'
           python3 -m unittest discover -s tests -p 'test_ksun_susfs_sublevel.py'
           python3 -m unittest discover -s tests -p 'test_kmi_compat.py'
+          python3 -m unittest discover -s tests -p 'test_stock_reference.py'
           python3 -m unittest discover -s tests -p 'test_ksun_susfs_resolved_config.py'
           python3 -m unittest discover -s tests -p 'test_cogan_manual_update.py'
           python3 -m unittest discover -s tests -p 'test_prepare_downloads.py'

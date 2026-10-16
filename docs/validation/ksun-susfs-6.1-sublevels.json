@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "date": "2026-10-16",
-  "subject": "KSUN+SUSFS on kernel sublevels 167-177, GKID parity, rothko KMI gate (GKI + Xiaomi BSP reference)",
+  "subject": "KSUN+SUSFS on kernel sublevels 167-177, GKID parity, rothko KMI gate (GKI + Xiaomi BSP + stock kernel reference)",
   "where": "session container (local compile), not GitHub Actions; no device test",
   "toolchain": "Neutron clang 06092026 (archive SHA256 531083928c8e37f6b31e324dbfd0b5a8323f989b1c57ff2c1368b889b5b1bd30, LLVM f42c87ba), pahole 1.25",
   "pin_audit": {
@@ -1404,6 +1404,29 @@
     "files_only_in_bsp": "160, upstream code removed in later LTS (staging rtl8712, a2mp, sch_atm/cbq/dsmark, OWNERS) plus include/trace/events/mtk_fuse.h (debug tracing, dropped in later ACK)",
     "bsp_only_vendor_hooks": "8, none in any symbol list (e.g. android_vh_allow_domain_state, reverted in ACK)",
     "conclusion": "no Xiaomi/MediaTek core-kernel feature is missing; their features live in the phone's vendor modules, kept loadable by the KMI gate"
+  },
+  "stock_kernel_comparison": {
+    "date": "2026-10-16",
+    "stock": "6.1.138-android14-11-g6ab8c9a86a33-ab14396278 = ACK tag android14-6.1-2025-06_r11, commit 6ab8c9a86a331cece499c7edac062ceffbe2e320 (github.com/aosp-mirror/kernel_common), fetched by scripts/stock_reference.py",
+    "symbol_lists": "every stock abi_gki_aarch64_mtk (3596) and _xiaomi (455) symbol is exported by the 6.1.167 (parity) and 6.1.177 builds",
+    "gki_defconfig": "every stock =y option is =y in the built configs except CONFIG_MEMFD_ASHMEM_SHIM and CONFIG_UAPI_HEADER_TEST (reviewed)",
+    "memfd_ashmem_shim": "in the stock kernel and in GKID pins 160-166; removed from android14-6.1 by Google itself (ACK 8e481acd 2026-03-10, Isaac J. Manjarres: 'only needed on kernels 6.12 or newer', with 0b48b2c8 and 3e665a88); exports no symbol, in no symbol list; not ported back",
+    "stock_only_vendor_hooks": [
+      "android_rvh_nf_conn_alloc",
+      "android_rvh_nf_conn_free",
+      "android_vh_allow_domain_state",
+      "android_vh_cache_show",
+      "android_vh_freq_table_limits",
+      "android_vh_gic_v3_affinity_init"
+    ],
+    "stock_only_vendor_hooks_used": "none (no __tracepoint_ in any stock symbol list)",
+    "crc_vs_stock_frozen_abi": {
+      "6.1.167": 538,
+      "6.1.177_device_tested": 538,
+      "same_set": true
+    },
+    "gate_summary_6.1.167": "KMI Xiaomi 14T Pro (rothko): OK; generation 11; exported GKI 2/2, mtk 3688/3688, xiaomi 528/528 (3 via GKI modules); CRC differs 561 (force-load on); BSP: generation 11, exported GKI 2/2, mtk 3353/3353, xiaomi 308/308, config =y not enabled 3 (reviewed), BSP-only vendor hooks 8 (unused); stock 6.1.138: generation 11, exported GKI 2/2, mtk 3596/3596, xiaomi 455/455, config =y not enabled 2 (reviewed), stock-only vendor hooks 6 (unused), CRC differs 538",
+    "gate_summary_6.1.177": "KMI Xiaomi 14T Pro (rothko): OK; generation 11; exported GKI 2/2, mtk 3705/3705, xiaomi 638/638 (3 via GKI modules); CRC differs 568 (force-load on); BSP: generation 11, exported GKI 2/2, mtk 3353/3353, xiaomi 308/308, config =y not enabled 3 (reviewed), BSP-only vendor hooks 8 (unused); stock 6.1.138: generation 11, exported GKI 2/2, mtk 3596/3596, xiaomi 455/455, config =y not enabled 2 (reviewed), stock-only vendor hooks 6 (unused), CRC differs 538"
   },
   "not_verified": [
     "boot and runtime on the phone for any sublevel other than 177 (owner)",

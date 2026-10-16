@@ -160,6 +160,15 @@ if kernel_version_eq "$KERNEL_VERSION" "6.1"; then
   fi
 fi
 
+# rothko: the ACK source of the phone's stock kernel (6.1.138, android14-6.1-2025-06_r11) is
+# the KMI gate's reference for what the vendor modules were built with. Fetched before the
+# compile (sparse, pinned commit) so a failure stops early; ROTHKO_STOCK_SRC reuses a copy.
+if [ "$TARGET_DEVICE" = "rothko" ] && [ -z "${ROTHKO_STOCK_SRC:-}" ]; then
+  log "Fetching the Xiaomi 14T Pro stock kernel reference (ACK)"
+  ROTHKO_STOCK_SRC="$WORKDIR/stock-rothko"
+  python3 "$WORKDIR/scripts/stock_reference.py" --device rothko "$ROTHKO_STOCK_SRC" || exit 1
+fi
+
 if [ "$KSUN_SUSFS_CANDIDATE" = "true" ]; then
   log "Staging the validated KSUN + SUSFS candidate (replay + frozen core + features)"
   python3 "$WORKDIR/scripts/stage_ksun_susfs_candidate.py" "$KSRC" "$WORKDIR/ksun" "$KSUN_SUSFS_SUBLEVEL" || exit 1
@@ -683,12 +692,12 @@ echo "::endgroup::"
 
 # rothko: the built kernel must keep the phone's vendor modules loadable (KMI generation,
 # MediaTek/Xiaomi symbol exports, protected exports gone, module force-load). Fails closed.
-# ROTHKO_BSP_SRC (the Xiaomi BSP checkout of cogan17/Xiomi-14t-pro) adds its symbol lists
-# and gki_defconfig as a second reference.
+# Held against the stock kernel's ACK source (fetched above) and, with ROTHKO_BSP_SRC (the
+# Xiaomi BSP checkout of cogan17/Xiomi-14t-pro), the BSP's symbol lists and gki_defconfig.
 if [ "$TARGET_DEVICE" = "rothko" ]; then
   log "KMI compatibility with the Xiaomi 14T Pro vendor modules"
-  KMI_REFERENCE=()
-  [ -n "${ROTHKO_BSP_SRC:-}" ] && KMI_REFERENCE=(--reference "$ROTHKO_BSP_SRC")
+  KMI_REFERENCE=(--stock-reference "$ROTHKO_STOCK_SRC")
+  [ -n "${ROTHKO_BSP_SRC:-}" ] && KMI_REFERENCE+=(--reference "$ROTHKO_BSP_SRC")
   python3 "$WORKDIR/scripts/kmi_compat.py" --device rothko "$KSRC" "$OUTDIR" "${KMI_REFERENCE[@]}" \
     --github-env "${GITHUB_ENV:-/dev/null}" --json "$RELEASE_DIR/kmi-compat-rothko.json" || exit 1
 fi
