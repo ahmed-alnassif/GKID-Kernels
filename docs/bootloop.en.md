@@ -126,7 +126,7 @@ The stock Xiaomi recovery (**Volume Up + Power**) cannot flash `boot.img`, so us
 
 ## 4. After a successful boot: collect logs
 
-Collect logs **right after** the phone is back up, before it restarts again.
+Collect logs **right after** the phone is back up, before it restarts again. Every CMD (Platform Tools) command is also summarized in [README → Using CMD](../README.en.md#using-cmd-platform-tools).
 
 ### Bootloop caused by the kernel
 

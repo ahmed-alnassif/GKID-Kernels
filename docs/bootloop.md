@@ -126,7 +126,7 @@ Recovery bawaan Xiaomi (**Volume Atas + Power**) tidak bisa mem-flash `boot.img`
 
 ## 4. Setelah berhasil boot: ambil log
 
-Ambil log **segera** setelah HP kembali menyala, sebelum restart lagi.
+Ambil log **segera** setelah HP kembali menyala, sebelum restart lagi. Semua perintah lewat CMD (Platform Tools) juga dirangkum di [README → Pakai CMD](../README.md#pakai-cmd-platform-tools).
 
 ### Bootloop karena kernel
 

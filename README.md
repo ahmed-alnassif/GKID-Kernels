@@ -64,7 +64,7 @@ Kernel generik yang dibangun dari sumber GKI 6.1 ([GKI-Duchamp-6.1](https://gith
 1. Pastikan kernel stock Anda `6.1.x-android14` dan bootloader sudah terbuka.
 2. **Siapkan `boot.img` stock** yang sama persis dengan versi ROM Anda ([caranya](docs/bootloop.md#1-siapkan-bootimg-stock-sebelum-flash)).
 3. Unduh ZIP dari **[Releases](https://github.com/cogan17/Cogan/releases)**, lalu cocokkan SHA256-nya dengan `checksums.txt`.
-4. Flash ZIP AnyKernel3 dengan aplikasi flasher kernel di perangkat yang sudah root, misalnya [Kernel Flasher](https://github.com/capntrips/KernelFlasher) atau [Horizon Kernel Flasher](https://github.com/libxzr/HorizonKernelFlasher), atau lewat custom recovery. ZIP ini **tidak** bisa di-flash lewat `fastboot`.
+4. Flash ZIP AnyKernel3 dengan aplikasi flasher kernel di perangkat yang sudah root, misalnya [Kernel Flasher](https://github.com/capntrips/KernelFlasher) atau [Horizon Kernel Flasher](https://github.com/libxzr/HorizonKernelFlasher), atau lewat custom recovery. ZIP ini **tidak** bisa di-flash lewat `fastboot`; untuk fastboot, buat `.img` dulu ([Pakai CMD](#pakai-cmd-platform-tools)).
 5. Pasang APK manager yang versinya sama dengan kernel. APK ini ikut di artifact build; bisa juga diunduh dari rilis resmi dengan tag yang sama: [KernelSU](https://github.com/tiann/KernelSU/releases), [KernelSU Next](https://github.com/KernelSU-Next/KernelSU-Next/releases) atau [BakaSU](https://github.com/Baka-SU/BakaSU/releases). Modul NoMount (ZIP) dipasang lewat menu Modul di manager.
 6. Reboot. Kalau macet di logo atau terus restart, buka **[Panduan Bootloop](docs/bootloop.md)**.
 
@@ -80,6 +80,65 @@ Jangan panik dan **jangan factory reset**. Kenali dulu penyebabnya:
 | **Animasi boot** berulang, atau bootloop setelah memasang modul | Biasanya **modul** | **Safe mode**: saat logo pertama, tekan Volume Bawah lebih dari 3 kali (tekan-lepas), lalu hapus modulnya di manager ([caranya](docs/bootloop.md#kernel-atau-modul)) | Di safe mode: manager → **Pengaturan → Kirim log** ([detail](docs/bootloop.md#bootloop-karena-modul)) |
 
 Kalau safe mode tetap bootloop, anggap penyebabnya kernel. Log kernel (pstore) **tertimpa setelah restart berikutnya**, jadi ambil segera setelah HP menyala. Langkah lengkap, termasuk bagian khusus **Xiaomi 14T Pro (rothko)**, ada di **[Panduan Bootloop](docs/bootloop.md)**.
+
+---
+
+## Pakai CMD (Platform Tools)
+
+Semua perintah di bawah dijalankan di **CMD Windows** dari folder Platform Tools. File hasilnya tersimpan di folder yang sama.
+
+**Persiapan**
+
+1. Unduh [SDK Platform-Tools untuk Windows](https://developer.android.com/tools/releases/platform-tools), lalu ekstrak, misalnya ke `C:\platform-tools`.
+2. Di HP: *Setelan → Tentang ponsel*, ketuk **Versi OS** 7 kali, lalu di *Opsi pengembang* aktifkan **USB debugging**.
+3. Buka folder `C:\platform-tools` di File Explorer, ketik `cmd` di kolom alamat, lalu tekan Enter.
+4. Hubungkan HP, jalankan `adb devices`, dan izinkan di HP. Status harus `device`.
+5. Untuk perintah `su`: buka manager root → **Superuser**, lalu izinkan **Shell**.
+
+**Ambil log**
+
+| Untuk | Perintah |
+|---|---|
+| Bugreport lengkap, termasuk log kernel dari boot yang gagal (pstore) | `adb bugreport bugreport.zip` |
+| Logcat boot sekarang | `adb logcat -b all -d > logcat.txt` |
+| Logcat langsung saat animasi boot berulang (USB debugging harus sudah diizinkan sebelumnya) | `adb logcat -b all > logcat-bootloop.txt`, lalu `Ctrl+C` setelah ±1 menit |
+| Log kernel sekarang (root) | `adb shell "su -c dmesg" > dmesg.txt` |
+| Log kernel boot sebelumnya / pstore (root) | `adb shell "su -c 'cat /sys/fs/pstore/console-ramoops*'" > ramoops.txt` |
+| Cek BBRv3 aktif (harus `bbr`) | `adb shell "su -c cat /proc/sys/net/ipv4/tcp_congestion_control"` |
+| Cek BBG aktif (harus ada `baseband_guard`) | `adb shell "su -c cat /sys/kernel/security/lsm"` |
+
+**Fastboot: pulihkan atau pasang `.img`**
+
+```bat
+adb reboot bootloader
+fastboot devices
+fastboot flash boot boot-stock.img
+fastboot reboot
+```
+
+`adb reboot bootloader` hanya bisa dipakai saat HP menyala. Saat bootloop, masuk fastboot lewat tombol (Xiaomi: **Volume Bawah + Power**). Ganti `boot-stock.img` dengan `cogan-boot.img` untuk memasang kernel Cogan.
+
+**Membuat `cogan-boot.img` (kernel Cogan sebagai `.img`)**
+
+Cogan sengaja **tidak** membagikan `boot.img` generik. Kompresi kernel dan *security patch level* tiap HP berbeda, dan kalau tidak cocok HP bisa bootloop. Peringatan yang sama ada di [panduan resmi KernelSU](https://kernelsu.org/guide/installation.html#patch-boot-image). Cara aman yang dianjurkan KernelSU adalah membungkus kernel Cogan ke dalam `boot.img` stock milik Anda sendiri, sama seperti yang dilakukan ZIP AnyKernel3.
+
+1. Taruh tiga file ini di `C:\platform-tools`:
+   - `boot-stock.img`, dengan versi ROM yang sama persis ([caranya](docs/bootloop.md#1-siapkan-bootimg-stock-sebelum-flash)),
+   - `Image`, diambil dari dalam ZIP kernel Cogan (`1-KERNEL_…zip`),
+   - `libmagiskboot.so` dari APK [Magisk resmi](https://github.com/topjohnwu/Magisk/releases): ganti akhiran `.apk` menjadi `.zip`, lalu ambil `lib/arm64-v8a/libmagiskboot.so`.
+2. Saat HP menyala (kernel apa saja, tanpa root), jalankan:
+
+```bat
+adb push libmagiskboot.so /data/local/tmp/magiskboot
+adb push boot-stock.img /data/local/tmp/
+adb push Image /data/local/tmp/
+adb shell "cd /data/local/tmp && chmod +x magiskboot && ./magiskboot unpack boot-stock.img && mv -f Image kernel && ./magiskboot repack boot-stock.img cogan-boot.img"
+adb pull /data/local/tmp/cogan-boot.img
+```
+
+3. Flash lewat fastboot seperti di atas: `fastboot flash boot cogan-boot.img`.
+
+Simpan `cogan-boot.img` yang sudah terbukti boot bersama `boot-stock.img`. Kalau kernel yang lebih baru bermasalah, cukup flash kembali yang lama. Buat ulang setiap kali ROM diperbarui (OTA), karena `boot.img` stock ikut berubah. Jika HP mendukung, `fastboot boot cogan-boot.img` bisa mencoba kernel tanpa mem-flash; banyak HP Xiaomi/MediaTek tidak mendukungnya.
 
 ---
 

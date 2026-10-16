@@ -64,7 +64,7 @@ A generic kernel built from GKI 6.1 sources ([GKI-Duchamp-6.1](https://github.co
 1. Make sure your stock kernel is `6.1.x-android14` and the bootloader is unlocked.
 2. **Keep your stock `boot.img`**, exactly matching your ROM version ([how](docs/bootloop.en.md#1-keep-your-stock-bootimg-before-flashing)).
 3. Download the ZIP from **[Releases](https://github.com/cogan17/Cogan/releases)** and check its SHA256 against `checksums.txt`.
-4. Flash the AnyKernel3 ZIP with a kernel flasher app on a rooted device, for example [Kernel Flasher](https://github.com/capntrips/KernelFlasher) or [Horizon Kernel Flasher](https://github.com/libxzr/HorizonKernelFlasher), or from a custom recovery. The ZIP can **not** be flashed with `fastboot`.
+4. Flash the AnyKernel3 ZIP with a kernel flasher app on a rooted device, for example [Kernel Flasher](https://github.com/capntrips/KernelFlasher) or [Horizon Kernel Flasher](https://github.com/libxzr/HorizonKernelFlasher), or from a custom recovery. The ZIP can **not** be flashed with `fastboot`; for fastboot, make an `.img` first ([Using CMD](#using-cmd-platform-tools)).
 5. Install the manager APK that matches the kernel. It ships with the build artifacts, or download it from the official release with the same tag: [KernelSU](https://github.com/tiann/KernelSU/releases), [KernelSU Next](https://github.com/KernelSU-Next/KernelSU-Next/releases) or [BakaSU](https://github.com/Baka-SU/BakaSU/releases). Install the NoMount module (ZIP) from the manager's Modules screen.
 6. Reboot. If it gets stuck on the logo or keeps restarting, open the **[Bootloop Guide](docs/bootloop.en.md)**.
 
@@ -80,6 +80,65 @@ Don't panic and **don't factory reset**. Find the cause first:
 | The **boot animation** loops, or a bootloop after installing a module | Usually a **module** | **Safe mode**: at the first logo, press Volume Down more than 3 times (press-release), then uninstall the module in the manager ([how](docs/bootloop.en.md#kernel-or-module)) | In safe mode: manager → **Settings → Send logs** ([details](docs/bootloop.en.md#bootloop-caused-by-a-module)) |
 
 If safe mode still bootloops, treat it as a kernel problem. The kernel log (pstore) is **overwritten after the next restart**, so collect it right after the phone boots. The full steps, including a section for the **Xiaomi 14T Pro (rothko)**, are in the **[Bootloop Guide](docs/bootloop.en.md)**.
+
+---
+
+## Using CMD (Platform Tools)
+
+Run every command below in **Windows CMD** from the Platform Tools folder. Output files are saved in that folder.
+
+**Setup**
+
+1. Download [SDK Platform-Tools for Windows](https://developer.android.com/tools/releases/platform-tools) and extract it, for example to `C:\platform-tools`.
+2. On the phone: *Settings → About phone*, tap **OS version** 7 times, then turn on **USB debugging** in *Developer options*.
+3. Open `C:\platform-tools` in File Explorer, type `cmd` in the address bar and press Enter.
+4. Connect the phone, run `adb devices` and allow it on the phone. The status must be `device`.
+5. For `su` commands: open the root manager → **Superuser** and allow **Shell**.
+
+**Collect logs**
+
+| For | Command |
+|---|---|
+| Full bug report, including the kernel log of the failed boot (pstore) | `adb bugreport bugreport.zip` |
+| Logcat of the current boot | `adb logcat -b all -d > logcat.txt` |
+| Live logcat while the boot animation loops (USB debugging must already be authorized) | `adb logcat -b all > logcat-bootloop.txt`, then `Ctrl+C` after about a minute |
+| Current kernel log (root) | `adb shell "su -c dmesg" > dmesg.txt` |
+| Kernel log of the previous boot / pstore (root) | `adb shell "su -c 'cat /sys/fs/pstore/console-ramoops*'" > ramoops.txt` |
+| Check BBRv3 is active (must say `bbr`) | `adb shell "su -c cat /proc/sys/net/ipv4/tcp_congestion_control"` |
+| Check BBG is active (must include `baseband_guard`) | `adb shell "su -c cat /sys/kernel/security/lsm"` |
+
+**Fastboot: recover or install an `.img`**
+
+```bat
+adb reboot bootloader
+fastboot devices
+fastboot flash boot boot-stock.img
+fastboot reboot
+```
+
+`adb reboot bootloader` only works while the phone is running. During a bootloop, enter fastboot with the buttons (Xiaomi: **Volume Down + Power**). Replace `boot-stock.img` with `cogan-boot.img` to install the Cogan kernel.
+
+**Making `cogan-boot.img` (the Cogan kernel as an `.img`)**
+
+Cogan deliberately does **not** ship a generic `boot.img`. Kernel compression and the *security patch level* differ per phone, and a mismatch can bootloop it. The [official KernelSU guide](https://kernelsu.org/guide/installation.html#patch-boot-image) gives the same warning. The safe way KernelSU recommends is to wrap the Cogan kernel into your own stock `boot.img`, which is exactly what the AnyKernel3 ZIP does.
+
+1. Put these three files in `C:\platform-tools`:
+   - `boot-stock.img`, from exactly the same ROM version ([how](docs/bootloop.en.md#1-keep-your-stock-bootimg-before-flashing)),
+   - `Image`, taken from inside the Cogan kernel ZIP (`1-KERNEL_…zip`),
+   - `libmagiskboot.so` from the [official Magisk](https://github.com/topjohnwu/Magisk/releases) APK: rename `.apk` to `.zip` and take `lib/arm64-v8a/libmagiskboot.so`.
+2. With the phone running (any kernel, no root needed), run:
+
+```bat
+adb push libmagiskboot.so /data/local/tmp/magiskboot
+adb push boot-stock.img /data/local/tmp/
+adb push Image /data/local/tmp/
+adb shell "cd /data/local/tmp && chmod +x magiskboot && ./magiskboot unpack boot-stock.img && mv -f Image kernel && ./magiskboot repack boot-stock.img cogan-boot.img"
+adb pull /data/local/tmp/cogan-boot.img
+```
+
+3. Flash it with fastboot as above: `fastboot flash boot cogan-boot.img`.
+
+Keep a `cogan-boot.img` that is known to boot, together with `boot-stock.img`. If a newer kernel misbehaves, just flash the old one back. Make it again after every ROM update (OTA), because the stock `boot.img` changes too. If the phone supports it, `fastboot boot cogan-boot.img` tries the kernel without flashing; many Xiaomi/MediaTek phones do not support it.
 
 ---
 
