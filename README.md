@@ -105,7 +105,8 @@ Semua perintah di bawah dijalankan di **CMD Windows** dari folder Platform Tools
 | Log kernel sekarang (root) | `adb shell "su -c dmesg" > dmesg.txt` |
 | Log kernel boot sebelumnya / pstore (root) | `adb shell "su -c 'cat /sys/fs/pstore/console-ramoops*'" > ramoops.txt` |
 | Cek BBRv3 aktif (harus `bbr`) | `adb shell "su -c cat /proc/sys/net/ipv4/tcp_congestion_control"` |
-| Cek BBG aktif (harus ada `baseband_guard`) | `adb shell "su -c cat /sys/kernel/security/lsm"` |
+| Cek BBG aktif (harus muncul baris `baseband_guard version: …`; kalau kosong, reboot lalu jalankan segera) | `adb shell "su -c 'dmesg \| grep baseband_guard'"` |
+| Cek nama `bbr3` untuk TCP Optimiser | `adb shell "su -c cat /proc/sys/net/ipv4/tcp_available_congestion_control"` |
 
 **Fastboot: pulihkan atau pasang `.img`**
 

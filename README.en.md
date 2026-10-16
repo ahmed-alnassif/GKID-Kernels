@@ -105,7 +105,8 @@ Run every command below in **Windows CMD** from the Platform Tools folder. Outpu
 | Current kernel log (root) | `adb shell "su -c dmesg" > dmesg.txt` |
 | Kernel log of the previous boot / pstore (root) | `adb shell "su -c 'cat /sys/fs/pstore/console-ramoops*'" > ramoops.txt` |
 | Check BBRv3 is active (must say `bbr`) | `adb shell "su -c cat /proc/sys/net/ipv4/tcp_congestion_control"` |
-| Check BBG is active (must include `baseband_guard`) | `adb shell "su -c cat /sys/kernel/security/lsm"` |
+| Check BBG is active (must show `baseband_guard version: …`; if empty, reboot and run it right away) | `adb shell "su -c 'dmesg \| grep baseband_guard'"` |
+| Check the `bbr3` name for TCP Optimiser | `adb shell "su -c cat /proc/sys/net/ipv4/tcp_available_congestion_control"` |
 
 **Fastboot: recover or install an `.img`**
 
