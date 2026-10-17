@@ -203,7 +203,11 @@ class ManualReleaseCreateTests(unittest.TestCase):
     def test_existing_release_is_replaced_only_when_asked(self):
         self.assertEqual(WORKFLOW[True]["workflow_dispatch"]["inputs"]["ganti_rilis"]["default"], False)
         self.assertIn('if [ "$REPLACE" != "true" ]; then', self.create)
-        self.assertIn('gh release delete "$RELEASE_TAG" --repo "$REPO" --cleanup-tag --yes', self.create)
+        self.assertIn('gh release delete "$RELEASE_TAG" --repo "$REPO" --yes', self.create)
+        # Run 38993943762: replacing a draft (no tag yet) failed on --cleanup-tag.
+        self.assertNotIn("--cleanup-tag", self.create)
+        self.assertIn('if gh api "repos/$REPO/git/ref/tags/$RELEASE_TAG" > /dev/null 2>&1; then', self.create)
+        self.assertIn('gh api -X DELETE "repos/$REPO/git/refs/tags/$RELEASE_TAG"', self.create)
 
 
 if __name__ == "__main__":

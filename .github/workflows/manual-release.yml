@@ -290,7 +290,11 @@ jobs:
               exit 1
             fi
             # Owner chose to replace it: the old release and its tag go, the new one is created below.
-            gh release delete "$RELEASE_TAG" --repo "$REPO" --cleanup-tag --yes
+            gh release delete "$RELEASE_TAG" --repo "$REPO" --yes
+            # A draft has no tag yet; delete the tag only when it exists (gh's own tag cleanup fails on drafts).
+            if gh api "repos/$REPO/git/ref/tags/$RELEASE_TAG" > /dev/null 2>&1; then
+              gh api -X DELETE "repos/$REPO/git/refs/tags/$RELEASE_TAG"
+            fi
             replaced="yes"
           fi
           case "$RELEASE_TYPE" in
