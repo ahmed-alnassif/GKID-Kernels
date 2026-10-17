@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       run_id:
-        description: "ID run build Cogan yang sukses / Successful Cogan build run ID"
+        description: "ID run build Cogan yang sukses; beberapa run (varian lain, revisi sama) dipisah koma jadi satu rilis / Successful Cogan build run ID; several runs (other variants, same revision) separated by commas make one release"
         required: true
         type: string
       release_type:
@@ -36,42 +36,61 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Verify source run
+      - name: Verify source runs
         env:
           GH_TOKEN: ${{ github.token }}
-          SOURCE_RUN: ${{ inputs.run_id }}
+          SOURCE_RUNS: ${{ inputs.run_id }}
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          [[ "$SOURCE_RUN" =~ ^[0-9]+$ ]] || { echo "::error::Run ID must be numeric"; exit 1; }
-          gh api "repos/$REPO/actions/runs/$SOURCE_RUN" > source-run.json
+          # One run, or several (other variants built with the same revision), make one release.
+          tr ', ' '\n\n' <<<"$SOURCE_RUNS" | sed '/^$/d' > source-runs.txt
+          [ -s source-runs.txt ] || { echo "::error::No run ID"; exit 1; }
+          for run in $(cat source-runs.txt); do
+            [[ "$run" =~ ^[0-9]+$ ]] || { echo "::error::Run ID must be numeric: $run"; exit 1; }
+            gh api "repos/$REPO/actions/runs/$run" > "source-run-$run.json"
+          done
           python3 - <<'PY'
-          import json, os
-          data=json.load(open("source-run.json"))
-          if data.get("conclusion") != "success":
-              raise SystemExit("Source run did not succeed; release refused")
-          if data.get("event") != "workflow_dispatch":
-              raise SystemExit("Source run must be a manually dispatched build")
-          if data.get("head_branch") != "dev":
-              raise SystemExit("Source run must originate from dev")
-          if not str(data.get("path","")).endswith(".github/workflows/build.yml"):
-              raise SystemExit("Source run is not the Cogan build workflow")
+          import json, os, subprocess
+          from pathlib import Path
+          runs = Path("source-runs.txt").read_text().split()
+          if len(set(runs)) != len(runs):
+              raise SystemExit("A run ID is listed twice")
+          found = []
+          for run in runs:
+              data = json.load(open(f"source-run-{run}.json"))
+              if data.get("conclusion") != "success":
+                  raise SystemExit(f"Source run {run} did not succeed; release refused")
+              if data.get("event") != "workflow_dispatch":
+                  raise SystemExit(f"Source run {run} must be a manually dispatched build")
+              if data.get("head_branch") != "dev":
+                  raise SystemExit(f"Source run {run} must originate from dev")
+              if not str(data.get("path", "")).endswith(".github/workflows/build.yml"):
+                  raise SystemExit(f"Source run {run} is not the Cogan build workflow")
+              found.append((data["created_at"], str(data["id"]), data["head_sha"]))
+          # Runs from different commits are fine only if they share the same pins.
+          def pins(sha):
+              return [subprocess.run(["git", "show", f"{sha}:{path}"], capture_output=True, text=True).stdout
+                      for path in ("configs/upstream.lock", "configs/ksun-susfs-6.1-features.lock.json")]
+          if len({tuple(pins(sha)) for _, _, sha in found}) != 1:
+              raise SystemExit("The runs were built from different pins (configs/upstream.lock); "
+                               "rebuild them from the same commit")
+          newest = max(found)
+          Path("source-runs.tsv").write_text("".join(f"{run}\t{sha}\n" for _, run, sha in sorted(found)))
           with open(os.environ["GITHUB_ENV"], "a") as env:
-              env.write("SOURCE_SHA=" + data["head_sha"] + "\n")
-          print("Validated build run", data["id"], data["head_sha"])
+              env.write(f"SOURCE_SHA={newest[2]}\n")  # pins, notes and "what's new" use the newest commit
+          for created, run, sha in sorted(found):
+              print("Validated build run", run, sha)
           PY
 
       - name: Download the build's files (kernel, manager, NoMount)
         env:
           GH_TOKEN: ${{ github.token }}
-          SOURCE_RUN: ${{ inputs.run_id }}
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
           mkdir -p release-files
-          gh api --paginate "repos/$REPO/actions/runs/$SOURCE_RUN/jobs?per_page=100" --jq '.jobs[] | select(.name | startswith("build (")) | [.name, .conclusion] | @tsv' > build-jobs.tsv
-          gh api --paginate "repos/$REPO/actions/runs/$SOURCE_RUN/artifacts?per_page=100" --jq '.artifacts[] | select(.expired == false) | [.id, .name, (.digest // "")] | @tsv' > run-artifacts.tsv
-          python3 - <<'PY'
+          cat > pick.py <<'PY'
           import re
           from pathlib import Path
           jobs = [line.split("\t") for line in Path("build-jobs.tsv").read_text().splitlines() if line.strip()]
@@ -101,7 +120,33 @@ jobs:
               raise SystemExit(f"Expected one 1-KERNEL_ download per variant ({len(variants)}), found {len(kernels)}; "
                                "downloads expire 7 days after the build")
           Path("numbered.tsv").write_text("".join("\t".join(item) + "\n" for item in picked))
+          Path("variants.txt").write_text("".join(v + "\n" for v in variants))
           print("Verified", len(variants), "successful matrix build(s);", len(picked), "download(s) to release")
+          PY
+          : > all-numbered.tsv
+          : > all-variants.txt
+          for run in $(cut -f1 source-runs.tsv); do
+            mkdir -p "runs/$run"
+            gh api --paginate "repos/$REPO/actions/runs/$run/jobs?per_page=100" --jq '.jobs[] | select(.name | startswith("build (")) | [.name, .conclusion] | @tsv' > "runs/$run/build-jobs.tsv"
+            gh api --paginate "repos/$REPO/actions/runs/$run/artifacts?per_page=100" --jq '.artifacts[] | select(.expired == false) | [.id, .name, (.digest // "")] | @tsv' > "runs/$run/run-artifacts.tsv"
+            (cd "runs/$run" && python3 ../../pick.py)
+            cat "runs/$run/numbered.tsv" >> all-numbered.tsv
+            cat "runs/$run/variants.txt" >> all-variants.txt
+          done
+          python3 - <<'PY'
+          from pathlib import Path
+          variants = Path("all-variants.txt").read_text().split()
+          if len(set(variants)) != len(variants):
+              raise SystemExit("The same variant is in more than one run: " + ", ".join(sorted(variants)))
+          # Files shared by several runs (the NoMount module) are released once if identical.
+          files = {}
+          for line in Path("all-numbered.tsv").read_text().splitlines():
+              artifact_id, name, digest = line.split("\t")
+              if name in files and files[name][1] != digest:
+                  raise SystemExit(f"{name}: different files with the same name in two runs")
+              files.setdefault(name, (artifact_id, digest))
+          Path("numbered.tsv").write_text("".join(f"{a}\t{n}\t{d}\n" for n, (a, d) in files.items()))
+          print(len(variants), "variant(s),", len(files), "file(s) to release")
           PY
           while IFS=$'\t' read -r artifact_id name digest; do
             gh api "repos/$REPO/actions/artifacts/$artifact_id/zip" > "release-files/$name"
@@ -152,18 +197,19 @@ jobs:
       - name: Read release name from the build
         env:
           GH_TOKEN: ${{ github.token }}
-          SOURCE_RUN: ${{ inputs.run_id }}
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          # Every matrix job writes the same RELEASE (vYY.MM.DD-rN) to its build-env artifact;
-          # all of them are kept for the component versions in the notes.
-          gh api --paginate "repos/$REPO/actions/runs/$SOURCE_RUN/artifacts?per_page=100" \
-            --jq '.artifacts[] | select(.expired == false and (.name | startswith("build-env-"))) | .name' > env-names.txt
-          [ -s env-names.txt ] || { echo "::error::No unexpired build-env artifact in run $SOURCE_RUN"; exit 1; }
-          while IFS= read -r name; do
-            gh run download "$SOURCE_RUN" --repo "$REPO" --name "$name" --dir "build-env/$name"
-          done < env-names.txt
+          # Every matrix job of every run writes the same RELEASE (vYY.MM.DD-rN) to its build-env
+          # artifact; all of them are kept for the component versions in the notes.
+          for run in $(cut -f1 source-runs.tsv); do
+            gh api --paginate "repos/$REPO/actions/runs/$run/artifacts?per_page=100" \
+              --jq '.artifacts[] | select(.expired == false and (.name | startswith("build-env-"))) | .name' > env-names.txt
+            [ -s env-names.txt ] || { echo "::error::No unexpired build-env artifact in run $run"; exit 1; }
+            while IFS= read -r name; do
+              gh run download "$run" --repo "$REPO" --name "$name" --dir "build-env/$name"
+            done < env-names.txt
+          done
           python3 - <<'PY'
           import os, re
           from pathlib import Path
@@ -231,7 +277,6 @@ jobs:
       - name: Create release (draft, pre-release or release)
         env:
           GH_TOKEN: ${{ github.token }}
-          SOURCE_RUN: ${{ inputs.run_id }}
           RELEASE_TYPE: ${{ inputs.release_type }}
           REPLACE: ${{ inputs.ganti_rilis }}
           REPO: ${{ github.repository }}
@@ -278,7 +323,11 @@ jobs:
             echo "> 🇮🇩 Hanya struktur ZIP yang divalidasi; boot di perangkat **belum diuji**. Simpan \`boot.img\` stock sebelum flash: [Panduan Bootloop]($SERVER/$REPO/blob/HEAD/docs/bootloop.md)."
             echo "> 🇬🇧 Only the ZIP structure was validated; device boot is **not tested**. Keep your stock \`boot.img\` before flashing: [Bootloop Guide]($SERVER/$REPO/blob/HEAD/docs/bootloop.en.md)."
             echo ""
-            footer="Dibangun dari / built from run [$SOURCE_RUN]($SERVER/$REPO/actions/runs/$SOURCE_RUN), commit \`${SOURCE_SHA:0:8}\`."
+            built=""
+            while IFS=$'\t' read -r run sha; do
+              built="${built:+$built, }[$run]($SERVER/$REPO/actions/runs/$run) (\`${sha:0:8}\`)"
+            done < source-runs.tsv
+            footer="Dibangun dari / built from run $built."
             if [ "$target" != "$SOURCE_SHA" ]; then
               footer="$footer Tag di / tagged at \`${target:0:8}\` (\`dev\` saat rilis): GitHub menolak tag bot di commit lama / GitHub refuses a bot tag on an older commit."
             fi
@@ -296,7 +345,7 @@ jobs:
             echo "- Tag di commit / tagged at \`${target:0:8}\`, kernel dari / built from \`${SOURCE_SHA:0:8}\`"
             echo "- Rilis lama diganti / replaced an existing release: $replaced"
             echo "- File: $(cd release-files && ls | sed 's/^/`/; s/$/`/' | paste -sd ' ' -)"
-            echo "- Sumber / source run: $SOURCE_RUN (belum diuji di perangkat / not device-tested)"
+            echo "- Sumber / source run: $(cut -f1 source-runs.tsv | paste -sd ',' - | sed 's/,/, /g') (belum diuji di perangkat / not device-tested)"
             echo ""
             echo "### 📋 Teks Telegram (Indonesia)"
             echo '```text'

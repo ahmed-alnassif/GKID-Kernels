@@ -15,7 +15,9 @@ ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = yaml.safe_load((ROOT / ".github/workflows/manual-release.yml").read_text())
 STEPS = WORKFLOW["jobs"]["manual-release"]["steps"]
 STEP = next(step["run"] for step in STEPS if step["name"].startswith("Download the build's files"))
-PICK, VERIFY = [block.split("\nPY\n", 1)[0] for block in STEP.split("<<'PY'\n")[1:3]]
+PICK, MERGE, VERIFY = [block.split("\nPY\n", 1)[0] for block in STEP.split("<<'PY'\n")[1:4]]
+SOURCES = next(step["run"] for step in STEPS if step["name"] == "Verify source runs")
+CHECK_SOURCES = SOURCES.split("<<'PY'\n")[1].split("\nPY\n", 1)[0]
 # Job name of run 38864831771 (#17), whose first release failed on the artifact check.
 JOB = "build (6.1-KSUN+SUSFS, KSUN, false, true, false, false, 6.1)"
 KERNEL = "1-KERNEL_Cogan-6.1.177_KernelSU-Next+SuSFS_v26.10.16-r3.zip"
@@ -58,6 +60,78 @@ class ManualReleasePickTests(unittest.TestCase):
         self.assertIn("Unsuccessful kernel build jobs", pick([(JOB, "failure")], [("1", KERNEL, DIGEST)])[0].stderr)
         self.assertIn("found 0", pick([(JOB, "success")], [("5", "build-6.1-KSUN+SUSFS-17", DIGEST)])[0].stderr)
         self.assertIn("no artifact id or SHA256 digest", pick([(JOB, "success")], [("1", KERNEL, "")])[0].stderr)
+
+
+def merge(per_run):
+    """per_run: [(variants, [(id, name, digest), ...]), ...] as pick.py leaves them per run."""
+    with tempfile.TemporaryDirectory() as directory:
+        directory = Path(directory)
+        (directory / "all-variants.txt").write_text("".join(v + "\n" for variants, _ in per_run for v in variants))
+        (directory / "all-numbered.tsv").write_text("".join("\t".join(row) + "\n" for _, rows in per_run for row in rows))
+        result = run(MERGE, directory)
+        merged = (directory / "numbered.tsv").read_text().split("\n") if result.returncode == 0 else []
+        return result, [line.split("\t")[1] for line in merged if line]
+
+
+class ManualReleaseSeveralRunsTests(unittest.TestCase):
+    KSUN = (["6.1-KSUN+SUSFS"], [("1", KERNEL, DIGEST), ("2", "2-MANAGER_KernelSU-Next_v3.4.2.apk", DIGEST),
+                                 ("4", "4-NOMOUNT-MODULE_v2.1.1.zip", "a" * 64)])
+    BAKASU = (["6.1-BSU+SUSFS"], [("7", "1-KERNEL_Cogan-6.1.177_BakaSU+SuSFS_v26.10.16-r3.zip", DIGEST),
+                                  ("8", "2-MANAGER_BakaSU_v4.2.0-rc3.apk", DIGEST),
+                                  ("9", "4-NOMOUNT-MODULE_v2.1.1.zip", "a" * 64)])
+
+    def test_two_variants_make_one_release_with_one_shared_module(self):
+        result, names = merge([self.KSUN, self.BAKASU])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(names, [KERNEL, "2-MANAGER_KernelSU-Next_v3.4.2.apk", "4-NOMOUNT-MODULE_v2.1.1.zip",
+                                 "1-KERNEL_Cogan-6.1.177_BakaSU+SuSFS_v26.10.16-r3.zip", "2-MANAGER_BakaSU_v4.2.0-rc3.apk"])
+
+    def test_same_variant_twice_or_clashing_files_are_refused(self):
+        self.assertIn("same variant is in more than one run", merge([self.KSUN, self.KSUN])[0].stderr)
+        clash = (self.BAKASU[0], [*self.BAKASU[1][:2], ("9", "4-NOMOUNT-MODULE_v2.1.1.zip", "b" * 64)])
+        self.assertIn("different files with the same name", merge([self.KSUN, clash])[0].stderr)
+
+    def check_sources(self, runs, same_pins=True):
+        """runs: [(id, conclusion, created_at)]; each run gets its own commit in a scratch repository."""
+        with tempfile.TemporaryDirectory() as directory:
+            directory = Path(directory)
+            git = lambda *args: subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *args],  # noqa: E731
+                                               cwd=directory, check=True, capture_output=True, text=True).stdout.strip()
+            git("init", "-q")
+            (directory / "configs").mkdir()
+            ids = []
+            for index, (run_id, conclusion, created) in enumerate(runs):
+                (directory / "configs/upstream.lock").write_text("KSU=1\n" if same_pins or index == 0 else "KSU=2\n")
+                (directory / "configs/ksun-susfs-6.1-features.lock.json").write_text("{}")
+                (directory / "note").write_text(str(index))
+                git("add", "-A")
+                git("commit", "-q", "-m", f"c{index}")
+                sha = git("rev-parse", "HEAD")
+                ids.append(run_id)
+                (directory / f"source-run-{run_id}.json").write_text(
+                    f'{{"id": {run_id}, "conclusion": "{conclusion}", "event": "workflow_dispatch", "head_branch": "dev",'
+                    f' "path": ".github/workflows/build.yml", "head_sha": "{sha}", "created_at": "{created}"}}')
+            (directory / "source-runs.txt").write_text("\n".join(ids) + "\n")
+            env_file = directory / "env"
+            result = subprocess.run([sys.executable, "-I", "-c", CHECK_SOURCES], cwd=directory, capture_output=True,
+                                    text=True, env={"GITHUB_ENV": str(env_file), "PATH": "/usr/bin:/bin"})
+            table = (directory / "source-runs.tsv").read_text() if result.returncode == 0 else ""
+            return result, env_file.read_text() if env_file.exists() else "", table, git("rev-parse", "HEAD")
+
+    def test_runs_from_different_commits_with_the_same_pins(self):
+        result, env, table, newest = self.check_sources([("38864831771", "success", "2026-10-16T07:03:44Z"),
+                                                         ("38867215760", "success", "2026-10-16T07:26:23Z")])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(env, f"SOURCE_SHA={newest}\n")  # the newest run's commit
+        self.assertEqual([line.split("\t")[0] for line in table.splitlines()], ["38864831771", "38867215760"])
+
+    def test_different_pins_or_a_failed_run_are_refused(self):
+        result = self.check_sources([("1", "success", "2026-10-16T07:00:00Z"), ("2", "success", "2026-10-16T08:00:00Z")],
+                                    same_pins=False)[0]
+        self.assertIn("built from different pins", result.stderr)
+        result = self.check_sources([("1", "success", "2026-10-16T07:00:00Z"), ("2", "failure", "2026-10-16T08:00:00Z")])[0]
+        self.assertIn("Source run 2 did not succeed", result.stderr)
+        self.assertIn("tr ', ' '\\n\\n'", SOURCES)  # "1,2", "1, 2" and "1 2" all work
 
 
 class ManualReleaseVerifyTests(unittest.TestCase):

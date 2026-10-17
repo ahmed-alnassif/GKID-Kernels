@@ -280,6 +280,14 @@ def components_marker(by_variant):
     return f"<!-- cogan-components: {text} -->" if "--" not in text else ""
 
 
+def builds_line(envs, separator=" · "):
+    """"Linux 6.1.177 · KernelSU Next + SUSFS, BakaSU + SUSFS": variants grouped per Linux version."""
+    groups = {}
+    for env in envs:
+        groups.setdefault(env.get("LINUX_VERSION", "?"), []).append(variant_label(env))
+    return separator.join(f"Linux {linux}{separator}{', '.join(labels)}" for linux, labels in groups.items())
+
+
 def variant_label(env):
     root = {"KSUN": "KernelSU Next", "KSU": "KernelSU", "BSU": "BakaSU"}.get(env.get("KSU", ""), "Vanilla")
     return root + (" + SUSFS" if env.get("KSU_SUSFS") == "true" else "")
@@ -342,7 +350,7 @@ def telegram_text(title, release_type, envs, names, items, features=(), highligh
     """Short plain text for Telegram: no links and no Markdown, so it pastes as is."""
     label = LABELS[lang]
     lines = [f"🚀 {title} ({label['types'].get(release_type, release_type)})"]
-    lines += [f"🐧 Linux {env.get('LINUX_VERSION', '?')} • {variant_label(env)}" for env in envs]
+    lines.append("🐧 " + builds_line(envs, " • "))
     best = [*features, *highlights]
     if best:
         lines += ["", f"⭐ {label['features']}", *[f"• {plain(text)}" for text in best]]
@@ -352,10 +360,11 @@ def telegram_text(title, release_type, envs, names, items, features=(), highligh
     parts = []
     if any(name.startswith("1-KERNEL_") for name in names):
         parts.append("Kernel")
-    managers = sorted(name for name in names if name.startswith(("2-MANAGER_", "3-MANAGER-SPOOFED_")))
+    managers = sorted({re.sub(r"\.apk$", "", name.split("_", 1)[1]).replace("_", " ")
+                       for name in names if name.startswith("2-MANAGER_")})
     if managers:
-        manager = re.sub(r"\.apk$", "", managers[0].split("_", 1)[1]).replace("_", " ")
-        parts.append(f"Manager {manager}" + (f" ({label['regular']})" if len(managers) > 1 else ""))
+        spoofed = any(name.startswith("3-MANAGER-SPOOFED_") for name in names)
+        parts.append("Manager " + " · ".join(managers) + (f" ({label['regular']})" if spoofed else ""))
     nomount = [name for name in names if name.startswith("4-NOMOUNT-MODULE_")]
     if nomount:
         version = re.sub(r"\.zip$", "", nomount[0][len("4-NOMOUNT-MODULE_"):]).split("_")[0]
@@ -368,8 +377,7 @@ def telegram_text(title, release_type, envs, names, items, features=(), highligh
 
 def box_content(title, envs, features, highlights, items, lang):
     """Title, features and news of the release box in one language (Markdown lines)."""
-    lines = [f"**⭐ {title}** · " + " · ".join(f"Linux {env.get('LINUX_VERSION', '?')} · {variant_label(env)}"
-                                            for env in envs), ""]
+    lines = [f"**⭐ {title}** · {builds_line(envs)}", ""]
     best = [*features, *highlights]
     if best:
         lines += [f"**{LABELS[lang]['features']}**", *[f"- {text}" for text in best], ""]
@@ -466,8 +474,12 @@ def main(argv=None):
     for env in envs:
         recorded = env.get("KERNEL_FEATURES", "")
         if not recorded:
-            match = [k for k in kernels if len(kernels) == 1 or k.stem.endswith("_" + env.get("BUILD_VARIANT", "?"))]
-            recorded = features_from_zip(match[0]) if match else ""
+            # Kernel ZIP of this variant: the only one, or the one named after it (one run per variant:
+            # "…_<BASE_NAME without Cogan->_…"; one run with several variants: "…_<BUILD_VARIANT>.zip").
+            base = env.get("BASE_NAME", "").split("-", 1)[-1]
+            match = [k for k in kernels if len(kernels) == 1 or k.stem.endswith("_" + env.get("BUILD_VARIANT", "?"))
+                     or (base and f"_{base}_" in k.name)]
+            recorded = features_from_zip(match[0]) if len(match) == 1 else ""
         recorded_features.append(recorded)
     # "⬆️ Diperbarui": component versions against the previous release of the same variant.
     current = {env.get("BUILD_VARIANT", "?"): components(env, lock, features_lock) for env in envs}
