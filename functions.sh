@@ -609,9 +609,7 @@ apply_susfs_patches() {
     cp -R $SUSFS_PATCHES/fs/* ./fs
     cp -R $SUSFS_PATCHES/include/linux/* ./include/linux/
 
-    # GKID's namespace fix adds the trace/hooks/blk.h include of android14-6.1-lts (6.1.167+)
-    # to the patch context; the stock ACK source predates it and takes the patch as published.
-    if [ "$SUSFS_PATCH" = "gki-android14-6.1" ] && grep -q '^#include <trace/hooks/blk.h>' fs/namespace.c; then
+    if [ "$SUSFS_PATCH" = "gki-android14-6.1" ]; then
       cd $SUSFS_DIR
       patch -p1 --fuzz=3 < "$KERNEL_PATCHES/susfs/susfs_fs_namespace_fix.patch"
       cd $OLDPWD

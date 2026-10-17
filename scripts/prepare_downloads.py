@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """Prepare the direct downloads of a kernel build, with names that say what they are.
 
-  1-KERNEL_<name>-<linux>_<variant>_<release>.zip  flash with Kernel Flasher
-                                                   (name: Cogan, or Cogan-Rothko for the rothko build)
+  1-KERNEL_Cogan-<linux>_<variant>_<release>.zip   flash with Kernel Flasher
   2-MANAGER_<root manager>_<tag>.apk                official root manager APK
   3-MANAGER-SPOOFED_<root manager>_<tag>.apk        official spoofed build (if published)
   4-NOMOUNT-MODULE_<tag>.zip                        official NoMount module
@@ -80,12 +79,12 @@ def checked_name(name):
     return name
 
 
-def kernel_download(artifacts, out, linux_version, variant, release, suffix, name="Cogan"):
+def kernel_download(artifacts, out, linux_version, variant, release, suffix):
     zips = sorted(Path(artifacts).glob("*.zip"))
     if len(zips) != 1:
         return None, f"⚠️ Kernel: expected one ZIP in {artifacts}, found {len(zips)}"
     out.mkdir(parents=True, exist_ok=True)
-    path = out / checked_name(f"1-KERNEL_{name}-{linux_version}_{variant}_{release}{suffix}.zip")
+    path = out / checked_name(f"1-KERNEL_Cogan-{linux_version}_{variant}_{release}{suffix}.zip")
     shutil.copyfile(zips[0], path)
     return path, None
 
@@ -100,10 +99,7 @@ def fetch_asset(lock, pin_key, companion, filename, out, verify_tag, lister, fet
             raise Failure(f"{companion.repo} tag {tag} now points at {actual}, but the kernel was built "
                           f"from {lock[pin_key]}; run Cogan Manual Update before shipping it")
     # A CI-only upstream build is downloaded from this repository's mirror prerelease.
-    # The mirror release lives in Cogan; COGAN_MIRROR_REPO lets another repository (the
-    # rothko builder in cogan17/Xiomi-14t-pro) use it.
-    mirror_repo = os.environ.get("COGAN_MIRROR_REPO") or os.environ.get("GITHUB_REPOSITORY", "cogan17/Cogan")
-    source = (DOWNLOAD.format(repo=mirror_repo, tag=mu.MIRROR_TAG,
+    source = (DOWNLOAD.format(repo=os.environ.get("GITHUB_REPOSITORY", "cogan17/Cogan"), tag=mu.MIRROR_TAG,
                               name=name) if companion.ci
               else DOWNLOAD.format(repo=companion.repo, tag=tag, name=name))
     data = fetch(source)
@@ -208,10 +204,10 @@ def prepare(args, lock, lister, fetch, text_fetch=mu.fetch_url):
     except Exception as exc:  # best effort: a reminder must never cost the kernel download
         notes.append(f"⚠️ Pengingat kernel/SUSFS tidak bisa dicek / could not be checked ({type(exc).__name__})")
     path, problem = kernel_download(args.artifacts, args.out, args.linux_version, args.variant,
-                                    args.release, args.suffix, args.name)
+                                    args.release, args.suffix)
     if path:
         outputs["kernel"] = str(path)
-        rows.append(("1", path.name, f"Kernel {args.name} {args.linux_version} ({args.variant})",
+        rows.append(("1", path.name, f"Kernel Cogan {args.linux_version} ({args.variant})",
                      "Flash di / with **Kernel Flasher**"))
     else:
         notes.append(problem)
@@ -298,7 +294,6 @@ def main(argv=None, lister=mu.ls_remote, fetch=download, text_fetch=mu.fetch_url
     parser.add_argument("--artifacts", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--suffix", default="")
-    parser.add_argument("--name", default="Cogan", help="Kernel name: Cogan, or Cogan-Rothko")
     parser.add_argument("--github-output")
     parser.add_argument("--summary")
     args = parser.parse_args(argv)

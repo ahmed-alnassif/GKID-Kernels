@@ -2,14 +2,11 @@
 """Kernel sublevels of the KSUN + SUSFS build (offline, fail closed).
 
 Usage:
-  ksun_susfs_sublevel.py resolve SUBLEVEL [--stock DEVICE]
+  ksun_susfs_sublevel.py resolve SUBLEVEL
       Print the sublevel KSUN + SUSFS builds for the form value SUBLEVEL:
       lts/auto/empty = the newest verified one, a number = that one if verified.
-      --stock DEVICE: the device's stock kernel source instead of GKID; its sublevel
-      is fixed (lts/auto/empty or exactly that sublevel).
-  ksun_susfs_sublevel.py record KERNEL_REPO COMMIT [--stock DEVICE]
-      Compute the locked identities of one GKID 6.1 commit (or of the device's stock
-      kernel source commit, with its own manifests and only the compatibility parity).
+  ksun_susfs_sublevel.py record KERNEL_REPO COMMIT
+      Compute the locked identities of one GKID 6.1 commit.
 
 record: KERNEL_REPO is any Git repository that already holds COMMIT (for example a
 `git fetch --depth=1` of the pinned sublevel); its work tree, index and refs are
@@ -21,9 +18,7 @@ under "sublevels" in configs/ksun-susfs-6.1-features.lock.json; the build then
 accepts that sublevel for KSUN + SUSFS and checks the same trees again.
 
 A sublevel whose context differs fails here and stays unavailable: the patches
-are never adapted automatically. The stock kernel source of a device ("stock_sources"
-in the lock) uses manifests whose patches were adapted by hand to its context and
-checked to carry the same changes.
+are never adapted automatically.
 """
 import hashlib
 import json
@@ -65,23 +60,15 @@ def series(manifest):
     return patches
 
 
-def identities(repo, commit, lock, stock=None):
-    """Locked trees of COMMIT; stock = a device of lock["stock_sources"] (its manifests,
-    compatibility parity only)."""
+def identities(repo, commit, lock):
     if not SHA.fullmatch(commit):
         raise ValueError("COMMIT must be a full 40-character SHA")
-    manifests = MANIFESTS
-    if stock:
-        source = lock["stock_sources"][stock]
-        if commit != source["kernel_commit"]:
-            raise ValueError(f"the {stock} stock kernel source is {source['kernel_commit']}")
-        manifests = (BASE / source["kernel_manifest"], BASE / source["feature_manifest"])
     makefile = git(repo, "show", f"{commit}:Makefile")
     fields = dict(re.findall(r"^(VERSION|PATCHLEVEL|SUBLEVEL) = (\d+)$", makefile, re.MULTILINE))
     if (fields.get("VERSION"), fields.get("PATCHLEVEL")) != ("6", "1") or "SUBLEVEL" not in fields:
         raise ValueError("COMMIT is not a 6.1 kernel")
     meta = lock["frozen_core"]
-    core, features = (series(manifest) for manifest in manifests)
+    core, features = (series(manifest) for manifest in MANIFESTS)
     with tempfile.TemporaryDirectory(prefix="ksun-susfs-sublevel-") as temp:
         env = dict(os.environ, GIT_INDEX_FILE=str(Path(temp) / "index"))
         git(repo, "read-tree", commit, env=env)
@@ -105,26 +92,16 @@ def identities(repo, commit, lock, stock=None):
         # Plain android14-6.1-lts sublevels get Cogan's GKID-equivalent stack on top.
         stack = gkid_parity.has_stack(git(repo, "show", f"{commit}:{gkid_parity.VERSION_C}"))
         if not stack:
-            gkid_parity.apply(repo, cached=True, env=env, compat=bool(stock))
+            gkid_parity.apply(repo, cached=True, env=env)
         final = git(repo, "write-tree", env=env)
-    entry = {"kernel_commit": commit, "core_kernel_tree": core_tree, "kernel_snapshot": snapshot,
-             "integrated_kernel_tree": integrated, "gkid_stack": stack, "final_kernel_tree": final}
-    if stock:
-        return stock, dict(lock["stock_sources"][stock], **entry)
-    return fields["SUBLEVEL"], entry
+    return fields["SUBLEVEL"], {"kernel_commit": commit, "core_kernel_tree": core_tree,
+                                "kernel_snapshot": snapshot, "integrated_kernel_tree": integrated,
+                                "gkid_stack": stack, "final_kernel_tree": final}
 
 
-def resolve(value, lock, stock=None):
-    wanted = value.strip().lower()
-    if stock:
-        if stock not in lock.get("stock_sources", {}):
-            raise ValueError(f"KSUN+SUSFS has no verified stock kernel source for {stock}")
-        fixed = lock["stock_sources"][stock]["sublevel"]
-        if wanted in ("", "lts", "auto", fixed):
-            return fixed
-        raise ValueError(f"the {stock} stock kernel source is 6.1.{fixed}; use lts or {fixed} "
-                         f"(not {value!r})")
+def resolve(value, lock):
     verified = sorted(lock["sublevels"], key=int)
+    wanted = value.strip().lower()
     if wanted in ("", "lts", "auto"):
         return verified[-1]
     if wanted in verified:
@@ -136,15 +113,12 @@ def resolve(value, lock, stock=None):
 def main(argv):
     try:
         lock = json.loads(FEATURE_LOCK.read_text(encoding="utf-8"))
-        stock = None
-        if len(argv) >= 2 and argv[-2] == "--stock":
-            stock, argv = argv[-1], argv[:-2]
         if len(argv) == 3 and argv[1] == "resolve":
-            print(resolve(argv[2], lock, stock))
+            print(resolve(argv[2], lock))
             return 0
         if len(argv) == 4 and argv[1] == "record":
-            key, entry = identities(Path(argv[2]), argv[3], lock, stock)
-            print(json.dumps({key: entry}, indent=2))
+            sublevel, entry = identities(Path(argv[2]), argv[3], lock)
+            print(json.dumps({sublevel: entry}, indent=2))
             return 0
     except (OSError, KeyError, ValueError, RuntimeError, subprocess.SubprocessError) as exc:
         print("BLOCKED: " + str(exc)[:2000], file=sys.stderr)

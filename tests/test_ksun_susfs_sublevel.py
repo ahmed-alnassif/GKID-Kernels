@@ -95,82 +95,6 @@ class SublevelTableTests(unittest.TestCase):
         self.assertIn('compgen -G "$KSRC/android/abi_gki_aarch64*"', build)
 
 
-def changed_lines(patch):
-    """file -> sorted added and removed lines of a diff (context and offsets ignored)."""
-    files, current = {}, None
-    for line in patch.read_text(encoding="utf-8", errors="replace").splitlines():
-        if line.startswith("diff --git"):
-            current = files.setdefault(line.split(" b/")[-1], [[], []])
-        elif current is not None and not line.startswith(("+++", "---")) and line[:1] in "+-":
-            current[line[0] == "-"].append(line)
-    return {name: [sorted(added), sorted(removed)] for name, (added, removed) in files.items()}
-
-
-class StockSourceTests(unittest.TestCase):
-    """KSUN + SUSFS on the rothko stock kernel source (official ACK 6.1.138)."""
-    BASE = ROOT / "kernel-patches/susfs/6.1-v2"
-
-    def test_stock_entry_matches_the_kmi_gate_pin_and_its_manifests(self):
-        from scripts import kmi_compat
-        entry, stock = LOCK["stock_sources"]["rothko"], kmi_compat.DEVICES["rothko"]["stock"]
-        self.assertEqual(entry["kernel_commit"], stock["commit"])
-        self.assertEqual(f"6.1.{entry['sublevel']}", stock["version"])
-        self.assertEqual(entry["tag"], stock["tag"])
-        self.assertIs(entry["gkid_stack"], False)
-        core = json.loads((self.BASE / entry["kernel_manifest"]).read_text())
-        features = json.loads((self.BASE / entry["feature_manifest"]).read_text())
-        self.assertEqual(core["kernel_commit"], entry["kernel_commit"])
-        self.assertEqual(features["kernel_commit"], entry["kernel_snapshot"])
-        self.assertEqual(features["core_tree"], entry["core_kernel_tree"])
-        for manifest in (entry["kernel_manifest"], entry["feature_manifest"]):
-            ks.series(self.BASE / manifest)  # every patch present with its checksum
-        # Same KSUN fork, SUSFS, BBG, NoMount and BBRv3 as the GKID sublevels: only 002 and 004 differ.
-        gkid = [p["path"] for p in json.loads((self.BASE / "replay/kernel-replay.json").read_text())["patches"]]
-        gkid += [p["path"] for p in json.loads((self.BASE / "features/kernel-replay.json").read_text())["patches"]]
-        stock_paths = [p["path"] for p in core["patches"] + features["patches"]]
-        self.assertEqual([path.split("/")[-1] for path in stock_paths], gkid)
-        self.assertEqual([path for path in stock_paths if "/" in path],
-                         ["stock-6.1.138/002-susfs-kernel.patch", "stock-6.1.138/004-bbrv3.patch"])
-
-    def test_adapted_susfs_kernel_patch_carries_the_same_changes(self):
-        self.assertEqual(changed_lines(self.BASE / "replay/stock-6.1.138/002-susfs-kernel.patch"),
-                         changed_lines(self.BASE / "replay/002-susfs-kernel.patch"))
-
-    def test_resolve_fixes_the_stock_sublevel(self):
-        for value in ("lts", "", "Auto", "138"):
-            self.assertEqual(ks.resolve(value, LOCK, "rothko"), "138", value)
-        for value in ("177", "167", "6.1.138"):
-            with self.assertRaisesRegex(ValueError, "stock kernel source is 6.1.138"):
-                ks.resolve(value, LOCK, "rothko")
-        with self.assertRaisesRegex(ValueError, "no verified stock kernel source for poco"):
-            ks.resolve("lts", LOCK, "poco")
-        result = subprocess.run([sys.executable, str(TOOL), "resolve", "lts", "--stock", "rothko"],
-                                capture_output=True, text=True)
-        self.assertEqual(result.stdout.strip(), "138")
-
-    def test_record_refuses_another_commit_as_the_stock_source(self):
-        with self.assertRaisesRegex(ValueError, "rothko stock kernel source is 6ab8c9a8"):
-            ks.identities(ROOT, "0" * 40, LOCK, "rothko")
-
-    def test_stage_refuses_an_unknown_stock_device(self):
-        result = subprocess.run([sys.executable, str(ROOT / "scripts/stage_ksun_susfs_candidate.py"),
-                                 "/nonexistent/ksrc", "/nonexistent/ksun", "stock:poco"],
-                                capture_output=True, text=True)
-        self.assertEqual(result.returncode, 1)
-        self.assertIn("no verified stock kernel source for poco", result.stderr)
-
-    def test_build_stages_and_patches_the_stock_source(self):
-        build = (ROOT / "build.sh").read_text()
-        self.assertIn('[ "$KERNEL_SOURCE" = "stock" ] && KSUN_SUSFS_TARGET="stock:$TARGET_DEVICE"', build)
-        self.assertIn('BBRV3_PATCH="$KERNEL_PATCHES/susfs/6.1-v2/features/stock-$STOCK_VERSION/004-bbrv3.patch"', build)
-        self.assertTrue((self.BASE / "features/stock-6.1.138/004-bbrv3.patch").is_file())
-        self.assertIn('apply_patch_file "$BBRV3_PATCH" || { error "BBRv3 patch failed (Networking enabled)"; exit 1; }',
-                      build)
-        self.assertIn(f'"$KERNEL_PATCHES/common/{gp.FORCE_LOAD}"', build)
-        functions = (ROOT / "functions.sh").read_text()
-        self.assertIn("grep -q '^#include <trace/hooks/blk.h>' fs/namespace.c", functions)
-
-
 class GkidParityTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -217,13 +141,6 @@ class GkidParityTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "0004-broken.patch does not apply"):
             gp.apply(self.repo)
         self.assertTrue((self.repo / "android/abi_gki_protected_exports_aarch64").exists())
-
-    def test_compat_applies_only_the_module_force_load(self):
-        (self.patches / "0003-force-load.patch").rename(self.patches / gp.FORCE_LOAD)
-        (self.patches / "0005-performance.patch").write_text(
-            "diff --git a/missing.c b/missing.c\n--- a/missing.c\n+++ b/missing.c\n@@ -1 +1 @@\n-a\n+b\n")
-        self.assertEqual(gp.apply(self.repo, compat=True), ["android/abi_gki_protected_exports_aarch64"])
-        self.assertTrue(gp.has_stack((self.repo / "kernel/module/version.c").read_text()))
 
     def test_missing_protected_exports_is_an_error(self):
         subprocess.run(["git", "-C", str(self.repo), "rm", "-q", "android/abi_gki_protected_exports_aarch64"], check=True)

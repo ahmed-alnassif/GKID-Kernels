@@ -10,11 +10,7 @@ The AnyKernel3 line "AnyKernel3 by osm0sis @ xda-developers" comes from
 tools/ak3-core.sh and stays as it is. An optional FEATURES line (from
 kernel_features.py, i.e. the built config) is shown under the Cogan name.
 
---device CODENAME (only rothko, the Xiaomi 14T Pro) turns on the AnyKernel3
-device check: the ZIP aborts unless ro.product.device / ro.build.product (or
-their vendor variants) equal the codename.
-
-Usage: brand_anykernel.py ANYKERNEL_DIR "KERNEL STRING" ["FEATURES"] [--device CODENAME]
+Usage: brand_anykernel.py ANYKERNEL_DIR "KERNEL STRING" ["FEATURES"]
 """
 import re
 import sys
@@ -49,41 +45,22 @@ BLOCK = [
     'ui_print " "\n',
 ]
 UPSTREAM_MARKERS = ("GKID", "t.me/", "Telegram", "Thank you for using", "community")
-# Codename -> name shown while flashing. AnyKernel3 compares the codename with
-# ro.product.device, ro.build.product, ro.product.vendor.device, ro.vendor.product.device.
-DEVICES = {"rothko": "Xiaomi 14T Pro (rothko)"}
 
 
-def block(features="", device=None):
-    extra = []
-    if features:
-        if not FEATURES.fullmatch(features):
-            raise ValueError(f"unsupported features line: {features!r}")
-        extra.append(f'ui_print "Features: {features}"\n')
-    if device:
-        extra.append(f'ui_print "Device: {DEVICES[device]}"\n')
+def block(features=""):
+    if not features:
+        return BLOCK
+    if not FEATURES.fullmatch(features):
+        raise ValueError(f"unsupported features line: {features!r}")
     at = BLOCK.index('ui_print "github.com/cogan17/Cogan"\n') + 1
-    return [*BLOCK[:at], *extra, *BLOCK[at:]]
+    return [*BLOCK[:at], f'ui_print "Features: {features}"\n', *BLOCK[at:]]
 
 
-def set_property(lines, key, value):
-    found = [i for i, line in enumerate(lines) if line.startswith(key + "=")]
-    if len(found) != 1:
-        raise ValueError(f"expected one {key} line, found {len(found)}")
-    lines[found[0]] = f"{key}={value}\n"
-
-
-def brand(script, kernel_string, features="", device=None):
+def brand(script, kernel_string, features=""):
     if not KERNEL_STRING.fullmatch(kernel_string):
         raise ValueError(f"unsupported kernel string: {kernel_string!r}")
-    if device is not None and device not in DEVICES:
-        raise ValueError(f"unsupported device: {device!r}")
-    lines_to_insert = block(features, device)
+    lines_to_insert = block(features)
     lines = script.splitlines(keepends=True)
-    if device:
-        # Device-specific build: AnyKernel3 refuses to flash it on any other phone.
-        set_property(lines, "do.devicecheck", "1")
-        set_property(lines, "device.name1", device)
     names = [i for i, line in enumerate(lines) if line.startswith("kernel.string=")]
     if len(names) != 1:
         raise ValueError(f"expected one kernel.string line, found {len(names)}")
@@ -105,14 +82,6 @@ def brand(script, kernel_string, features="", device=None):
 
 
 def main(argv):
-    argv, device = list(argv), None
-    if "--device" in argv:
-        at = argv.index("--device")
-        if at + 1 >= len(argv):
-            print(__doc__, file=sys.stderr)
-            return 2
-        device = argv[at + 1]
-        del argv[at:at + 2]
     if len(argv) not in (3, 4):
         print(__doc__, file=sys.stderr)
         return 2
@@ -120,14 +89,12 @@ def main(argv):
     features = argv[3] if len(argv) == 4 else ""
     try:
         script = root / "anykernel.sh"
-        script.write_text(brand(script.read_text(encoding="utf-8"), argv[2], features, device),
-                          encoding="utf-8")
+        script.write_text(brand(script.read_text(encoding="utf-8"), argv[2], features), encoding="utf-8")
         (root / "banner").write_text(BANNER, encoding="utf-8")
     except (OSError, ValueError) as exc:
         print("BLOCKED: AnyKernel3 branding: " + str(exc), file=sys.stderr)
         return 1
-    print(f"AnyKernel3 branded: kernel.string={argv[2]}" + (f"; features: {features}" if features else "")
-          + (f"; device check: {device}" if device else ""))
+    print(f"AnyKernel3 branded: kernel.string={argv[2]}" + (f"; features: {features}" if features else ""))
     return 0
 
 

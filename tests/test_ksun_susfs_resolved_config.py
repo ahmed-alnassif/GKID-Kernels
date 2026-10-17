@@ -229,8 +229,9 @@ class ResolvedConfigTests(unittest.TestCase):
                          {"path": "005-bbr3-alias.patch", "sha256": hashlib.sha256(alias).hexdigest()})
         self.assertEqual(lock["reviewed_patches"][-1]["applies_after"], "004-bbrv3.patch")
         build = (ROOT / "build.sh").read_text(encoding="utf-8")
-        self.assertIn('BBRV3_PATCH="$KERNEL_PATCHES/bbrv3/bbrv3.patch"', build)
-        self.assertIn('apply_patch_file "$BBRV3_PATCH" || { error "BBRv3 patch failed (Networking enabled)"; exit 1; }', build)
+        # Fail closed: the fuzz fallback cannot dry-run this multi-commit series.
+        self.assertIn('apply_patch_file "$KERNEL_PATCHES/bbrv3/bbrv3.patch" || { error "BBRv3 patch failed (Networking enabled)"; exit 1; }',
+                      build)
         self.assertIn('apply_patch_file "$KERNEL_PATCHES/bbrv3/bbr3-alias.patch" || {', build)
         reviewed = {item["name"]: item for item in lock["reviewed_patches"]}
         self.assertEqual(reviewed["004-bbrv3.patch"]["sha256"], digest)

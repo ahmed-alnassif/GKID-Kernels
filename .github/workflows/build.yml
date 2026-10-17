@@ -365,8 +365,6 @@ jobs:
           ANDROID_RELEASE=${{ env.ANDROID_RELEASE }}
           KERNEL_SOURCE_REPO=${{ env.KERNEL_SOURCE_REPO }}
           KERNEL_SOURCE_BRANCH=${{ env.KERNEL_SOURCE_BRANCH }}
-          TARGET_DEVICE=${{ env.TARGET_DEVICE }}
-          KERNEL_SOURCE=${{ env.KERNEL_SOURCE }}
           EOF
 
           echo "BUILD_VARIANT=${{ matrix.name }}" >> build-env-${{ matrix.name }}.txt
@@ -414,7 +412,7 @@ jobs:
         run: |
           python3 scripts/prepare_downloads.py --ksu "$KSU_INPUT" --susfs "$KSU_SUSFS_INPUT" \
             --variant "$VARIANT" --release "$RELEASE" --linux-version "$LINUX_VERSION" \
-            --artifacts artifacts --out downloads --suffix "$NAME_SUFFIX" --name "${KERNEL_LABEL:-Cogan}" \
+            --artifacts artifacts --out downloads --suffix "$NAME_SUFFIX" \
             --github-output "$GITHUB_OUTPUT" --summary "$GITHUB_STEP_SUMMARY"
 
       - name: Upload 1 - kernel

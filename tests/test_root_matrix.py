@@ -57,7 +57,7 @@ def main():
     assert 'elif [ "$KSU" = "KSUN" ]; then' in build_script
     assert 'if susfs_included; then' in build_script
     assert 'KSUN+SUSFS supports only kernel 6.1, fullLTO' in build_script
-    assert 'stage_ksun_susfs_candidate.py" "$KSRC" "$WORKDIR/ksun" "$KSUN_SUSFS_TARGET"' in build_script
+    assert 'stage_ksun_susfs_candidate.py" "$KSRC" "$WORKDIR/ksun" "$KSUN_SUSFS_SUBLEVEL"' in build_script
     assert '+Test' not in build_script  # no longer labelled as a test build
     # One build tag everywhere (revision, else CI run) and cogan17@GKID.
     assert 'SUFFIX="${RUN_NUM}-${LATEST_COMMIT_HASH}"' in build_script
@@ -101,35 +101,20 @@ def main():
         assert rejected.returncode == 1, (bad, rejected.stderr)
         assert message in rejected.stderr, rejected.stderr
         assert 'command not found' not in rejected.stderr, rejected.stderr
-    # The Xiaomi 14T Pro (rothko) build carries KSUN or BakaSU with SUSFS only.
-    for bad in ({"KSU": "KSU", "KSU_SUSFS": "true"}, {"KSU": "KSUN", "KSU_SUSFS": "false"},
-                {"KSU": "no"}, {"KSU": "BSU", "KSU_SUSFS": "true", "KSU_COMPAT": "true"}):
-        rejected = early(TARGET_DEVICE="rothko", **bad)
-        assert rejected.returncode == 1, (bad, rejected.stderr)
-        assert 'Xiaomi 14T Pro (rothko): only' in rejected.stderr, rejected.stderr
-        assert 'command not found' not in rejected.stderr, rejected.stderr
     # Every SUSFS variant needs 6.1.167+ (the SUSFS kernel patch needs its fs/namespace.c context).
     for ksu in ("BSU", "KSU"):
         rejected = early(KSU=ksu, KSU_SUSFS="true", KERNEL_SUBLEVEL="166")
         assert rejected.returncode == 1, (ksu, rejected.stderr)
         assert 'SUSFS variants need kernel 6.1.167 or newer' in rejected.stderr, rejected.stderr
-    rejected = early(TARGET_DEVICE="poco", KSU="BSU", KSU_SUSFS="true")
-    assert rejected.returncode == 1 and 'Unknown TARGET_DEVICE' in rejected.stderr, rejected.stderr
-    # The stock kernel source (official ACK) exists only for a device and has one sublevel.
-    for variables, message in (
-            ({"KERNEL_SOURCE": "stock", "KSU": "BSU", "KSU_SUSFS": "true"}, "KERNEL_SOURCE=stock needs a device"),
-            ({"KERNEL_SOURCE": "ack", "TARGET_DEVICE": "rothko"}, "Unknown KERNEL_SOURCE"),
-            ({"KERNEL_SOURCE": "stock", "TARGET_DEVICE": "rothko", "KSU": "BSU", "KSU_SUSFS": "true",
-              "KERNEL_SUBLEVEL": "177"}, "The rothko stock kernel source is 6.1.138: sublevel must be lts or 138"),
-            ({"KERNEL_SOURCE": "stock", "TARGET_DEVICE": "rothko", "KSU": "KSUN", "KSU_SUSFS": "true",
-              "KERNEL_SUBLEVEL": "167"}, "The rothko stock kernel source is 6.1.138")):
-        rejected = early(**variables)
-        assert rejected.returncode == 1, (variables, rejected.stderr)
-        assert message in rejected.stderr, rejected.stderr
-        assert 'command not found' not in rejected.stderr, rejected.stderr
-    assert 'KERNEL_NAME="${KERNEL_NAME}-ACK"' in build_script
-    assert 'KERNEL_NAME="${KERNEL_NAME}-Rothko"' in build_script
-    assert 'BRAND_ARGS=(--device rothko)' in build_script
+    # Cogan is the generic GKI 6.1 kernel and must not be disturbed by device work (A18):
+    # device builds (Xiaomi 14T Pro / rothko) live in their own repository with their own
+    # copy of this engine (cogan17/Xiomi-14t-pro, D-021), never in Cogan's code.
+    code = [ROOT / "build.sh", ROOT / "functions.sh", *ROOT.glob("scripts/*.py"), *ROOT.glob("py/*.py"),
+            *ROOT.glob("configs/*"), *ROOT.glob(".github/workflows/*.yml"), *ROOT.glob(".github/scripts/*.py")]
+    for path in code:
+        text = path.read_text(encoding="utf-8", errors="replace")
+        for device_code in ("TARGET_DEVICE", "KERNEL_SOURCE=", "rothko", "Xiomi", "kmi_compat", "COGAN_MIRROR_REPO"):
+            assert device_code not in text, f"{path.relative_to(ROOT)}: {device_code} (device code belongs in its own repository, A18)"
     # The workflow checks the same rules in prepare, before cache/dependency jobs.
     def prepare(**inputs):
         env = {**os.environ, "ROOT_MANAGER_INPUT": "KernelSU Next + SUSFS",
@@ -160,8 +145,7 @@ def main():
         "BakaSU + SUSFS", "KSUN + SUSFS & BakaSU + SUSFS", "Vanilla", "All variants (advanced)"]
     assert inputs["KERNEL_VERSION"]["options"] == ["6.1"]
     assert inputs["KERNEL_VERSION"]["default"] == "6.1"
-    # The Cogan form stays generic: the rothko build is dispatched from cogan17/Xiomi-14t-pro,
-    # which runs this build.sh with TARGET_DEVICE=rothko.
+    # The Cogan form stays generic (no device option).
     assert "DEVICE" not in inputs
     run_build = next(step for step in workflow["jobs"]["build"]["steps"] if step["name"] == "Run Build Script")
     assert "TARGET_DEVICE" not in run_build["env"]
