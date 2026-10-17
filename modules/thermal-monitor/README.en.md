@@ -54,6 +54,7 @@ The manager's **Action** button shows the last hour.
 
 ## For developers
 
+- Draft release: every module change on `dev` becomes a draft in Releases through the **Draft modul** workflow (tag `<folder>-vX.Y`); the owner publishes it.
 - Build the ZIP: `python3 scripts/package_module.py modules/thermal-monitor out/`
 - Offline tests (fake sysfs/proc): `python3 -m unittest tests/test_thermal_monitor.py`
 - Scripts: `sampler.sh` (recorder), `report.sh` (reports for the WebUI/Action), `report.awk` + `thermal.awk` + `cpu.awk` (POSIX awk, matches Android's awk).

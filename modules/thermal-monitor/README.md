@@ -54,6 +54,7 @@ Tombol **Action** di manager menampilkan ringkasan 1 jam terakhir.
 
 ## Untuk pengembang
 
+- Draft rilis: setiap perubahan modul di `dev` otomatis menjadi draft di Releases lewat workflow **Draft modul** (tag `<folder>-vX.Y`), lalu dipublikasikan oleh owner.
 - Buat ZIP: `python3 scripts/package_module.py modules/thermal-monitor out/`
 - Uji offline (sysfs/proc palsu): `python3 -m unittest tests/test_thermal_monitor.py`
 - Skrip: `sampler.sh` (pencatat), `report.sh` (laporan untuk WebUI/Action), `report.awk` + `thermal.awk` + `cpu.awk` (awk POSIX, cocok dengan awk Android).

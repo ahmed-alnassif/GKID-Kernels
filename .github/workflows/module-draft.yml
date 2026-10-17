@@ -1,0 +1,51 @@
+name: Draft modul
+
+# Packs the KernelSU modules in modules/ (Cogan Thermal Monitor, Cogan Power Mode) and keeps one
+# draft release per module with its ZIP, for the owner to test and publish (owner 2026-10-17).
+# Runs when a module changes on dev, or by hand. Tags look like "thermal-monitor-v1.1", never
+# "v…", so kernel releases (Manual Release, the README badge) never see them.
+
+on:
+  push:
+    branches:
+      - dev
+    paths:
+      - 'modules/**'
+      - 'scripts/package_module.py'
+      - 'scripts/module_draft.py'
+      - '.github/workflows/module-draft.yml'
+  workflow_dispatch:
+    inputs:
+      modul:
+        description: "Modul yang dibuat draft-nya / Module to draft"
+        required: true
+        default: semua
+        type: choice
+        options:
+          - semua
+          - thermal-monitor
+          - power-mode
+
+permissions:
+  contents: write
+
+concurrency:
+  group: module-draft
+  cancel-in-progress: false
+
+jobs:
+  draft:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Make or update the drafts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          ONLY: ${{ inputs.modul || 'semua' }}
+        run: python3 scripts/module_draft.py --repo "$REPO" --sha "$GITHUB_SHA" --only "$ONLY" --out dist --summary "$GITHUB_STEP_SUMMARY"

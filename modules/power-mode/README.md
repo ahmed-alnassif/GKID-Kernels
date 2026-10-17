@@ -56,6 +56,7 @@ Cara menjaga suhu (tiap 10 detik):
 
 ## Untuk pengembang
 
+- Draft rilis: setiap perubahan modul di `dev` otomatis menjadi draft di Releases lewat workflow **Draft modul** (tag `<folder>-vX.Y`), lalu dipublikasikan oleh owner.
 - Buat ZIP: `python3 scripts/package_module.py modules/power-mode out/`
 - Uji offline (sysfs palsu): `python3 -m unittest tests/test_power_mode.py`
 - Skrip:

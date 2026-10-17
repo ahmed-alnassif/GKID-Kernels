@@ -59,6 +59,7 @@ jobs:
           python3 -m unittest discover -s tests -p 'test_delete_old_runs.py'
           python3 -m unittest discover -s tests -p 'test_thermal_monitor.py'
           python3 -m unittest discover -s tests -p 'test_power_mode.py'
+          python3 -m unittest discover -s tests -p 'test_module_draft.py'
           python3 -m unittest discover -s tests -p 'test_prepare_susfs_kernel_patch.py'
           python3 -m unittest discover -s tests -p 'test_prepare_susfs_synthetic.py'
           python3 -m unittest discover -s tests -p 'test_prepare_ksun_susfs_candidate.py'

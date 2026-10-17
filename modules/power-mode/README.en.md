@@ -56,6 +56,7 @@ How the temperature is kept (every 10 seconds):
 
 ## For developers
 
+- Draft release: every module change on `dev` becomes a draft in Releases through the **Draft modul** workflow (tag `<folder>-vX.Y`); the owner publishes it.
 - Build the ZIP: `python3 scripts/package_module.py modules/power-mode out/`
 - Offline tests (fake sysfs): `python3 -m unittest tests/test_power_mode.py`
 - Scripts:
