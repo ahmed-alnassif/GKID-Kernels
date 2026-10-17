@@ -76,6 +76,7 @@ A generic kernel built from GKI 6.1 sources ([GKI-Duchamp-6.1](https://github.co
 ## Extra modules
 
 - **[Cogan Thermal Monitor](modules/thermal-monitor/README.en.md)** (testing): records every temperature on the phone and what caused it (apps, games, charging, kernel threads), makes summaries and saves logs from the KernelSU / KernelSU Next / BakaSU WebUI. Read-only.
+- **[Cogan Power Mode](modules/power-mode/README.en.md)** (testing): saver / balanced / game modes and automatic charge cut-off. The balanced mode keeps the temperature down using Cogan Thermal Monitor's reports, e.g. by pausing charging when charging is what heats the phone.
 
 ---
 

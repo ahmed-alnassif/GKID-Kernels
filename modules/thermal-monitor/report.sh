@@ -19,6 +19,8 @@ now=$(date +%s)
 tzoff=$(date +%z | awk '{ s = substr($0, 1, 1) == "-" ? -1 : 1; print s * (substr($0, 2, 2) * 3600 + substr($0, 4, 2) * 60) }')
 kfile=$CT_DATA/kernels.tsv
 [ -f "$kfile" ] || kfile=/dev/null
+mfile=$CT_DATA/modes.tsv   # written by Cogan Power Mode when installed
+[ -f "$mfile" ] || mfile=/dev/null
 
 # SECS as a number between one minute and 31 days (one hour when missing or not a number).
 secs_arg() {
@@ -29,8 +31,8 @@ secs_arg() {
 run_awk() {   # run_awk MODE SECS FILES...
   mode=$1; secs=$2; shift 2
   awk -v mode="$mode" -v since=$((now - secs)) -v now="$now" -v secs="$secs" -v HOT=$((HOT_TEMP * 10)) \
-      -v TZOFF="$tzoff" -v KFILE="$kfile" -v fresh="$fresh" -v release="$release" -v running="$running" \
-      -f "$MODDIR/thermal.awk" -f "$MODDIR/report.awk" "$kfile" "$@"
+      -v TZOFF="$tzoff" -v KFILE="$kfile" -v MFILE="$mfile" -v fresh="$fresh" -v release="$release" -v running="$running" \
+      -f "$MODDIR/thermal.awk" -f "$MODDIR/report.awk" "$kfile" "$mfile" "$@"
 }
 
 # Day files that can hold samples from the last SECS seconds.
@@ -153,6 +155,9 @@ case "$1" in
   clear)
     rm -f "$CT_DATA"/data/*.tsv "$CT_RUN/cpu.prev" "$CT_RUN/pids.prev" "$CT_RUN/net.prev" "$CT_RUN/last" "$CT_RUN/notified"
     printf '%s\t%s\n' "$now" "$(uname -r)" > "$CT_DATA/kernels.tsv"
+    # Keep the Cogan Power Mode mode that is active now.
+    current=$(tail -n 1 "$CT_DATA/modes.tsv" 2>/dev/null | cut -f 2)
+    [ -n "$current" ] && printf '%s\t%s\n' "$now" "$current" > "$CT_DATA/modes.tsv"
     echo '{"ok":1}'
     ;;
   *)

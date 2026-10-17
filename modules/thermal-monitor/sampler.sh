@@ -51,21 +51,29 @@ sample() {
 
   day=$(date +%Y-%m-%d)
   printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$now" "$app" "$screen" "$charging" "$current" \
-    "$battery" "$cpu" "$kernel" "$gpu" "${top:--}" "$net" "$freqs" "${zones:--}" >> "$CT_DATA/data/$day.tsv"
+    "$battery" "$cpu" "$kernel" "$gpu" "${top:--}" "$net" "$freqs" "${zones:--}" > "$CT_RUN/sample.tsv"
+  cat "$CT_RUN/sample.tsv" >> "$CT_DATA/data/$day.tsv"
   echo "$now" > "$CT_RUN/last"
-  alert "$now" "$app" "$cpu" "$gpu" "$zones"
+
+  # Short report of this sample for other modules (Cogan Power Mode reads it):
+  # ts  main_temp  battery_temp  charging  app_label  cause
+  awk -v mode=latest -v since=0 -v now=$((now + 1)) -v HOT=$((HOT_TEMP * 10)) \
+      -f "$MODDIR/thermal.awk" -f "$MODDIR/report.awk" "$CT_RUN/sample.tsv" > "$CT_RUN/latest.tmp" 2>/dev/null
+  [ -s "$CT_RUN/latest.tmp" ] && mv "$CT_RUN/latest.tmp" "$CT_RUN/latest"
+  IFS='	' read -r _ main _ _ label _ < "$CT_RUN/latest" 2>/dev/null
+  alert "$now" "$label" "$cpu" "$gpu" "$main"
 }
 
 # Optional heat notification (NOTIFY=1), at most once every 10 minutes.
-alert() {
+alert() {   # alert TS APP_LABEL CPU GPU MAIN_TEMP
   [ "$NOTIFY" = 1 ] || return 0
-  main=$(awk -v mode=main -v zones="$5" -f "$MODDIR/thermal.awk" -f "$MODDIR/report.awk" < /dev/null 2>/dev/null)
+  main=$5
   case "$main" in ''|*[!0-9-]*) return 0 ;; esac
   [ "$main" -ge $((NOTIFY_TEMP * 10)) ] || return 0
   last=$(cat "$CT_RUN/notified" 2>/dev/null || echo 0)
   [ $(($1 - last)) -ge 600 ] || return 0
   echo "$1" > "$CT_RUN/notified"
-  text="Prosesor $((main / 10)) °C · $(awk -v mode=label -v app="$2" -f "$MODDIR/thermal.awk" -f "$MODDIR/report.awk" < /dev/null)"
+  text="Prosesor $((main / 10)) °C · $2"
   [ "$3" -ge 0 ] && text="$text · CPU $(($3 / 10))%"
   [ "$4" -ge 0 ] && text="$text · GPU $4%"
   cmd notification post -S bigtext -t "🔥 Cogan Thermal" cogan_thermal "$text" > /dev/null 2>&1 \

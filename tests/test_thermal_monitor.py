@@ -146,6 +146,13 @@ class SamplerTests(unittest.TestCase):
         self.assertNotIn("unused_sensor", zones)
         self.assertNotIn("broken", zones)
 
+    def test_latest_report_for_other_modules(self):
+        self.phone.run("sampler.sh", "--once")
+        ts, main, battery, charging, app, cause = (self.phone.data / "run/latest").read_text().rstrip("\n").split("\t")
+        self.assertLessEqual(abs(int(ts) - time.time()), 5)
+        self.assertEqual((main, battery, charging, app), ("550", "361", "1", "Mobile Legends"))
+        self.assertEqual(cause, "Cas cepat")                   # charging at 2100 mA comes first
+
     def test_heat_notification_only_when_enabled_and_hot(self):
         self.phone.run("sampler.sh", "--once")
         self.assertFalse((self.phone.base / "notifications").exists())
@@ -226,6 +233,21 @@ class ReportTests(unittest.TestCase):
         self.assertLessEqual({"Prosesor", "GPU", "Baterai"}, set(groups))
         self.assertEqual((groups["GPU"]["avg"], groups["GPU"]["peak"]), (460, 460))   # only samples with a GPU zone
 
+    def test_summary_per_power_mode(self):
+        start = self.now - 140 * 20
+        write(self.phone.data / "modes.tsv", f"{start + 30 * 20}\tgame\n{start + 90 * 20}\tseimbang\n")
+        summary = json.loads(self.phone.report("summary", "86400"))
+        modes = {mode["mode"]: mode for mode in summary["modes"]}
+        self.assertEqual({key: modes[key]["pct"] for key in modes}, {"none": 21, "game": 43, "seimbang": 36})
+        self.assertEqual(modes["game"]["name"], "Game")
+        self.assertEqual(modes["game"]["hot_pct"], 100)
+        self.assertEqual(modes["seimbang"]["hot_pct"], 40)      # 20 of 50: the fast-charging samples
+        self.assertIn("Per mode Cogan Power", summary["text"])
+        self.assertIn("Tanpa Cogan Power", summary["text"])
+        self.assertEqual(json.loads(self.phone.report("now"))["mode"], "Seimbang")
+        self.phone.report("clear")
+        self.assertEqual((self.phone.data / "modes.tsv").read_text().split("\t")[1], "seimbang\n")
+
     def test_short_range_only_sees_recent_samples(self):
         summary = json.loads(self.phone.report("summary", "300"))
         self.assertLessEqual(summary["samples"], 16)
@@ -271,6 +293,7 @@ class ReportTests(unittest.TestCase):
         self.assertEqual(summary["samples"], 0)
         self.assertIn("Belum ada data", summary["text"])
         self.assertEqual(json.loads(self.phone.report("now"))["age"], -1)
+        self.assertEqual(json.loads(self.phone.report("now"))["mode"], "")
         self.assertEqual(json.loads(self.phone.report("status"))["days"], 0)
 
     def test_settings_are_validated(self):
@@ -303,7 +326,8 @@ class PackageTests(unittest.TestCase):
             result = subprocess.run([sys.executable, str(ROOT / "scripts/package_module.py"), str(MODULE), out],
                                     capture_output=True, text=True, check=True)
             target = Path(result.stdout.strip())
-            self.assertEqual(target.name, "Cogan-Thermal-Monitor-v1.0.zip")
+            version = next(l.split("=", 1)[1] for l in (MODULE / "module.prop").read_text().splitlines() if l.startswith("version="))
+            self.assertEqual(target.name, f"Cogan-Thermal-Monitor-{version}.zip")
             with zipfile.ZipFile(target) as archive:
                 modes = {info.filename: (info.external_attr >> 16) & 0o777 for info in archive.infolist()}
         self.assertEqual(modes["module.prop"], 0o644)

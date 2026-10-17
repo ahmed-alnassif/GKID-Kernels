@@ -1,7 +1,7 @@
 # Cogan Thermal Monitor: reports from the sampler's lines (tab separated, see sampler.sh).
-# Needs thermal.awk first. Variables: mode (text|json|csv|detail|now|main|date|label), since, now, secs,
-# HOT (tenths of degC), TZOFF, KFILE (kernels.tsv), zones (main/now), fresh (now: zones read just now),
-# release (now: uname -r), running (now: 1/0).
+# Needs thermal.awk first. Variables: mode (text|json|csv|detail|now|latest|main|date|label), since, now, secs,
+# HOT (tenths of degC), TZOFF, KFILE (kernels.tsv), MFILE (modes.tsv from Cogan Power Mode), zones (main),
+# fresh (now: zones read just now), release (now: uname -r), running (now: 1/0).
 
 BEGIN {
     FS = "\t"
@@ -18,6 +18,7 @@ BEGIN {
 }
 
 FILENAME == KFILE { if ($1 + 0 > 0) { kn++; kts[kn] = $1 + 0; kname[kn] = $2 }; next }
+FILENAME == MFILE { if ($1 + 0 > 0) { mn++; mts[mn] = $1 + 0; mname[mn] = $2 }; next }
 mode == "now" { last = $0; next }
 $1 + 0 < since || $1 + 0 > now || NF < 13 { next }
 
@@ -56,6 +57,12 @@ $1 + 0 < since || $1 + 0 > now || NF < 13 { next }
     k = kernel_at(ts)
     kern_n[k]++; kern_sum[k] += main
     if (!(k in kern_peak) || main > kern_peak[k]) kern_peak[k] = main
+    if (mn) {
+        md = mode_at(ts)
+        mode_n[md]++; mode_sum[md] += main
+        if (!(md in mode_peak) || main > mode_peak[md]) mode_peak[md] = main
+        if (main >= HOT) mode_hot[md]++
+    }
     if (cpu >= 0) { cpusum += cpu; cpun++ }
     if (kern >= 0) { kernsum += kern; kernn++ }
     if (main >= HOT) { hot++; c = cause(); causes[c]++ }
@@ -66,6 +73,7 @@ $1 + 0 < since || $1 + 0 > now || NF < 13 { next }
 
 function maxall(   g, b) { b = -9999; for (g in gmax) if (gmax[g] > b) b = gmax[g]; return b }
 function kernel_at(ts,   i, k) { k = "?"; for (i = 1; i <= kn; i++) if (kts[i] <= ts) k = kname[i]; return k }
+function mode_at(ts,   i, m) { m = "none"; for (i = 1; i <= mn; i++) if (mts[i] <= ts) m = mname[i]; return m }
 function top_first(   parts, kv) {
     TOPN = ""; TOPP = 0
     if (split(top, parts, ";") < 1 || parts[1] == "-") return
@@ -121,7 +129,7 @@ function rank(arr, out,   k, n, i, j, t) {
     return n
 }
 
-function summary_text(   s, i, g, nc, order, na, apps, nk, kord, line) {
+function summary_text(   s, i, g, nc, order, na, apps, nk, kord, line, nm, mord) {
     s = "Cogan Thermal Monitor — ringkasan " span(secs)
     if (n == 0) return s "\nBelum ada data pada rentang ini. Modul mencatat tiap beberapa detik setelah HP menyala.\n"
     s = s " (" stamp(first) "–" stamp(lastts) (lastts - first < 86400 ? ", " local_date(lastts) : "") ") · " n " sampel\n\n"
@@ -146,6 +154,12 @@ function summary_text(   s, i, g, nc, order, na, apps, nk, kord, line) {
     nk = rank(kern_n, kord)
     s = s "\n🐧 Per kernel (rata-rata · tertinggi):\n"
     for (i = 1; i <= nk; i++) s = s sprintf("  %s — %s · %s °C (%d%% waktu)\n", kord[i], deg(kern_sum[kord[i]] / kern_n[kord[i]]), deg(kern_peak[kord[i]]), int(kern_n[kord[i]] * 100 / n + 0.5))
+    if (mn) {
+        nm = rank(mode_n, mord)
+        s = s "\n⚡ Per mode Cogan Power (rata-rata · tertinggi · waktu panas):\n"
+        for (i = 1; i <= nm; i++) s = s sprintf("  %s — %s · %s °C · %d%% panas (%d%% waktu)\n", mode_name(mord[i]), deg(mode_sum[mord[i]] / mode_n[mord[i]]), \
+            deg(mode_peak[mord[i]]), int(mode_hot[mord[i]] * 100 / mode_n[mord[i]] + 0.5), int(mode_n[mord[i]] * 100 / n + 0.5))
+    }
     s = s "\nCPU rata-rata " (cpun ? sprintf("%.0f%%", cpusum / cpun / 10) : "-") " · proses kernel " (kernn ? sprintf("%.1f%%", kernsum / kernn / 10) : "-") "\n"
     return s
 }
@@ -156,6 +170,7 @@ function json_list(arr, total, limit, kind,   ord, nn, i, s, k) {
         k = ord[i]
         if (kind == "cause") s = s (i > 1 ? "," : "") sprintf("{\"name\":\"%s\",\"pct\":%d}", jesc(k), int(arr[k] * 100 / total + 0.5))
         else if (kind == "app") s = s (i > 1 ? "," : "") sprintf("{\"name\":\"%s\",\"pkg\":\"%s\",\"pct\":%d,\"avg\":%d,\"peak\":%d}", jesc(label(k)), jesc(k), int(arr[k] * 100 / total + 0.5), int(appsum[k] / appn[k]), apppeak[k])
+        else if (kind == "mode") s = s (i > 1 ? "," : "") sprintf("{\"name\":\"%s\",\"mode\":\"%s\",\"pct\":%d,\"avg\":%d,\"peak\":%d,\"hot_pct\":%d}", mode_name(k), jesc(k), int(arr[k] * 100 / total + 0.5), int(mode_sum[k] / mode_n[k]), mode_peak[k], int(mode_hot[k] * 100 / mode_n[k] + 0.5))
         else s = s (i > 1 ? "," : "") sprintf("{\"name\":\"%s\",\"pct\":%d,\"avg\":%d,\"peak\":%d}", jesc(k), int(arr[k] * 100 / total + 0.5), int(kern_sum[k] / kern_n[k]), kern_peak[k])
     }
     return "[" s "]"
@@ -170,6 +185,7 @@ function json_summary(   s, i, g, step, b, j, mx, sep) {
         for (i = 1; i <= ng; i++) { g = GROUPS[i]; if (g in gpeak) { s = s sep sprintf("{\"name\":\"%s\",\"peak\":%d,\"avg\":%d}", group_name(g), gpeak[g], int(gsum[g] / gcnt[g])); sep = "," } }
         s = s "],\"causes\":" (hot ? json_list(causes, hot, 6, "cause") : "[]")
         s = s ",\"apps\":" json_list(appn, n, 8, "app") ",\"kernels\":" json_list(kern_n, n, 4, "kernel")
+        s = s ",\"modes\":" (mn ? json_list(mode_n, n, 4, "mode") : "[]")
         s = s sprintf(",\"cpu_avg\":%d,\"kernel_avg\":%d", cpun ? cpusum / cpun : -1, kernn ? kernsum / kernn : -1)
         step = int((n + 119) / 120); s = s ",\"series\":["; sep = ""
         for (b = 1; b <= n; b += step) {
@@ -194,8 +210,8 @@ function json_now(   f, zl2, m2, z2, kv2, i, s, sep, gm, g, mainv, age) {
     }
     mainv = main_temp(zl2)
     age = (f[1] + 0 > 0) ? now - f[1] : -1
-    printf "{\"running\":%d,\"release\":\"%s\",\"age\":%d,\"main\":%d,\"app\":\"%s\",\"pkg\":\"%s\",\"charging\":%d,\"current\":%d,\"battery\":%d,\"cpu\":%d,\"kernel\":%d,\"gpu\":%d,\"top\":\"%s\",\"groups\":[", \
-        running, jesc(release), age, mainv, jesc(label(f[2])), jesc(f[2]), f[4] + 0, f[5] + 0, (f[6] == "" ? -999 : f[6] + 0), (f[7] == "" ? -1 : f[7] + 0), (f[8] == "" ? -1 : f[8] + 0), (f[9] == "" ? -1 : f[9] + 0), jesc(f[10])
+    printf "{\"running\":%d,\"mode\":\"%s\",\"release\":\"%s\",\"age\":%d,\"main\":%d,\"app\":\"%s\",\"pkg\":\"%s\",\"charging\":%d,\"current\":%d,\"battery\":%d,\"cpu\":%d,\"kernel\":%d,\"gpu\":%d,\"top\":\"%s\",\"groups\":[", \
+        running, (mn ? mode_name(mname[mn]) : ""), jesc(release), age, mainv, jesc(label(f[2])), jesc(f[2]), f[4] + 0, f[5] + 0, (f[6] == "" ? -999 : f[6] + 0), (f[7] == "" ? -1 : f[7] + 0), (f[8] == "" ? -1 : f[8] + 0), (f[9] == "" ? -1 : f[9] + 0), jesc(f[10])
     sep = ""
     for (i = 1; i <= ng; i++) { g = GROUPS[i]; if (g in gm) { printf "%s{\"name\":\"%s\",\"t\":%d}", sep, group_name(g), gm[g]; sep = "," } }
     print "],\"zones\":[" s "]}"
@@ -204,6 +220,7 @@ function json_now(   f, zl2, m2, z2, kv2, i, s, sep, gm, g, mainv, age) {
 END {
     if (done) exit
     if (mode == "now") json_now()
+    else if (mode == "latest") { if (n) printf "%d\t%d\t%d\t%d\t%s\t%s\n", ts, main, bat, chg, label(app), cause() }
     else if (mode == "json") print json_summary()
     else if (mode == "text") printf "%s", summary_text()
 }

@@ -57,6 +57,11 @@ function label(pkg) {
     return pkg
 }
 
+# Cogan Power Mode's modes, as written to modes.tsv.
+function mode_name(m) {
+    return m == "seimbang" ? "Seimbang" : m == "game" ? "Game" : m == "hemat" ? "Hemat" : "Tanpa Cogan Power"
+}
+
 # Local wall clock from epoch seconds, using TZOFF (seconds east of UTC).
 function days_to_date(z,   era, doe, yoe, y, doy, mp, d, m) {   # Howard Hinnant's civil_from_days
     z += 719468

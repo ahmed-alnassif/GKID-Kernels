@@ -179,6 +179,7 @@ async function loadNow() {
     if (n.gpu >= 0) parts.push(`GPU ${n.gpu}%`);
     parts.push(n.charging ? `mengecas ${n.current} mA` : 'tidak dicas');
     if (status && n.age > status.interval * 3) parts.push(`data ${Math.round(n.age / 60)} menit lalu`);
+    if (n.mode) parts.push(`mode ${n.mode}`);
   } else parts.push('belum ada sampel; pencatat mengisi tiap beberapa detik');
   $('nowLine').textContent = parts.join(' · ');
   $('groups').innerHTML = n.groups.map(g => `<div class="chip"><small>${esc(g.name)}</small><b class="${level(g.t)}">${deg(g.t)}°</b></div>`).join('');
@@ -220,6 +221,7 @@ async function loadSummary() {
   h += '<h3>📱 Per aplikasi</h3><table>' + s.apps.map(a => `<tr><td>${esc(a.name)} <span class="muted">${a.pct}%</span></td><td class="${level(a.peak)}">${deg(a.avg)} / ${deg(a.peak)} °C</td></tr>`).join('') + '</table>';
   h += '<div class="muted" style="margin-top:4px">rata-rata / tertinggi</div>';
   h += '<h3>🐧 Per kernel</h3><table>' + s.kernels.map(k => `<tr><td>${esc(k.name)} <span class="muted">${k.pct}%</span></td><td>${deg(k.avg)} / ${deg(k.peak)} °C</td></tr>`).join('') + '</table>';
+  if (s.modes.length) h += '<h3>⚡ Per mode Cogan Power</h3><table>' + s.modes.map(m => `<tr><td>${esc(m.name)} <span class="muted">${m.pct}% · panas ${m.hot_pct}%</span></td><td class="${level(m.peak)}">${deg(m.avg)} / ${deg(m.peak)} °C</td></tr>`).join('') + '</table>';
   h += '<h3>Bagian HP</h3><table>' + s.groups.map(g => `<tr><td>${esc(g.name)}</td><td class="${level(g.peak)}">${deg(g.avg)} / ${deg(g.peak)} °C</td></tr>`).join('') + '</table>';
   if (s.cpu_avg >= 0) h += `<div class="muted" style="margin-top:8px">CPU rata-rata ${Math.round(s.cpu_avg / 10)}% · proses kernel ${(s.kernel_avg / 10).toFixed(1)}%</div>`;
   $('sumBody').innerHTML = h;

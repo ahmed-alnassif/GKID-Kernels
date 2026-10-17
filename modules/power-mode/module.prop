@@ -1,0 +1,6 @@
+id=cogan_power
+name=Cogan Power Mode
+version=v1.0
+versionCode=1
+author=cogan17
+description=Mode Hemat / Seimbang / Game + auto cut charging. Seimbang menjaga suhu target memakai laporan Cogan Thermal Monitor. Semua bisa diatur lewat WebUI.

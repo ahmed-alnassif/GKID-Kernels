@@ -1,6 +1,6 @@
 id=cogan_thermal
 name=Cogan Thermal Monitor
-version=v1.0
-versionCode=1
+version=v1.1
+versionCode=2
 author=cogan17
 description=Catat semua suhu + penyebabnya (aplikasi, game, cas, kernel), ringkasan dan simpan log lewat WebUI. Hanya membaca, tidak mengubah setelan.

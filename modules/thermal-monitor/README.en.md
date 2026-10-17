@@ -42,6 +42,11 @@ Open the module in the manager → WebUI icon:
 
 The manager's **Action** button shows the last hour.
 
+## Working with Cogan Power Mode
+
+- Every sample also writes a short `run/latest` report (temperature, app, cause). **[Cogan Power Mode](../power-mode/README.en.md)** uses it for its balanced mode, e.g. to pause charging when charging is what heats the phone.
+- With Power Mode installed, the summary gets a **⚡ per mode** section (Hemat / Seimbang / Game / without Power Mode): average, peak and hot time for each mode.
+
 ## Install / remove
 
 - Install the ZIP from the Modules screen, then reboot.

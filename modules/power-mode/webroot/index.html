@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cogan Power</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --card: #ffffff; --text: #16181d; --muted: #646b78; --line: #e3e6eb;
+    --accent: #2f6fde; --ok: #1f9d55; --warm: #d98a00; --hot: #d93b30; --chip: #eef1f5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1115; --card: #181b21; --text: #e9ecf1; --muted: #9aa3b2; --line: #2a2f38;
+      --accent: #6aa0ff; --ok: #3ccf7f; --warm: #ffb547; --hot: #ff6b5e; --chip: #222731;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: calc(env(safe-area-inset-top, 0px) + 14px) 14px calc(env(safe-area-inset-bottom, 0px) + 24px);
+  }
+  main { max-width: 640px; margin: 0 auto; }
+  header { display: flex; align-items: center; gap: 10px; margin: 4px 2px 14px; }
+  header h1 { font-size: 20px; margin: 0; flex: 1; }
+  .pill { font-size: 12px; padding: 3px 10px; border-radius: 99px; background: var(--chip); color: var(--muted); white-space: nowrap; }
+  .pill.on { color: var(--ok); } .pill.off { color: var(--hot); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+  .card h2 { font-size: 15px; margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
+  .card h2 span { flex: 1; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .banner { font-size: 13px; padding: 9px 12px; border-radius: 12px; margin-bottom: 12px; background: var(--chip); }
+  .banner.ok { border-left: 4px solid var(--ok); } .banner.warn { border-left: 4px solid var(--warm); }
+  .modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .mode { text-align: left; padding: 10px; border-radius: 12px; border: 2px solid var(--line); background: var(--chip); color: var(--text); font: inherit; cursor: pointer; min-width: 0; }
+  .mode b { display: block; font-size: 15px; } .mode small { display: block; color: var(--muted); font-size: 12px; margin-top: 3px; }
+  .mode.sel { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--card)); }
+  .big { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .big b { font-size: 40px; line-height: 1; font-variant-numeric: tabular-nums; }
+  .ok { color: var(--ok); } .warm { color: var(--warm); } .hot { color: var(--hot); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+  td { padding: 4px 2px; border-bottom: 1px solid var(--line); } td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+  button, input {
+    font: inherit; color: var(--text); background: var(--chip); border: 1px solid var(--line);
+    border-radius: 10px; padding: 7px 12px;
+  }
+  button { cursor: pointer; } button:disabled { opacity: .5; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+  label.f { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+  label.f input[type=number] { width: 90px; text-align: right; }
+  h3 { font-size: 13px; margin: 14px 0 2px; color: var(--muted); font-weight: 600; }
+  .note { margin-top: 10px; font-size: 13px; padding: 8px 10px; border-radius: 10px; background: var(--chip); word-break: break-word; }
+  .log div { font-size: 13px; padding: 5px 0; border-bottom: 1px solid var(--line); }
+  .log div:last-child { border-bottom: 0; }
+  .log time { color: var(--muted); margin-right: 6px; font-variant-numeric: tabular-nums; }
+  .hidden { display: none !important; }
+  footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 18px; }
+  @media (max-width: 360px) { .modes { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>⚡ Cogan Power</h1>
+    <span id="state" class="pill">…</span>
+  </header>
+
+  <div id="noksu" class="card hidden">Buka halaman ini dari WebUI modul di KernelSU, KernelSU Next atau BakaSU.</div>
+  <div id="monitor" class="banner">…</div>
+
+  <section class="card">
+    <h2><span>Mode</span></h2>
+    <div class="modes" id="modes"></div>
+  </section>
+
+  <section class="card">
+    <h2><span>Suhu &amp; CPU</span><small class="muted" id="limitLine"></small></h2>
+    <div class="big"><b id="temp">--</b><span class="muted" id="cpuLine"></span></div>
+    <div class="muted" id="causeLine" style="margin-top:6px"></div>
+    <table id="policies"></table>
+  </section>
+
+  <section class="card">
+    <h2><span>🔌 Cas</span><small class="muted" id="switchLine"></small></h2>
+    <div class="big"><b id="level">--</b><span class="muted" id="battLine"></span></div>
+    <div id="chargeLine" style="margin-top:6px"></div>
+    <label class="f">Auto cut charging <input id="sCHARGE_CTRL" type="checkbox"></label>
+    <label class="f">Berhenti di (%) <input id="sCHARGE_STOP" type="number" min="50" max="100"></label>
+    <label class="f">Lanjut cas di (%) <input id="sCHARGE_RESUME" type="number" min="40" max="99"></label>
+    <label class="f">Jeda bila baterai ≥ (°C) <input id="sBATT_TEMP_STOP" type="number" min="35" max="50"></label>
+    <label class="f">Seimbang: jeda cas bila cas bikin panas <input id="sHEAT_PAUSE_CHARGE" type="checkbox"></label>
+    <div class="row">
+      <button id="detect">🔍 Cari saklar cas</button>
+      <span class="muted">colokkan charger dulu</span>
+    </div>
+    <div id="detectNote" class="note hidden"></div>
+  </section>
+
+  <section class="card">
+    <h2><span>⚙️ Setelan mode</span></h2>
+    <label class="f">Seimbang: jaga suhu ≤ (°C) <input id="sTARGET_TEMP" type="number" min="35" max="55"></label>
+    <label class="f">Game: rem darurat di (°C) <input id="sGAME_LIMIT" type="number" min="40" max="60"></label>
+    <label class="f">Hemat: CPU besar maks (%) <input id="sSAVER_CAP" type="number" min="30" max="90"></label>
+    <label class="f">Game: boost aplikasi di layar <input id="sGAME_BOOST" type="checkbox"></label>
+    <label class="f">Cek tiap (detik) <input id="sINTERVAL" type="number" min="5" max="60"></label>
+    <div class="row">
+      <button id="save" class="primary">Simpan setelan</button>
+      <button id="toggle">⏹ Hentikan</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2><span>📝 Aktivitas</span></h2>
+    <div class="log" id="log"><span class="muted">Belum ada.</span></div>
+  </section>
+
+  <footer id="foot">Cogan Power Mode · berhenti = CPU dan cas kembali normal</footer>
+</main>
+
+<script>
+const REPORT = 'sh /data/adb/modules/cogan_power/report.sh';
+const MODES = { hemat: ['🌿 Hemat', c => `CPU besar maks ${c.SAVER_CAP}%, suhu ≤ ${c.TARGET_TEMP - 3} °C`],
+                seimbang: ['⚖️ Seimbang', c => `Suhu dijaga ≤ ${c.TARGET_TEMP} °C`],
+                game: ['🎮 Game', c => `Performa penuh, rem di ${c.GAME_LIMIT} °C`] };
+const NUMBERS = ['TARGET_TEMP', 'GAME_LIMIT', 'SAVER_CAP', 'INTERVAL', 'CHARGE_STOP', 'CHARGE_RESUME', 'BATT_TEMP_STOP'];
+const FLAGS = ['GAME_BOOST', 'CHARGE_CTRL', 'HEAT_PAUSE_CHARGE'];
+const REASONS = { batas: 'batas isi', baterai: 'baterai panas', panas: 'cas bikin HP panas' };
+const $ = id => document.getElementById(id);
+let status = null, seq = 0, editing = false;
+
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'})[c]); }
+function deg(t) { return (t / 10).toFixed(1); }
+function ghz(khz) { return (khz / 1e6).toFixed(2) + ' GHz'; }
+function toast(msg) { try { ksu.toast(msg); } catch (e) { console.log(msg); } }
+
+function exec(cmd) {
+  return new Promise((resolve, reject) => {
+    if (typeof ksu === 'undefined' || !ksu.exec) return reject(new Error('ksu tidak tersedia'));
+    const cb = `cogan_cb_${Date.now()}_${seq++}`;
+    window[cb] = (errno, stdout, stderr) => { delete window[cb]; resolve({ errno, stdout, stderr }); };
+    try { ksu.exec(cmd, '{}', cb); } catch (e) { delete window[cb]; reject(e); }
+  });
+}
+async function report(args) {
+  const r = await exec(`${REPORT} ${args}`);
+  try { return JSON.parse(r.stdout); } catch (e) { throw new Error((r.stderr || r.stdout || 'tanpa keluaran').trim()); }
+}
+
+function render(s) {
+  status = s;
+  const c = s.config, st = s.state;
+  $('state').textContent = s.running ? '● aktif' : '■ berhenti';
+  $('state').className = 'pill ' + (s.running ? 'on' : 'off');
+  $('toggle').textContent = s.running ? '⏹ Hentikan' : '▶ Mulai';
+
+  const m = s.monitor;
+  $('monitor').className = 'banner ' + (m.installed && m.fresh ? 'ok' : 'warn');
+  $('monitor').innerHTML = m.installed && m.fresh
+    ? `🔗 Terhubung ke <b>Cogan Thermal Monitor</b>${m.cause ? ` · penyebab sekarang: ${esc(m.cause)}` : ''}`
+    : m.installed ? '⏳ Cogan Thermal Monitor terpasang tapi belum mencatat. Seimbang memakai sensor sendiri dulu.'
+    : 'ℹ️ Pasang <b>Cogan Thermal Monitor</b> agar Seimbang tahu penyebab panas (misalnya cas). Sekarang memakai sensor sendiri.';
+
+  $('modes').innerHTML = Object.entries(MODES).map(([key, [name, info]]) =>
+    `<button class="mode ${c.mode === key ? 'sel' : ''}" data-mode="${key}"><b>${name}</b><small>${esc(info(c))}</small></button>`).join('');
+
+  const limit = st ? st.limit : (c.mode === 'game' ? c.GAME_LIMIT : c.mode === 'hemat' ? c.TARGET_TEMP - 3 : c.TARGET_TEMP);
+  $('temp').textContent = s.main > -9999 ? deg(s.main) + '°' : '--';
+  $('temp').className = s.main >= limit * 10 ? 'hot' : s.main >= (limit - 3) * 10 ? 'warm' : 'ok';
+  $('limitLine').textContent = `batas ${limit} °C`;
+  if (st && s.running) {
+    $('cpuLine').textContent = st.big >= 100 ? 'CPU penuh' : `CPU besar dibatasi ${st.big}%` + (st.little < 100 ? `, kecil ${st.little}%` : '');
+    $('causeLine').textContent = [st.cause && `Penyebab: ${st.cause}`, st.app && `Aplikasi: ${st.app}`, st.boost ? 'Boost Game aktif' : ''].filter(Boolean).join(' · ');
+  } else {
+    $('cpuLine').textContent = 'pengatur berhenti, CPU normal';
+    $('causeLine').textContent = '';
+  }
+  $('policies').innerHTML = s.policies.map(p => `<tr><td>${esc(p.name)}</td><td class="${p.limit < p.max ? 'warm' : ''}">${ghz(p.limit)} / ${ghz(p.max)}</td></tr>`).join('');
+
+  const b = s.battery;
+  $('level').textContent = b.level >= 0 ? b.level + '%' : '--';
+  $('battLine').textContent = `${deg(b.temp)} °C · ${{ charging: 'mengecas', full: 'penuh', discharging: 'tidak dicas', idle: 'cas berhenti' }[b.status] || b.status}` + (b.current ? ` · ${b.current} mA` : '');
+  const off = st && s.running ? st.charge_off : '';
+  $('chargeLine').innerHTML = !c.CHARGE_CTRL ? '<span class="muted">Auto cut charging mati.</span>'
+    : off ? `<b class="warm">⏸ Cas dihentikan: ${off.split(' ').map(r => REASONS[r] || r).join(', ')}</b>`
+    : `<span class="ok">Cas normal</span> <span class="muted">· berhenti di ${c.CHARGE_STOP}%, lanjut ${c.CHARGE_RESUME}%</span>`;
+  $('switchLine').textContent = s.switch ? 'saklar: ' + s.switch.split('/').pop() : s.no_switch ? 'saklar tidak ditemukan' : 'saklar belum dicari';
+
+  if (!editing) {
+    for (const k of NUMBERS) $('s' + k).value = c[k];
+    for (const k of FLAGS) $('s' + k).checked = !!c[k];
+  }
+  $('foot').textContent = `Cogan Power Mode ${s.version} · berhenti = CPU dan cas kembali normal`;
+}
+
+async function loadLog() {
+  const events = await report('events 30');
+  $('log').innerHTML = events.length ? events.map(e => `<div><time>${new Date(e.ts * 1000).toLocaleString('id-ID', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</time>${esc(e.text)}</div>`).join('')
+    : '<span class="muted">Belum ada.</span>';
+}
+
+async function refresh() {
+  render(await report('status'));
+  await loadLog();
+}
+
+function setup() {
+  $('modes').onclick = async e => {
+    const button = e.target.closest('[data-mode]'); if (!button) return;
+    const r = await report('mode ' + button.dataset.mode);
+    if (!r.ok) return toast(r.error);
+    if (!status.running) await report('start');
+    toast('Mode ' + MODES[button.dataset.mode][0].split(' ')[1]);
+    setTimeout(refresh, 600);
+  };
+  for (const k of [...NUMBERS, ...FLAGS]) $('s' + k).addEventListener('focus', () => editing = true);
+  $('save').onclick = async () => {
+    const args = NUMBERS.map(k => `${k} ${Math.round(+$('s' + k).value) || 0}`).concat(FLAGS.map(k => `${k} ${$('s' + k).checked ? 1 : 0}`));
+    const r = await report('set ' + args.join(' ')).catch(err => ({ ok: 0, error: err.message }));
+    toast(r.ok ? 'Setelan disimpan' : r.error);
+    if (r.ok) editing = false;
+    setTimeout(refresh, 600);
+  };
+  for (const k of FLAGS) $('s' + k).onchange = () => $('save').click();
+  $('toggle').onclick = async () => {
+    render(await report(status && status.running ? 'stop' : 'start'));
+    toast(status.running ? 'Cogan Power aktif' : 'Dihentikan: CPU dan cas kembali normal');
+    loadLog();
+  };
+  $('detect').onclick = async () => {
+    $('detect').disabled = true;
+    $('detectNote').textContent = 'Mencoba saklar satu per satu (cas akan mati-nyala sebentar)…';
+    $('detectNote').classList.remove('hidden');
+    try {
+      const r = await report('detect');
+      $('detectNote').innerHTML = r.ok ? `✅ Saklar ditemukan: ${esc(r.switch)}`
+        : esc(r.error || 'Saklar tidak ditemukan di HP ini. Auto cut charging tidak bisa dipakai.');
+      if (r.tried && r.tried.length) $('detectNote').innerHTML += '<br><span class="muted">' + r.tried.map(t => `${esc(t.node.split('/').pop())}: ${esc(t.result.replace(/_/g, ' '))}`).join(' · ') + '</span>';
+    } catch (err) { $('detectNote').textContent = 'Gagal: ' + err.message; }
+    $('detect').disabled = false;
+    refresh();
+  };
+}
+
+setup();
+if (typeof ksu === 'undefined') {
+  $('noksu').classList.remove('hidden');
+  $('state').textContent = 'tanpa root';
+} else {
+  refresh().catch(err => toast('Gagal membaca: ' + err.message));
+  setInterval(() => { if (document.visibilityState === 'visible') refresh().catch(() => {}); }, 5000);
+}
+</script>
+</body>
+</html>

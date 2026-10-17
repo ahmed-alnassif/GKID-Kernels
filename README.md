@@ -76,6 +76,7 @@ Kernel generik yang dibangun dari sumber GKI 6.1 ([GKI-Duchamp-6.1](https://gith
 ## Modul tambahan
 
 - **[Cogan Thermal Monitor](modules/thermal-monitor/README.md)** (uji): mencatat semua suhu HP beserta penyebabnya (aplikasi, game, cas, proses kernel), membuat ringkasan dan menyimpan log lewat WebUI KernelSU / KernelSU Next / BakaSU. Hanya membaca sensor.
+- **[Cogan Power Mode](modules/power-mode/README.md)** (uji): mode Hemat / Seimbang / Game dan auto cut charging. Mode Seimbang menjaga suhu memakai laporan Cogan Thermal Monitor, misalnya menjeda cas bila cas yang membuat panas.
 
 ---
 

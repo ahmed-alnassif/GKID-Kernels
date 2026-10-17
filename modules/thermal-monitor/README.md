@@ -42,6 +42,11 @@ Buka modul di manager → ikon WebUI:
 
 Tombol **Action** di manager menampilkan ringkasan 1 jam terakhir.
 
+## Terhubung dengan Cogan Power Mode
+
+- Tiap sampel juga menulis laporan singkat `run/latest` (suhu, aplikasi, penyebab). **[Cogan Power Mode](../power-mode/README.md)** memakainya untuk mode Seimbang, misalnya menjeda cas bila cas yang membuat panas.
+- Bila Power Mode terpasang, ringkasan punya bagian **⚡ Per mode** (Hemat / Seimbang / Game / tanpa Power Mode): suhu rata-rata, tertinggi dan waktu panas tiap mode.
+
 ## Pasang / hapus
 
 - Pasang ZIP lewat menu Modul, lalu reboot.
