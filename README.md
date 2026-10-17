@@ -73,6 +73,12 @@ Kernel generik yang dibangun dari sumber GKI 6.1 ([GKI-Duchamp-6.1](https://gith
 
 ---
 
+## Modul tambahan
+
+- **[Cogan Thermal Monitor](modules/thermal-monitor/README.md)** (uji): mencatat semua suhu HP beserta penyebabnya (aplikasi, game, cas, proses kernel), membuat ringkasan dan menyimpan log lewat WebUI KernelSU / KernelSU Next / BakaSU. Hanya membaca sensor.
+
+---
+
 ## Bootloop?
 
 Jangan panik dan **jangan factory reset**. Kenali dulu penyebabnya:

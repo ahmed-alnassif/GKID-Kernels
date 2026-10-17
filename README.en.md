@@ -73,6 +73,12 @@ A generic kernel built from GKI 6.1 sources ([GKI-Duchamp-6.1](https://github.co
 
 ---
 
+## Extra modules
+
+- **[Cogan Thermal Monitor](modules/thermal-monitor/README.en.md)** (testing): records every temperature on the phone and what caused it (apps, games, charging, kernel threads), makes summaries and saves logs from the KernelSU / KernelSU Next / BakaSU WebUI. Read-only.
+
+---
+
 ## Bootloop?
 
 Don't panic and **don't factory reset**. Find the cause first:
