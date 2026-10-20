@@ -522,7 +522,7 @@ apply_susfs_patches() {
 
     if [ "$SUSFS_PATCH" = "gki-android14-6.1" ]; then
       cd $SUSFS_DIR
-      apply_patch_file "$KERNEL_PATCHES/susfs/susfs_fs_namespace_fix.patch"
+      apply_patch_file "$KERNEL_PATCHES/susfs/susfs_fs_namespace_fix.patch" || true
       cd $OLDPWD
     fi
 
