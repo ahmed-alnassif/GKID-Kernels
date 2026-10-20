@@ -211,7 +211,7 @@ fi
 set -eo pipefail
 if susfs_included && [ "$KSU" = "BSU" ]; then
   log "BakaSU included"
-  install_ksu "Baka-SU/BakaSU" "main"
+  install_ksu "Baka-SU/BakaSU" "sync-susfs"
 
   clone_susfs
   apply_susfs_patches
