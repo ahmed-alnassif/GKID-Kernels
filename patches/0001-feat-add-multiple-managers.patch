@@ -1,20 +1,20 @@
-From 48a15450d752f9add462dae4929260113df52eed Mon Sep 17 00:00:00 2001
+From d3c97c7b9ec7529c51e69da663ac6081214fc18b Mon Sep 17 00:00:00 2001
 From: Ahmed Al-Nassif <mr.ahmed.nassif@gmail.com>
-Date: Thu, 10 Sep 2026 12:28:16 +0300
+Date: Fri, 23 Oct 2026 10:53:03 +0300
 Subject: [PATCH] feat: add multiple managers
 
 Signed-off-by: Ahmed Al-Nassif <mr.ahmed.nassif@gmail.com>
 ---
- kernel/manager/apk_sign.c     | 15 ++++++++-----
+ kernel/manager/apk_sign.c     | 10 ++++++++-
  kernel/manager/manager_hash.h | 41 +++++++++++++++++++++++++++++++++++
- 2 files changed, 50 insertions(+), 6 deletions(-)
+ 2 files changed, 50 insertions(+), 1 deletion(-)
  create mode 100644 kernel/manager/manager_hash.h
 
 diff --git a/kernel/manager/apk_sign.c b/kernel/manager/apk_sign.c
-index 1d872b6..ac14018 100644
+index b4f6934..d406cf4 100644
 --- a/kernel/manager/apk_sign.c
 +++ b/kernel/manager/apk_sign.c
-@@ -21,6 +21,7 @@
+@@ -22,6 +22,7 @@
  #include "manager/apk_sign.h"
  #include "uapi/app_profile.h"
  #include "klog.h" // IWYU pragma: keep
@@ -22,26 +22,19 @@ index 1d872b6..ac14018 100644
  
  struct sdesc {
      struct shash_desc shash;
-@@ -363,12 +364,14 @@ bool is_manager_apk(char *path)
-         return false;
-     }
- #endif
--    if (check_v2_signature(path, EXPECTED_SIZE, EXPECTED_HASH)) {
--        return true;
+@@ -325,5 +326,12 @@ int get_pkg_from_apk_dir_path(char *pkg, const char *path)
+ 
+ bool is_manager_apk(char *path)
+ {
+-    return check_v2_signature(path, EXPECTED_SIZE, EXPECTED_HASH);
++    size_t i;
 +
-+    int i;
 +    for (i = 0; i < MANAGER_SIGNATURES_COUNT; i++) {
-+        if (check_v2_signature(path, manager_signatures[i].size,
-+                               manager_signatures[i].hash)) {
++        if (check_v2_signature(path, manager_signatures[i].size, manager_signatures[i].hash))
 +            return true;
-+        }
-     }
--#ifdef EXPECTED_SIZE2
--    return check_v2_signature(path, EXPECTED_SIZE2, EXPECTED_HASH2);
--#else
++    }
 +
-     return false;
--#endif
++    return false;
  }
 diff --git a/kernel/manager/manager_hash.h b/kernel/manager/manager_hash.h
 new file mode 100644
@@ -91,5 +84,5 @@ index 0000000..7ba63e2
 +
 +#endif
 -- 
-2.55.0
+2.56.0
 
