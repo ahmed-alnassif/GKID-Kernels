@@ -38,7 +38,10 @@ BUILD_CONFIGS: Dict[str, List[Dict[str, Any]]] = {
 		config(name="Compat+BSU+SUSFS", KSU="BSU", KSU_COMPAT="true", KSU_SUSFS="true"),
 		config(name="Compat+NoDS+KSU+SUSFS", KSU="KSU", KSU_COMPAT="true", KSU_SUSFS="true", No_DS="true"),
 		config(name="Compat+NoDS+BSU+SUSFS", KSU="BSU", KSU_COMPAT="true", KSU_SUSFS="true", No_DS="true")
-	]
+	],
+        "BUILD_KSUN": [
+                config(name="Compat+NoDS+KSUN", KSU="KSUN", KSU_COMPAT="true", No_DS="true")
+        ]
 }
 
 ALL_KERNEL_VERSIONS: List[str] = ["5.10", "5.15", "6.1", "6.6", "6.12"]

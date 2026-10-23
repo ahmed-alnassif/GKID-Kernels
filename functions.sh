@@ -128,8 +128,10 @@ install_ksu() {
 }
 
 ksu_included() {
-  [ "$KSU" == "yes" ]
-  return $?
+  case "$KSU" in
+    KSU|KSUN|RSKSU|SKSU|BSU) return 0 ;;
+    *) return 1 ;;
+  esac
 }
 
 susfs_included() {

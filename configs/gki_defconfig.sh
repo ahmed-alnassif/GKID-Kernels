@@ -10,10 +10,11 @@ function apply_config(){
 if [ "$KSU" != "no" ]; then
   # Base KSU Config & Dependencies
   echo "⚙️ Added KSU configuration"
-  cat >> $DEFCONFIG <<EOF
-CONFIG_KSU=y
-CONFIG_KPM=y
-EOF
+  echo "CONFIG_KSU=y" >> "$DEFCONFIG"
+  # KPM is not part of KernelSU-Next kernel source; provided externally via KPatch-Next.
+  if [ "$KSU" != "KSUN" ]; then
+    echo "CONFIG_KPM=y" >> "$DEFCONFIG"
+  fi
 fi
 
 echo "🧩 Adding Built-in Features"

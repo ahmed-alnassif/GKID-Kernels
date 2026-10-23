@@ -58,6 +58,16 @@ on:
         type: boolean
         default: true
 
+      BUILD_KSUN:
+        description: "Build with KernelSU Next (Compat+NoDS)"
+        type: boolean
+        default: false
+
+      KSUN_OPTIONAL_FEATURES:
+        description: "Allow optional DroidSpaces/NetHunter/NoMount for KSUN builds"
+        type: boolean
+        default: false
+
       CLEAN_LTO_CACHE:
         description: "Clean ThinLTO cache to fix .config bug"
         type: boolean
@@ -123,6 +133,7 @@ jobs:
           BUILD_VANILLA: ${{ github.event.inputs.BUILD_VANILLA }}
           BUILD_KSU: ${{ github.event.inputs.BUILD_KSU }}
           BUILD_KSU_SUSFS: ${{ github.event.inputs.BUILD_KSU_SUSFS }}
+          BUILD_KSUN: ${{ github.event.inputs.BUILD_KSUN }}
         run: |
           python3 py/generate-matrix.py >> "$GITHUB_OUTPUT"
 
@@ -171,6 +182,7 @@ jobs:
           DROIDSPACES: ${{ inputs.DROIDSPACES }}
           NH: ${{ inputs.NH }}
           NM: ${{ inputs.NM }}
+          KSUN_OPTIONAL_FEATURES: ${{ inputs.KSUN_OPTIONAL_FEATURES }}
           BUILD_NAME: ${{ matrix.name }}
           RUN_NUM: -r${{ github.run_number }}
         run: |
@@ -179,7 +191,7 @@ jobs:
           ./build.sh
 
       - name: Create KernelSU module for wireless modules
-        if: ${{ inputs.NH }}
+        if: ${{ inputs.NH && (matrix.KSU != 'KSUN' || inputs.KSUN_OPTIONAL_FEATURES) }}
         run: |
           echo "Extracting wireless modules..."
           NAME="WirelessKSU"

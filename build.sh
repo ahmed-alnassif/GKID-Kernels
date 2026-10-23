@@ -13,6 +13,14 @@ KERNEL_DEFCONFIG="gki_defconfig"
 
 KERNEL_VERSION="${KERNEL_VERSION:-6.1}"
 
+# Keep the default KSUN build free of optional feature patches.
+if [ "${KSU:-}" = "KSUN" ] && [ "${KSUN_OPTIONAL_FEATURES:-false}" != "true" ]; then
+  export DROIDSPACES="false"
+  export NH="false"
+  export NM="false"
+  echo "[INFO] KSUN baseline: optional DroidSpaces/NetHunter/NoMount disabled"
+fi
+
 sudo timedatectl set-timezone "$TIMEZONE" || export TZ="$TIMEZONE"
 
 RELEASE="$(date +v%y.%m.%d)${RUN_NUM}"
@@ -76,6 +84,7 @@ case "$KSU" in
   "SKSU") VARIANT="SukiSU-Ultra" ;;
   "BSU") VARIANT="BakaSU" ;;
   "KSU") VARIANT="KernelSU" ;;
+  "KSUN") VARIANT="KernelSU-Next" ;;
   "no") VARIANT="Vanilla" ;;
   "vnlto") VARIANT="Vanilla+NoLTO" ;;
   *) VARIANT="Vanilla" ;;
@@ -218,6 +227,26 @@ if susfs_included && [ "$KSU" = "BSU" ]; then
 
 fi
 
+
+# KernelSU Next — temiz kurulum vs SUSFS (pershoot fork)
+if [ "$KSU" = "KSUN" ]; then
+  if susfs_included; then
+    log "KernelSU Next SUSFS included (pershoot dev-susfs)"
+    curl -fLSs "https://raw.githubusercontent.com/pershoot/KernelSU-Next/refs/heads/dev-susfs/kernel/setup.sh" | bash -s dev-susfs
+
+    KSUN_BRANCH="$(git -C "$KSRC/KernelSU-Next" symbolic-ref --short HEAD 2>/dev/null || true)"
+    if [ "$KSUN_BRANCH" != "dev-susfs" ]; then
+      error "KernelSU Next SUSFS branch mismatch (expected dev-susfs, got ${KSUN_BRANCH:-detached HEAD})"
+      exit 1
+    fi
+
+    clone_susfs
+    apply_susfs_patches
+  else
+    log "KernelSU Next included (latest tagged release)"
+    curl -fLSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -
+  fi
+fi
 if [ "$KSU" = "KSU" ]; then
   log "KernelSU included"
   if ! susfs_included; then
@@ -323,6 +352,17 @@ KMI_CHECK="$WORKDIR/py/kmi-check-6.x.py"
 
 echo "::group::[*] Generating config"
 make ${MAKE_ARGS[@]} "$KERNEL_DEFCONFIG"
+
+if [ "$KSU" = "KSUN" ]; then
+  log "Validating KernelSU Next configuration"
+  for symbol in CONFIG_KSU CONFIG_KPROBES CONFIG_EXT4_FS; do
+    if ! grep -qx "${symbol}=y" "$OUTDIR/.config"; then
+      error "KernelSU Next requires ${symbol}=y in the final .config"
+      exit 1
+    fi
+  done
+  success "KernelSU Next root prerequisites are enabled"
+fi
 echo "::endgroup::"
 
 if susfs_included; then
