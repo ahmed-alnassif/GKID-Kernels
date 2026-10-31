@@ -159,7 +159,11 @@ fi
 
 
 log "Applying BBRv3 patch"
-apply_patch_file $KERNEL_PATCHES/bbrv3/bbrv3.patch
+# Prefer a patch rebased for this GKI line (e.g. bbrv3-6.6.patch), else the generic one
+BBR_PATCH="$KERNEL_PATCHES/bbrv3/bbrv3-${KERNEL_VERSION}.patch"
+[ -f "$BBR_PATCH" ] || BBR_PATCH="$KERNEL_PATCHES/bbrv3/bbrv3.patch"
+log "Using $(basename "$BBR_PATCH")"
+apply_patch_file "$BBR_PATCH"
 
 
 if kernel_version_lt "$KERNEL_VERSION" "6.12"; then
