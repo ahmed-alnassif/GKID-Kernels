@@ -145,6 +145,15 @@ def build_release_body():
 		"test": os.environ.get("TEST_INPUT", ""),
 	}
 	status_map = {"true": "Enabled", "false": "Disabled"}
+
+	nomount_modules = sorted(z for z in existing_zips if z.startswith("NoMount-Metamodule-"))
+	nomount_note = ""
+	if nomount_modules:
+		nomount_note = f"""
+> [!Important]
+> **NoMount is built into these kernels.** Install **{nomount_modules[0]}** from this release, not the official NoMount ZIP: it is built from the same commit as the kernel driver.
+> Switching from another NoMount setup? Uninstall NoMount, run `su -c "rm -rf /data/adb/nomount"`, reboot, then install this module.
+"""
 	cap_first = lambda s: s[0].upper() + s[1:] if s else s
 
 	warning = (
@@ -181,7 +190,7 @@ Your donations keep this project alive! I spend countless hours maintaining kern
 - Kali NetHunter: {status_map.get(inputs['nh'], 'Disabled')}
 - DroidSpaces: {status_map.get(inputs['droidspaces'], 'Disabled')}
 - NoMount: {status_map.get(inputs['nm'], 'Disabled')}
-
+{nomount_note}
 > [!Important]
 > These are **GKI** kernels, not custom kernels. Each line below supports **all** devices that shipped with the matching Linux version and Android release (stock or AOSP).
 
@@ -289,7 +298,7 @@ Test both and use whichever performs better on your network.
 
 {read_or_default("release-artifacts/nomount_changelog.txt")}
 
-**Full commit history:** [Browse all commits](https://github.com/maxsteeel/nomount/commits/master)
+**Full commit history:** [Browse all commits](https://github.com/maxsteeel/nomount/commits/dev)
 
 ---
 **KernelSU changelog (last 5 commits):**

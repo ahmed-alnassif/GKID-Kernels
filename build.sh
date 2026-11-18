@@ -107,7 +107,7 @@ else
   echo "No changelog generator wired up yet for $KERNEL_VERSION" \
     > "$RELEASE_DIR/android_kernel-${KERNEL_VERSION}_changelog.txt"
 fi
-generate_gh_changelog "maxsteeel/nomount" "master" 5 "$RELEASE_DIR/nomount_changelog.txt"
+generate_gh_changelog "maxsteeel/nomount" "dev" 5 "$RELEASE_DIR/nomount_changelog.txt"
 generate_gh_changelog "tiann/KernelSU" "main" 5 "$RELEASE_DIR/ksu_changelog.txt"
 generate_gh_changelog "Baka-SU/BakaSU" "main" 5 "$RELEASE_DIR/BakaSU_changelog.txt"
 
@@ -263,8 +263,18 @@ fi
 echo "VARIANT=$VARIANT" >> $GITHUB_ENV
 
 if [ "$NM" = "true" ]; then
-  log "Applying NoMount"
-  curl "https://raw.githubusercontent.com/maxsteeel/nomount/refs/heads/dev/kernel/setup.sh" | bash -s master
+  # Build the driver from the exact commit the release's NoMount metamodule is
+  # built from (resolved once per run in the workflow's prepare job).
+  if [ -z "${NOMOUNT_COMMIT:-}" ]; then
+    NOMOUNT_COMMIT="$(git ls-remote https://github.com/maxsteeel/nomount refs/heads/dev | cut -f1)"
+  fi
+  log "Applying NoMount at $NOMOUNT_COMMIT"
+  curl "https://raw.githubusercontent.com/maxsteeel/nomount/${NOMOUNT_COMMIT}/kernel/setup.sh" | bash -s "$NOMOUNT_COMMIT"
+  if ! grep -q 'nomount/' fs/Makefile || [ ! -e fs/nomount/Kconfig ]; then
+    error "NoMount setup did not wire fs/nomount into the kernel"
+    exit 1
+  fi
+  echo "NOMOUNT_COMMIT=$NOMOUNT_COMMIT" >> $GITHUB_ENV
 fi
 echo "::endgroup::"
 set +eo pipefail
